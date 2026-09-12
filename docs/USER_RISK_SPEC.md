@@ -4,6 +4,7 @@
 > Baseline: `main` @ `c70351e4a8f711698def4e5fd9cec28fdae215a9`  
 > Scope: 在目前 Return Resolution Agent 上加入 deterministic User Risk Authorization Gate。  
 > 本文件以 target repository 的現行 module、contract、DB migration、Provider 與 refund execution flow 為實作基準。
+> 整合決策（2026-09-12）：本分支只在可信 scenario 選定的 Policy v2 新案啟用此 gate；v1 保留既有語意。API migration `0014_user_risk_authorization` 接 `0013`，Policy v2／Demo session 使用接續的 `0015_policy_v2_fulfillment`。履約等待及 APPLIED 後的 Memory join 見 [Policy v2](spec/09-policy-v2-integration.md)，實測與未完成項目見 [progress](progress.md)。
 
 ---
 

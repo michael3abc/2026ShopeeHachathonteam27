@@ -25,7 +25,10 @@ Redis entries contain one `body` field with the complete JSON contract.
 有 correction trace 的案件在 graph checkpoint 內留下 `MemoryDistillationInput`。主
 Agent Worker 發布 `RESOLVED` 後即完成 customer command；Memory Enqueue Worker
 以獨立 consumer group 消費相同 event，讀取 checkpoint 並發布
-`MemoryDistillationJob`。Memory Worker 再呼叫 structured-output distiller：
+`MemoryDistillationJob`。v2 FULL_REFUND 必須先在 Agent DB `memory_completion_joins`
+以 resolution／authorization reference 與 resolution hash 配對 correction 與 API
+`APPLIED` 事件；任意到達順序與重送只對應一個 logical job，未付款不蒸餾。
+v1 與 DECLINE 保留原排程。Memory Worker 再呼叫 structured-output distiller：
 
 - `SKIP`：只發布 completed event，不呼叫 store。
 - `CREATE_CANDIDATE`：以 `memory_id` 冪等呼叫
@@ -47,15 +50,21 @@ candidate；之後保存完整 completed/failed event 再發布 Redis。重啟�
 沿用既有結果，不重新蒸餾；candidate store 仍拒絕相同 ID 的不同內容。若 submit
 成功但 event 尚未保存，重送的是同一份已保存的 candidate。
 
-啟動時先執行 package 內 Agent Alembic `0001_memory_replay` migration，再啟動
+啟動時先執行 package 內 Agent Alembic `0001_memory_replay → 0002_memory_completion`，再啟動
 workers；版本記錄使用 `agent_service_alembic_version`，不修改 API 或 LangGraph
 的 migration 表。新增 SQLAlchemy／Alembic 為此持久化與版本管理的直接依賴，
 沿用 repository 已使用的套件，不增加外部服務。既有 `agent_command_journal`
 與 checkpoints 保留；不可在 pending jobs 存在時刪除 replay records。
+Migration 支援 PostgreSQL offline SQL；有 completion join 歷史時，online 與
+offline downgrade 都在 DROP 前拒絕。多 replica 啟動仍以 advisory transaction lock
+序列化 migration。Command journal 首次 claim 使用 INSERT ON CONFLICT 加 row lock，
+避免多 worker 同時首次 claim 的 unique-key race；租約／terminal 判斷保持持久化。
 
 Streams：`return-agent.memory-jobs.v1`、`return-agent.memory-events.v1` 與
 `return-agent.memory-jobs.dlq.v1`。正式 Policy 永遠高於 Operational Memory；只有
 外部治理流程升成 `APPROVED` 的資料能被案件 graph 查回。
+付款完成另由 API transactional outbox 投遞 `return-agent.refund-completions.v2`，
+Memory completion group 為 `return-agent.memory-completion.v2`。
 
 ## Profiles
 
@@ -201,4 +210,20 @@ Replay migration／並行保存測試預設用 SQLite；設定 `AGENT_TEST_POSTG
 請指向專用測試 database，執行
 `pytest apps/agent_service/tests/test_memory_worker.py -k 'agent_migration or concurrent_first'`。
 
-Reviewer routing 不再組裝 HttpRiskGateProvider。Model verdict 仍是 APPROVE / REVISE；graph 在三次修正後仍未核准時，以 REVISION_BUDGET_EXCEEDED 將最後提案與異議交 HumanReviewProvider。升級需與 API/contracts/Web 同步，舊 checkpoint 與 pending event 不得混用新版 DTO。
+v2 的可信版本來自 API case context。Reviewer 獨立讀取自己的 findings，不接收
+Assessment 結論、Operational Memory 或 user-risk facts；Model verdict 保持
+APPROVE／REVISE。核准後才計算金額 gate 與 v2 FULL_REFUND risk gate；HIGH／UNKNOWN
+進既有 Human Review，revision exhaustion 仍以原異議進人審。UserRisk HTTP Provider
+只取 API 的 immutable snapshot，不讀 API DB；API 與 Agent 共用
+`config/reviewer-gates.json`／`config/user-risk.json`。
+
+Policy path／必須退回的條件由 typed POLICY_CONFIRMATION resume 恢復；API 保存
+同意後經 outbox 發送，Agent 不自行信任瀏覽器 payload。核准 emit 不代表退款已完成，
+後續 consent／return inspection／payment 由 API 履約 worker 負責。v1/v2 checkpoint
+不得跨版重播或自動降級。
+
+隔離 PG／Redis 的完整指令與 offline SQL 見
+[migration/recovery runbook](../../scripts/README.md#policy-v2-migration-與-recovery-驗證)。
+真 PostgreSQL 已覆蓋 correction/APPLIED 任意順序、並行 first-result／journal claim；
+真 Redis 已覆蓋 reclaim、ACK loss 後重建 worker 不重跑 distiller。這些 deterministic
+測試不代替真模型 A–F／risk persona／B→C 學習驗收。

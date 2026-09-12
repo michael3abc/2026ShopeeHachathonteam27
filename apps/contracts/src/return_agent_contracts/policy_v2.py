@@ -171,6 +171,28 @@ class PolicyConfirmationRequest(ContractModel):
     return_requirement_hash: str
 
 
+def policy_confirmation_request_ref(request: PolicyConfirmationRequest | dict[str, object], bundle: PolicyBundle) -> str:
+    """Bind consent to exact rules, independent of retrieval time and selection.
+
+    A path switch retrieves the same complete package under a new retrieval
+    reference. Only that reference, retrieval time and selected path are omitted;
+    every rule, clause, interpretation and source remains in the digest.
+    """
+    if bundle.schema_version != "v2" or bundle.retrieval_status != "OK":
+        raise ValueError("policy confirmation requires an explicit v2 package")
+    payload = request.model_dump(mode="json", exclude={"request_ref"}) if isinstance(request, PolicyConfirmationRequest) else dict(request)
+    payload.pop("request_ref", None)
+    package = bundle.model_dump(mode="json", exclude={"retrieved_at", "policy_bundle_version", "selected_path_id"})
+    package["clauses"] = sorted(package["clauses"], key=lambda clause: clause["clause_id"])
+    package["paths"] = sorted(package["paths"], key=lambda path: path["path_id"])
+    return f"policy-confirmation:{content_hash(dict(request=payload, policy_version=POLICY_V2_VERSION, claim_registry_version=REGISTRY_V2_VERSION, package=package))}"
+
+
+def validate_policy_confirmation_request(request: PolicyConfirmationRequest, bundle: PolicyBundle) -> None:
+    if request.request_ref != policy_confirmation_request_ref(request, bundle):
+        raise ValueError("policy confirmation is not bound to the current versioned rule package")
+
+
 class PolicyConfirmation(ContractModel):
     confirmation_ref: OpaqueRef
     request: PolicyConfirmationRequest

@@ -59,11 +59,15 @@ services:
       RETURN_AGENT_EMBEDDING_TIMEOUT_SECONDS: "${RETURN_AGENT_EMBEDDING_TIMEOUT_SECONDS:-25}"
       RETURN_AGENT_EMBEDDING_API_KEY_FILE: /run/secrets/embedding_api_key
       RETURN_AGENT_REVIEW_GATE_CONFIG: /run/config/reviewer-gates.json
+      RETURN_AGENT_USER_RISK_CONFIG: /run/config/user-risk.json
+      RETURN_AGENT_DEMO_IDENTITIES_FILE: "${RETURN_AGENT_DEMO_IDENTITIES_CONTAINER_FILE:-}"
     volumes:
       - ./config/reviewer-gates.json:/run/config/reviewer-gates.json:ro
+      - ./config/user-risk.json:/run/config/user-risk.json:ro
     secrets:
       - internal_service_token
       - embedding_api_key
+      - demo_identities
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
     depends_on:
@@ -103,8 +107,10 @@ services:
       RETURN_AGENT_MODEL_API_KEY: "${RETURN_AGENT_MODEL_API_KEY:-}"
       RETURN_AGENT_MODEL_API_KEY_FILE: /run/secrets/model_api_key
       RETURN_AGENT_REVIEW_GATE_CONFIG: /run/config/reviewer-gates.json
+      RETURN_AGENT_USER_RISK_CONFIG: /run/config/user-risk.json
     volumes:
       - ./config/reviewer-gates.json:/run/config/reviewer-gates.json:ro
+      - ./config/user-risk.json:/run/config/user-risk.json:ro
     secrets:
       - model_api_key
       - internal_service_token
@@ -147,6 +153,8 @@ volumes:
   return_agent_redis:
 
 secrets:
+  demo_identities:
+    file: "${RETURN_AGENT_DEMO_IDENTITIES_HOST_FILE:-/dev/null}"
   model_api_key:
     file: "${RETURN_AGENT_MODEL_API_KEY_HOST_FILE:-/dev/null}"
   embedding_api_key:

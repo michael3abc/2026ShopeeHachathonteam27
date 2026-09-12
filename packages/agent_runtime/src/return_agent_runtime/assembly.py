@@ -1,6 +1,7 @@
 """Deterministic decision, handoff, and terminal assembly."""
 
 from __future__ import annotations
+from return_agent_contracts.policy_v2 import active_clauses, REGISTRY_V2_VERSION
 
 from collections.abc import Iterable
 from decimal import Decimal
@@ -62,7 +63,7 @@ from .state import AgentState
 
 
 def _effective_return_policy(policy_bundle: PolicyBundle) -> ReturnPolicy:
-    policies = {clause.return_policy for clause in policy_bundle.clauses}
+    policies = {clause.return_policy for clause in active_clauses(policy_bundle)}
     if {ReturnPolicy.REQUIRED, ReturnPolicy.NOT_REQUIRED}.issubset(policies):
         raise ContractInvariantError("applicable clauses disagree on return policy")
     if ReturnPolicy.REQUIRED in policies:
@@ -115,7 +116,7 @@ def _scope_amount(
 def _graph_owned_policy_refs(policy_bundle: PolicyBundle) -> list[str]:
     """Cite the complete set of clauses already selected as applicable."""
 
-    return list(dict.fromkeys(clause.clause_id for clause in policy_bundle.clauses))
+    return list(dict.fromkeys(clause.clause_id for clause in active_clauses(policy_bundle)))
 
 
 def _graph_owned_evidence_refs(
@@ -138,7 +139,7 @@ def _graph_owned_evidence_refs(
     )
     required_claim_ids = {
         claim_id
-        for clause in state["policy_bundle"].clauses
+        for clause in active_clauses(state["policy_bundle"])
         for claim_id in clause.required_claim_ids
     }
     relevant_pairs = {
@@ -222,7 +223,11 @@ def build_proposed_handoff(
         raise ContractInvariantError("unknown ProposedDecisionDraft variant")
 
     handoff = ProposedDecisionHandoff(
-        handoff_version="1.0",
+        handoff_version="2.0" if policy_bundle.schema_version == "v2" else "1.0",
+        policy_evaluation=state.get("policy_evaluation"),
+        policy_selection=state.get("policy_selection"),
+        policy_confirmation=state.get("policy_confirmation"),
+        assessment_findings=assessment.claim_findings if policy_bundle.schema_version == "v2" else None,
         handoff_id=dependencies.id_factory.make(
             "handoff",
             state["thread_id"],
@@ -231,7 +236,7 @@ def build_proposed_handoff(
         case_ref=state["case_ref"],
         order_snapshot_ref=order_snapshot.order_snapshot_ref,
         policy_bundle_version=policy_bundle.policy_bundle_version,
-        claim_registry_version=CLAIM_REGISTRY_VERSION,
+        claim_registry_version=REGISTRY_V2_VERSION if policy_bundle.schema_version == "v2" else CLAIM_REGISTRY_VERSION,
         proposed_decision=decision,
         evidence_bundle=list(state.get("evidence_bundle", [])),
         policy_refs=list(dict.fromkeys(draft.policy_refs)),
@@ -331,9 +336,18 @@ def build_resolution_handoff(
         "case_ref": state["case_ref"],
         "handoff_id": handoff.handoff_id,
         "review_gate": state.get("review_gate"),
+        "user_risk_gate": state.get("user_risk_gate"),
+        "policy_evaluation": (state.get("reviewer_evaluations") or [None])[-1],
         "emitted_at": dependencies.clock.now(),
         "review_result": review,
     }
+    if handoff.handoff_version == "2.0":
+        human = state.get("human_review_result")
+        if human is not None and human.policy_evaluation is not None:
+            common["policy_evaluation"] = human.policy_evaluation
+        decision = human.corrected_decision if isinstance(human,EditedHumanReviewResult) else handoff.proposed_decision
+        if decision.action is ResolutionAction.FULL_REFUND and not isinstance(human,RejectedHumanReviewResult):
+            common["refund_release_condition"] = "RETURN_INSPECTION_PASSED" if decision.return_decision.requirement.required else "AUTHORIZED_NO_RETURN"
     if review.verdict is ReviewVerdict.APPROVE and state.get("human_review_result") is None:
         return ReviewerApprovedResolutionHandoff(
             **common,
@@ -406,6 +420,10 @@ def build_human_review_dossier(state: AgentState) -> HumanReviewDossier:
         claim_registry_version=state["current_handoff"].claim_registry_version,
         routing_reason=state["review_routing_reason"],
         review_gate=state.get("review_gate"),
+        user_risk_gate=state.get("user_risk_gate"),
+        user_risk_snapshot=state.get("user_risk_snapshot"),
+        reviewer_evaluations=state.get("reviewer_evaluations", []),
+        policy_bundle_history=state.get("policy_bundle_history", []),
         claimed_line_item_ids=state["claimed_line_item_ids"],
         order_snapshot=state["order_snapshot"], policy_bundle=state["policy_bundle"],
         proposal_history=[p for p in state["proposal_history"] if p.handoff_id in reviewed_ids],

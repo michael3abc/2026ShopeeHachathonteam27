@@ -34,5 +34,14 @@
     "artifact_ref": "artifact://demo/EV-DEMO-ITEM-INTACT",
     "extracted_summary": "The visible speaker surfaces appear intact and no crack or dent is visible in this image.",
     "collected_at": "2026-09-01T10:45:00Z"
+  },
+  {
+    "evidence_id": "EV-DEMO-WRONG-SKU",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-DEMO-SPEAKER",
+    "artifact_ref": "artifact://demo/EV-DEMO-WRONG-SKU",
+    "extracted_summary": "Synthetic Demo fixture. The unpacked item label clearly reads SKU-DEMO-HEADPHONES, red wired headphones. This is the item received in the parcel for the claimed line item.",
+    "collected_at": "2026-09-01T10:46:00Z"
   }
 ]

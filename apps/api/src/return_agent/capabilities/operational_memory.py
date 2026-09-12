@@ -1,6 +1,7 @@
 """Durable, scope-bound Operational Memory storage for Louis's capability layer."""
 
 from __future__ import annotations
+from return_agent_contracts.policy_v2 import PolicyPathId, REGISTRY_V2_VERSION
 
 import json
 import re
@@ -124,6 +125,7 @@ def _to_approved_memory(record: OperationalMemoryRecord) -> ApprovedMemory:
             policy_version=record.policy_version,
             claim_registry_version=record.claim_registry_version,
             scope=MemoryScope(
+                policy_path_id=record.scope_policy_path_id,
                 market=record.scope_market,
                 reason_codes=list(_string_values(record.scope_reason_codes)),
                 claim_ids=list(_string_values(record.scope_claim_ids)),
@@ -209,6 +211,7 @@ class SqlAlchemyOperationalMemoryStore(OperationalMemoryStore):
                         policy_version=validated_candidate.policy_version,
                         claim_registry_version=validated_candidate.claim_registry_version,
                         scope_market=validated_candidate.scope.market,
+                        scope_policy_path_id=validated_candidate.scope.policy_path_id,
                         scope_reason_codes=[
                             reason_code.value
                             for reason_code in validated_candidate.scope.reason_codes
@@ -246,6 +249,7 @@ class SqlAlchemyOperationalMemoryStore(OperationalMemoryStore):
         policy_versions: Sequence[OpaqueRef],
         claim_registry_major: PositiveInt,
         top_k: PositiveInt = 3,
+        *, policy_path_id: PolicyPathId | None = None,
     ) -> Sequence[MemorySearchHit]:
         """Filter approved scope first, then rank by exact cosine similarity."""
 
@@ -260,6 +264,7 @@ class SqlAlchemyOperationalMemoryStore(OperationalMemoryStore):
                     "policy_versions": list(policy_versions),
                     "claim_registry_major": claim_registry_major,
                     "top_k": top_k,
+                    "policy_path_id":policy_path_id,
                 }
             )
         except (TypeError, ValidationError) as error:
@@ -356,6 +361,10 @@ class SqlAlchemyOperationalMemoryStore(OperationalMemoryStore):
         record: OperationalMemoryRecord,
         query: QueryApprovedMemoryParams,
     ) -> bool:
+        if record.scope_policy_path_id != query.policy_path_id:
+            return False
+        if query.claim_registry_major == 2 and (query.policy_path_id is None or record.claim_registry_version != REGISTRY_V2_VERSION):
+            return False
         reason_codes = _string_values(record.scope_reason_codes)
         if reason_codes and query.reason_code.value not in reason_codes:
             return False

@@ -8,6 +8,7 @@ from typing import Protocol
 from pydantic import TypeAdapter
 from redis.asyncio import Redis
 from redis.exceptions import ResponseError
+from return_agent_contracts.completion import REFUND_COMPLETION_STREAM, REFUND_COMPLETION_GROUP
 from return_agent_contracts.service import (
     AGENT_COMMAND_DLQ_STREAM,
     AGENT_COMMAND_STREAM,
@@ -63,6 +64,9 @@ class MemoryJobPublisher(Protocol):
 
 
 class MemoryEnqueueStreamBroker(MemoryJobPublisher, Protocol):
+    async def ensure_completion_group(self) -> None: ...
+    async def read_completion(self, *, consumer_name: str, reclaim_idle_ms: int) -> BrokerMessage | None: ...
+    async def acknowledge_completion(self, message_id: str) -> None: ...
     async def ensure_memory_enqueue_consumer_group(self) -> None: ...
 
     async def read_agent_event_for_memory(
@@ -101,6 +105,25 @@ class RedisStreamBroker:
 
     def __init__(self, client: Redis) -> None:
         self._client = client
+
+    async def ensure_completion_group(self):
+        try:
+            await self._client.xgroup_create(REFUND_COMPLETION_STREAM,REFUND_COMPLETION_GROUP,id="0-0",mkstream=True)
+        except ResponseError as error:
+            if "BUSYGROUP" not in str(error):
+                raise
+
+    async def read_completion(self, *, consumer_name, reclaim_idle_ms):
+        claimed = await self._client.xautoclaim(REFUND_COMPLETION_STREAM,REFUND_COMPLETION_GROUP,
+            consumer_name,min_idle_time=reclaim_idle_ms,start_id="0-0",count=1)
+        if len(claimed) > 1 and claimed[1]:
+            return self._decode(claimed[1][0])
+        response = await self._client.xreadgroup(REFUND_COMPLETION_GROUP,consumer_name,
+            streams={REFUND_COMPLETION_STREAM:">"},count=1)
+        return self._decode(response[0][1][0]) if response else None
+
+    async def acknowledge_completion(self, message_id):
+        await self._client.xack(REFUND_COMPLETION_STREAM,REFUND_COMPLETION_GROUP,message_id)
 
     @property
     def transport_client(self) -> Redis:

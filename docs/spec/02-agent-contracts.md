@@ -6,6 +6,10 @@
 
 `PolicyEvaluation` 綁 case／snapshot／bundle／registry／evidence hash／findings hash／selection；Assessment、Reviewer、Human 各有自己的結果。`PolicySelection` 與 `PolicyConfirmation` 保存途徑版本、原 scope hash、退回要求 hash；只有持久化同意可授權切換。完整規則見 [Policy v2](09-policy-v2-integration.md)。
 
+Runtime 重播沿用固定 case schema version；Provider 不得用同一 bundle version 變更內容，或回傳與持久化 selection 不同的 path。接受 typed policy confirmation 只更新 selection／同意與 Memory 查詢狀態，既有 review history、異議、revision/evidence/verification budget 全保留。
+
+`PolicyConfirmationRequest.request_ref` 的內容 hash 同時綁上述 request 欄位、Policy／registry 明確版本及完整規則包（clauses、paths、common constraints、來源與解讀 hash）。規則包只排除 retrieval ref／retrieved_at／selected_path，並固定 clause/path 排序；換 path 重查到同一規則內容可沿用確認，換任何規則內容不可沿用。Runtime resume 與 shared handoff validator 都重算。舊未綁規則包的 confirmation DTO 可供歷史讀取，但不能用於新授權／resume，會 CONTRACT_VIOLATION 轉專責；不回填、不降級、不重播既有 terminal。
+
 `UserRiskSnapshot` 是 API 持久化的 cutoff facts；`UserRiskGateResult` 只決定 Reviewer APPROVE 後的自動授權或人審入口，不影響政策資格。LOW／MEDIUM 放行，HIGH／UNKNOWN 人審，金額 gate 路由優先且 dossier 保留兩 gate。設定與 evaluator 見 `user_risk.py` 及 [User Risk SPEC](../USER_RISK_SPEC.md)。
 
 核准的 resolution 不等於退款完成。`RefundReleaseCondition` 分驗收通過／合法免退，API 保存 authorization、consent、receipts 與 execution。`RefundAppliedEvent` 只從 APPLIED 成功交易產生；Agent 以 resolution reference 與 hash 關聯 correction trace 後才建立 Memory job。

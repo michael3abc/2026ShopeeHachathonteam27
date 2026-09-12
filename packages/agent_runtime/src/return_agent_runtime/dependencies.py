@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from return_agent_contracts.review_gates import ReviewerGateConfig
+from return_agent_contracts.user_risk import UserRiskConfig
+from return_agent_contracts.interfaces import UserRiskProvider
 from datetime import UTC, datetime
 from typing import Protocol
 from uuid import NAMESPACE_URL, uuid5
@@ -64,5 +66,7 @@ class AgentDependencies:
     operational_memory_store: OperationalMemoryStore
     evidence_provider: EvidenceProvider
     reviewer_gate_config: ReviewerGateConfig = field(default_factory=ReviewerGateConfig)
+    user_risk_config: UserRiskConfig = field(default_factory=UserRiskConfig)
+    user_risk_provider: UserRiskProvider | None = None
     clock: Clock = UtcClock()
     id_factory: IdFactory = StableIdFactory()

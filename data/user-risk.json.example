@@ -1,0 +1,9 @@
+{
+  "reference_at":"2026-09-12T00:00:00Z",
+  "synthetic":true,
+  "profiles":[
+    {"user_ref":"USER-NORMAL","account_age_days":720,"orders_90d":15,"registered_claims":1,"refunded_orders":1},
+    {"user_ref":"USER-WATCH","account_age_days":500,"orders_90d":12,"registered_claims":3,"refunded_orders":2},
+    {"user_ref":"USER-HIGH-RISK","account_age_days":180,"orders_90d":8,"registered_claims":3,"refunded_orders":4}
+  ]
+}

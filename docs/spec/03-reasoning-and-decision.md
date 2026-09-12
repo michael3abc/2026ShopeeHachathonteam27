@@ -38,13 +38,17 @@ Normalized intent + claimed line items
 
 ## 適用條款
 
-`PolicyBundle.clauses` 中的每一條都是**適用條款** —— 篩選在 retrieval 時由 Policy owner 完成，模型不得再自行剔除。模型自行判斷「這條不適用」等於在 retrieval 之外重建一套 policy 選擇邏輯。
+v1 `PolicyBundle.clauses` 每條皆適用；v2 Provider 取回完整四路徑包，`selected_path_id` 指定本輪採用路徑。Graph 使用該 path 的 clauses/claims，不合併不同 alternatives 的門檻；模型不得自行剔除同一路徑的限制。
 
-Graph 只做一項機械檢查：條款的 `effective_from`/`effective_to` 必須涵蓋 `CaseContext.case_opened_at`。不涵蓋者視為 provider 契約違規，fail closed（`CONTRACT_VIOLATION`），不由模型悄悄忽略。
+v1 仍檢查條款 effective interval 涵蓋 `case_opened_at`。v2 `evaluate_policy` 逐 path 檢查 scope、可信配送／成交規格／期限／例外／支付狀態與首次有效申請時間，然後依 findings 判定。Provider 重用 bundle version 卻改內容、改已持久化 selection 或跨 v1/v2 都 fail closed。
+
+Buyer confirmation 的 request ref 另綁完整規則包內容與 Policy／registry 版本，禁止用新 retrieval ref 包裝不同規則後沿用舊同意。相同規則僅 retrieval ref／時間／選定 path 改變不強迫重複確認。舊未綁規則內容的同意保留歷史可讀，但新授權與 resume 均 fail closed，需專責处理。
+
+P01 空 claims 不等於自動核准，所有 system predicates 仍須通過；不要求 damage／unused。P02 損壞成立但到貨時點不足為 NEEDS_INFORMATION，P01 替代需持久化同意。P03 比較 immutable purchased_spec。P04 只採可信整件未交付 investigation，不向買家要求照片補後端資料。逾期瑕疵、未知期限／例外／seller 與範圍外轉專責，不宣告其他救濟消失。
 
 ## Evidence 判定
 
-`assess_case` 對適用條款 `required_claim_ids` 聯集依 `subject_scope` 建立 findings：`ORDER` 的 claim 各一筆（`subject = "ORDER"`），`LINE_ITEM` 的 claim 對 `claimed_line_item_ids` 中每個品項各一筆：
+`assess_case` 對 v1 適用條款或 v2 已選 path 的 `required_claim_ids` 聯集依 `subject_scope` 建立 findings：`ORDER` 的 claim 各一筆（`subject = "ORDER"`），`LINE_ITEM` 的 claim 對 `claimed_line_item_ids` 中每個品項各一筆：
 
 ```text
 claim_id       ← 必須存在於 Claim Registry
@@ -60,6 +64,8 @@ Claim 集合是**查表得出**的，不由模型決定要判哪些 claim。Evid
 
 這兩條規則不對稱，混為一談會讓「證據不足」變成拒絕理由：
 
+以下是 claim 層規則；v2 FULL_REFUND 另要求自身 findings 對應的 selected-path `PolicyEvaluation` 為 ELIGIBLE。P01 不可因空集合而略過 predicates。
+
 | 方向 | 條件 | 說明 |
 | --- | --- | --- |
 | 可核准 | 某個 claimed item 的**所有** required claims 皆 `SUPPORTED` | 該 item 才可進入 `refund_scope` |
@@ -67,7 +73,7 @@ Claim 集合是**查表得出**的，不由模型決定要判哪些 claim。Evid
 
 `UNSUPPORTED` **永遠不得**成為拒絕的依據。它只表示尚未證明，正確反應是索取證據或（budget 用盡時）轉人工，不是 `DECLINE`。
 
-逾期、未送達這類案件同樣以 `CONTRADICTED` 表達 —— `ORDER_WITHIN_RETURN_WINDOW` 被 order facts 反證，而不是另設一種拒絕理由。這使「拒絕」在整份規格中只有單一來源。
+v1 期限反證仍以 `ORDER_WITHIN_RETURN_WINDOW = CONTRADICTED` 表達。v2 期限與配送移至可信 predicates：不把未知 facts 當作反證；逾期瑕疵轉專責，P04 確認未交付可成立。
 
 `evidence_status` 三值的判定公式見 [Agent Contracts](02-agent-contracts.md#evidenceassessment)，由模型依該公式輸出，graph 於 routing 時驗證其與 `claim_findings` 一致。
 
@@ -84,7 +90,7 @@ Claim 集合是**查表得出**的，不由模型決定要判哪些 claim。Evid
 
 ## Effective return policy
 
-多個適用條款可能帶有不同的 `return_policy`。模型不得自行挑選，precedence 由 graph 機械決定：
+同一適用路徑的條款可能帶不同 `return_policy`，precedence 由 graph 機械決定。v2 以下集合只包含 selected path 的 clauses，不把 P01 REQUIRED 與 P04 NOT_REQUIRED 誤作衝突：
 
 ```text
 S = { clause.return_policy | clause ∈ 適用條款 }
@@ -126,7 +132,7 @@ Over-scoping 是 deterministic 契約違規，由 graph 在組裝 handoff 時擋
 
 Reviewer 接收：
 
-- `ProposedDecisionHandoff` 完整內容（含 `evidence_bundle`）。
+- `ProposedDecisionHandoff` 的決定、完整 `evidence_bundle`、selection／consent；移除 `assessment_findings` 與 Assessment `policy_evaluation`。
 - **完整 `PolicyBundle`**，包含條款 `text` 與 `required_claim_ids`，不只是 handoff 引用到的條款。
 - Claim Registry。
 - 必要的 case/order snapshot facts。
@@ -135,6 +141,7 @@ Reviewer **不接收**：
 
 - `EvidenceAssessment` 與 Resolver 的 `claim_findings`。
 - Operational Memory。
+- User Risk、risk snapshot/gate 與使用者歷史。
 - Resolver 的隱藏推理或未結構化 scratchpad。
 
 給 Reviewer 完整 bundle 而非只給被引用的條款，才能檢出「引用了對自己有利的條款、略過限制性條款」。不給 Resolver 的 findings，才能讓 Reviewer 的判定成為獨立的第二次判定 —— 兩邊 findings 的差異率因此可量測；若 Reviewer 先看過 Resolver 的結論，差異率會趨近於零且不代表任何品質訊號。

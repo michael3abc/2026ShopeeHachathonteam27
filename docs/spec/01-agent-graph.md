@@ -20,16 +20,23 @@ flowchart TD
         PREPARE -.->|attachment resolve 失敗| MANUAL
         MEMORY_SOURCE[(APPROVED Memory VDB)] -.->|scope + cosine| RETRIEVE_MEM
         RETRIEVE_MEM -->|Top 3 / empty / UNAVAILABLE| ASSESS[assess_case]
-        ASSESS -->|INSUFFICIENT, budget ok| EVIDENCE[[request_evidence]]
+        ASSESS -->|v1 INSUFFICIENT, budget ok| EVIDENCE[[request_evidence]]
+        ASSESS -->|v2 own findings| EVALUATE[evaluate_policy]
+        EVALUATE -->|selected path ELIGIBLE| PROPOSE
+        EVALUATE -->|user evidence required, budget ok| EVIDENCE
+        EVALUATE -->|eligible alternative needs consent| CONFIRM[[confirm_policy_path]]
+        CONFIRM -->|persisted typed confirmation| POLICY
+        CONFIRM -->|decline alternative, evidence available| EVIDENCE
         EVIDENCE --> PREPARE
-        ASSESS -->|SUFFICIENT_FOR_APPROVAL| PROPOSE[propose_decision]
-        ASSESS -->|SUFFICIENT_FOR_DECLINE| PROPOSE
+        ASSESS -->|v1 SUFFICIENT_FOR_APPROVAL| PROPOSE[propose_decision]
+        ASSESS -->|v1 SUFFICIENT_FOR_DECLINE| PROPOSE
+        PROPOSE -->|required return needs consent| CONFIRM
         PROPOSE -->|REQUEST_EVIDENCE, budget ok| EVIDENCE
         PROPOSE -->|HANDOFF| VERIFY[external_verification]
         VERIFY -->|PASS| REVIEW[reviewer]
         VERIFY -->|FAIL, budget ok| PROPOSE
-        REVIEW -->|APPROVE + Python gate PASS / DECLINE| OUT[emit_resolution_handoff]
-        REVIEW -->|APPROVE + 高額或未設定幣別| HUMAN
+        REVIEW -->|APPROVE + amount and risk PASS / DECLINE| OUT[emit_resolution_handoff]
+        REVIEW -->|APPROVE + amount or risk HUMAN_REQUIRED| HUMAN
         REVIEW -->|REVISE: round 0–2| EVENT[record_revision_event]
         EVENT --> PROPOSE
         REVIEW -->|REVISE: round 3 + dossier| HUMAN[[await_human_review<br/>完整歷程 + 人工最終裁決]]
@@ -42,6 +49,8 @@ flowchart TD
         CONTEXT -.->|載入失敗| MANUAL
         POLICY -.->|AMBIGUOUS / NOT_FOUND / 條款失效| MANUAL
         ASSESS -.->|budget exceeded / 契約違規| MANUAL
+        EVALUATE -.->|specialist / unsupported policy facts| MANUAL
+        CONFIRM -.->|invalid binding / declined return| MANUAL
         EVIDENCE -.->|resolve 失敗| MANUAL
         PROPOSE -.->|budget exceeded / 契約違規 / revision 衝突| MANUAL
         VERIFY -.->|UNAVAILABLE / budget exceeded| MANUAL
@@ -63,7 +72,22 @@ flowchart TD
         APPROVAL --> MEMORY_END
     end
 
-    ENQUEUE -.->|MAIN END 後消費 RESOLVED event| FANOUT
+    subgraph FULFILLMENT["API 履約（獨立於 Agent graph）"]
+        AUTH[Persist authorization and reservation]
+        RETURN[[Return consent / delivery / inspection]]
+        PAY[Revalidate evaluation, scope, consent and gates]
+        APPLIED[Execution ledger APPLIED + success event]
+        AUTH -->|required return| RETURN
+        AUTH -->|authorized waiver| PAY
+        RETURN -->|inspection passed| PAY
+        PAY -->|payment confirmed| APPLIED
+    end
+    OUT -.->|v2 FULL_REFUND| AUTH
+    JOIN[Agent DB correction + APPLIED durable join]
+    ENQUEUE -.->|v2 FULL_REFUND correction| JOIN
+    APPLIED -.->|bound authorization / resolution| JOIN
+    JOIN -->|both persisted, one logical job| FANOUT
+    ENQUEUE -.->|v1 or DECLINE RESOLVED| FANOUT
 
     classDef llm fill:#DBEAFE,stroke:#2563EB,color:#172554,stroke-width:1.5px
     classDef deterministic fill:#DCFCE7,stroke:#16A34A,color:#14532D,stroke-width:1.5px
@@ -73,18 +97,19 @@ flowchart TD
     classDef terminal fill:#F3F4F6,stroke:#4B5563,color:#111827,stroke-width:1.5px
 
     class PARSE,PREPARE,ASSESS,PROPOSE,REVIEW,DISTILL llm
-    class RETRIEVE_MEM,EVENT,OUT,ENQUEUE,FANOUT deterministic
+    class RETRIEVE_MEM,EVALUATE,EVENT,OUT,ENQUEUE,FANOUT,JOIN deterministic
     class CONTEXT,POLICY,VERIFY,SUBMIT,EMBED,APPROVAL,VDB,MEMORY_SOURCE external
-    class CLARIFY,EVIDENCE,HUMAN interrupt
+    class CLARIFY,EVIDENCE,HUMAN,CONFIRM,RETURN interrupt
+    class AUTH,PAY,APPLIED external
     class MANUAL failure
     class START,END,MEMORY_END terminal
 ```
 
 顏色語意：藍色是 LLM structured-output node、綠色是 Agent deterministic node／worker、橘色是 external boundary、紫色是 interrupt、紅色是 fail-closed、灰色是 terminal。主流程中的實線是同步 routing，指向 `terminate_automation` 的虛線是 fail-closed；從 `enqueue_memory_distillation` 到 Memory Enqueue Worker 的虛線是非同步 service 交接，不代表主流程等待。
 
-所有 fail-closed 路徑匯集到 `terminate_automation`，該節點輸出 `ManualEscalationHandoff` 後結束。Graph 只把完整 `MemoryDistillationInput` 寫入同一個 durable checkpoint；Agent Worker 先發布 `RESOLVED`，獨立的 Memory Enqueue Worker 再消費該事件並建立 Redis job。無論 enqueue、distillation、candidate submission 或外部 approval 成敗，都不得改變或阻塞已產生的 `ResolutionHandoff`。
+所有 fail-closed 路徑匯集到 `terminate_automation`，該節點輸出 `ManualEscalationHandoff` 後結束。Graph 把完整 `MemoryDistillationInput` 寫入同一個 durable checkpoint。v2 FULL_REFUND 的 correction 與 API 實際 APPLIED 以 resolution reference/hash 在 Agent DB durable join；兩者任意到達順序、重送只形成同一 logical Memory job。v1 與 DECLINE 沿用 RESOLVED fan-out。非同步 Memory 成敗不改變已產生的 `ResolutionHandoff`。
 
-`request_clarification`、`request_evidence` 與 `await_human_review` 是 graph pause point。實作時必須使用 persistent checkpointer 與同一 `thread_id` resume；UI 與 queue 不屬於 Agent 團隊。
+`request_clarification`、`request_evidence`、`confirm_policy_path` 與 `await_human_review` 是 graph pause point。使用 persistent checkpointer 與同一 `thread_id` typed resume。Case 固定的 v1/v2、bundle、selection 不得在重播時更換；Provider 重用 bundle version 卻改內容或改已確認 path 時 fail closed。
 
 部署時 graph 本身位於 `packages/agent_runtime`，由 `apps/agent_service` 的 Redis
 worker 呼叫。API 只送出 versioned start/resume command 並消費 event，不 import
@@ -102,9 +127,11 @@ runtime。這個 service boundary 不增加或改寫任何 graph node 或 edge�
 | `retrieve_memory` | Agent | External vector query | query_summary、deterministic scope、policy/registry version | 最多 3 筆 MemorySearchHit，保留 cosine 順序 |
 | `assess_case` | Agent | deterministic evidence ingestion + LLM structured output | facts、policy、evidence、approved memory、claim registry | 先將尚未解析的 `UserTurn.attached_artifact_refs` 透過 `EvidenceProvider.resolve` 加入 `evidence_bundle[]`，再產生 `EvidenceAssessment`；`EvidenceRequest.request_id` 由 graph 覆寫 |
 | `request_evidence` | Agent routing / 外部 channel | Interrupt | `EvidenceRequest` | 暫停並接收 evidence references；resume 後 graph deterministic 邏輯呼叫 `EvidenceProvider.resolve` 換成 `EvidenceItem` 並 append 到 `evidence_bundle[]`，例外 fail closed |
+| `evaluate_policy` | Agent | Deterministic | 可信 scope/facts、完整 paths、Assessment findings、selection | 各 path 的 `PolicyEvaluation`；P01 空 claims 仍檢 predicates，選中路徑決定後續 routing |
+| `confirm_policy_path` | Agent routing / API persistence | Interrupt | `PolicyConfirmationRequest` | 驗證持久化 typed confirmation；換 path 清除 Memory 命中並重新 retrieve，保留異議與所有 budget |
 | `propose_decision` | Agent + graph | LLM structured output 後接 deterministic 組裝 | assessment、facts、policy、evidence、memory、feedback | `ProposedDecisionDraft` → graph 組裝為 `ProposedDecisionHandoff`；或 `EvidenceRequest`；或 `RevisionConflictReport` |
 | `external_verification` | External | Deterministic boundary | 完整 handoff | `VerificationResult` |
-| `reviewer` | Agent | 獨立 LLM structured output + deterministic metadata | 完整 handoff、**完整 `PolicyBundle`**、claim registry | `ReviewResult`；`reviewer_prompt_version` 與 `reviewed_at` 由 graph 寫入 |
+| `reviewer` | Agent | 獨立 LLM + deterministic evaluation/gates | 去除 Assessment findings/evaluation 的 handoff、**完整 `PolicyBundle`**、claim registry | 自身 findings 重算 evaluation；APPROVE 後 amount/risk gates，金額原因優先；不看 Memory/risk |
 | `record_revision_event` | Agent | Deterministic | rejected handoff、ReviewResult | append-only `DecisionRevisionEvent`，遞增 `revision_round` |
 | `await_human_review` | External | Interrupt boundary | handoff、最後的 `ReviewResult`、dossier 與 gate | `HumanReviewResult` |
 | `emit_resolution_handoff` | Agent routing | Deterministic | Reviewer-approved/human result | `ResolutionHandoff`；不執行退款 |
@@ -134,6 +161,12 @@ runtime。這個 service boundary 不增加或改寫任何 graph node 或 edge�
 | `retrieve_policy` | `retrieval_status = NOT_FOUND` | `terminate_automation`（`POLICY_NOT_FOUND`） |
 | `retrieve_policy` | 有條款的 `effective_from`/`effective_to` 不涵蓋 `case_opened_at` | `terminate_automation`（`CONTRACT_VIOLATION`） |
 | `retrieve_memory` | 完成（含查無結果） | `assess_case` |
+| `assess_case` | v2 findings 完成 | `evaluate_policy`；以下直接 propose/evidence 規則為 v1 |
+| `evaluate_policy` | 選定 path ELIGIBLE | `propose_decision` |
+| `evaluate_policy` | P02 缺到貨證據，但 P01 成立 | `confirm_policy_path` |
+| `evaluate_policy` | 可信資料缺失、scope 外、逾期瑕疵 | `terminate_automation`（`SPECIALIST_REQUIRED`） |
+| `confirm_policy_path` | binding 正確且接受 | `retrieve_policy`，保留 revision chain／budget、清除舊 Memory |
+| `propose_decision` | v2 FULL_REFUND 須退回且缺要求相符的同意 | `confirm_policy_path` |
 | `assess_case` | 初始／澄清訊息的 artifact resolve 失敗、reference 不一致，或 evidence subject 不屬於 `ORDER`／claimed items | `terminate_automation`（`CONTRACT_VIOLATION`） |
 | `assess_case` | `evidence_status = INSUFFICIENT` 且 `evidence_round < 2` | `request_evidence` |
 | `assess_case` | `evidence_status = INSUFFICIENT` 且 `evidence_round >= 2` | `terminate_automation`（`EVIDENCE_BUDGET_EXCEEDED`） |
@@ -152,14 +185,14 @@ runtime。這個 service boundary 不增加或改寫任何 graph node 或 edge�
 | `external_verification` | `status = FAIL` 且 `verification_round < 2` | `propose_decision`，傳入 `verification_issues` |
 | `external_verification` | `status = FAIL` 且 `verification_round >= 2` | `terminate_automation`（`VERIFICATION_BUDGET_EXCEEDED`） |
 | `external_verification` | `status = UNAVAILABLE` | `terminate_automation`（`VERIFICATION_UNAVAILABLE`），fail closed |
-| `reviewer` | `verdict = APPROVE` 且金額 gate PASS / DECLINE 不適用 | `emit_resolution_handoff` |
-| `reviewer` | `verdict = APPROVE` 且金額 gate HUMAN_REQUIRED | `await_human_review`（不消耗 revision budget） |
+| `reviewer` | `verdict = APPROVE` 且金額／v2 risk gates PASS；或 DECLINE 不適用 | `emit_resolution_handoff` |
+| `reviewer` | `verdict = APPROVE` 且金額或 v2 risk gate HUMAN_REQUIRED | `await_human_review`；金額原因優先，dossier 保存兩 gate，不消耗 revision budget |
 | `reviewer` | `verdict = REVISE` 且 `revision_round < 3` | `record_revision_event`，再到 `propose_decision` |
 | `reviewer` | `verdict = REVISE` 且 `revision_round >= 3` | `await_human_review`（程式產生 `routing_reason = REVISION_BUDGET_EXCEEDED`） |
 | `await_human_review` | resume 後 | `emit_resolution_handoff` |
 | `emit_resolution_handoff` | `revision_events` 非空或 human `decision ∈ {EDIT, REJECT}` | `enqueue_memory_distillation` |
 | `emit_resolution_handoff` | 無 correction trace | `END` |
-| `enqueue_memory_distillation` | `MemoryDistillationInput` 已寫入 checkpoint | 主案件 `END`；其後由 Memory Enqueue Worker 消費 durable `RESOLVED` event 並發布 job |
+| `enqueue_memory_distillation` | `MemoryDistillationInput` 已寫入 checkpoint | 主案件 `END`；v2 FULL_REFUND durable join 等 APPLIED，其餘由 RESOLVED event fan-out |
 | `distill_memory` | `CREATE_CANDIDATE` | `submit_candidate` |
 | `distill_memory` | `SKIP` | Memory pipeline `END` |
 | `submit_candidate` | 接受 candidate | `external_memory_approval` |
@@ -170,7 +203,7 @@ Reviewer 不判斷下一個節點。即使原因是 evidence 不足，也只輸�
 
 `parse_request` 可能執行兩輪，這是必要的：第一輪只有對話內容，尚不知道訂單有幾個品項；`claimed_line_item_ids` 必須在 `OrderSnapshot` 載入後才能綁定。第二輪的行為是單商品訂單**自動綁定且不得詢問**，多商品訂單先嘗試以對話內容比對品項，比對不到或有歧義時才以 `missing_fields` 觸發澄清。`load_case_context` 是唯讀且冪等的，重入無副作用。此迴圈由 `clarification_round` 收斂。
 
-`emit_resolution_handoff` 到 memory 的邊是 conditional：純 `APPROVE` 且無任何 revision 的案件沒有 correction 可蒸餾，直接結束。`enqueue_memory_distillation` 只準備並 checkpoint payload；案件結束後，獨立 Memory Enqueue Worker 由 durable `RESOLVED` event fan-out 到 memory job stream，Memory Worker 才執行 `distill_memory` 與 `submit_candidate`。這些步驟不沿用主案件的同步 routing，也不延後主案件 `END`。詳見 [Operational Memory](04-operational-memory.md)。
+`emit_resolution_handoff` 到 memory 的邊是 conditional：純 `APPROVE` 且無 revision 的案件沒有 correction 可蒸餾。`enqueue_memory_distillation` 只 checkpoint payload；v2 FULL_REFUND 尚待同意、退回或驗收時不蒸餾，matching APPLIED 到達後才發出 job。Memory Worker 再執行 `distill_memory` 與 `submit_candidate`，不延後主 graph `END`。詳見 [Operational Memory](04-operational-memory.md)。
 
 ## Working state
 

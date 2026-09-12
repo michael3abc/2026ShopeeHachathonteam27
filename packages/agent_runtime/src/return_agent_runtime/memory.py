@@ -13,6 +13,7 @@ from return_agent_contracts.models import (
     MemorySkipOutput,
 )
 from return_agent_contracts.registry import CLAIM_REGISTRY_VERSION
+from return_agent_contracts.policy_v2 import REGISTRY_V2_VERSION, active_clauses
 from return_agent_contracts.validation import (
     ContractInvariantError,
     validate_memory_candidate,
@@ -37,7 +38,8 @@ class MemoryDistiller:
 
     def distill(self, input_: MemoryDistillationInput) -> MemoryDistillationOutput:
         latest = input_.proposal_history[-1]
-        if latest.claim_registry_version != CLAIM_REGISTRY_VERSION:
+        registry = REGISTRY_V2_VERSION if input_.case_context.policy_schema_version == "v2" else CLAIM_REGISTRY_VERSION
+        if latest.claim_registry_version != registry:
             return MemorySkipOutput(
                 result_type="SKIP",
                 reason_code=MemorySkipReasonCode.CLAIM_REGISTRY_VERSION_UNKNOWN,
@@ -53,7 +55,7 @@ class MemoryDistiller:
         required_claim_ids = list(
             dict.fromkeys(
                 claim_id.value
-                for clause in input_.policy_bundle.clauses
+                for clause in active_clauses(input_.policy_bundle)
                 for claim_id in clause.required_claim_ids
             )
         )
@@ -64,6 +66,7 @@ class MemoryDistiller:
                 "distillation_input": input_,
                 "allowed_scope": {
                     "market": input_.case_context.market,
+                    **({"policy_path_id":input_.policy_bundle.selected_path_id} if input_.policy_bundle.schema_version == "v2" else {}),
                     "reason_codes": [latest.proposed_decision.reason_code.value],
                     "claim_ids": required_claim_ids,
                     "categories": list(input_.claimed_categories),
@@ -95,7 +98,7 @@ class MemoryDistiller:
                 "policy_version": next(iter(policy_versions)),
                 "claim_registry_version": latest.claim_registry_version,
                 "scope": output.candidate.scope.model_copy(
-                    update={"market": input_.case_context.market}
+                    update={"market": input_.case_context.market,"policy_path_id":input_.policy_bundle.selected_path_id}
                 ),
                 "status": "CANDIDATE",
             }
@@ -112,7 +115,7 @@ class MemoryDistiller:
         allowed_reasons = {latest.proposed_decision.reason_code}
         required_claims = {
             claim_id
-            for clause in input_.policy_bundle.clauses
+            for clause in active_clauses(input_.policy_bundle)
             for claim_id in clause.required_claim_ids
         }
         allowed_categories = set(input_.claimed_categories)

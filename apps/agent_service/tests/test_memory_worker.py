@@ -74,7 +74,7 @@ async def test_agent_migration_and_first_result_survive_reopen(replay_engine) ->
             connection.scalar(
                 text("SELECT version_num FROM agent_service_alembic_version")
             )
-            == "0001_memory_replay"
+            == "0002_memory_completion"
         )
         assert "alembic_version" not in inspect(connection).get_table_names()
 

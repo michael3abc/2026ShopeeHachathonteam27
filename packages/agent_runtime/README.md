@@ -137,6 +137,19 @@ runtime.resume(
 反序列化。自行注入 checkpointer 時也應使用相同 serializer；跨 interrupt 的 E2E
 會以 `LANGGRAPH_STRICT_MSGPACK=true` 驗證 checkpoint 可安全還原。
 
+Policy v2 由 API 可信 case context 固定版本。`evaluate_policy` 對完整四路徑包
+逐項計算資格，再以已選 path routing；P01 空 claims 仍檢查可信 predicates。
+`confirm_policy_path` 使用 `PolicyConfirmationResume(kind="POLICY_CONFIRMATION",
+confirmation=persisted_confirmation)`；確認綁 case、原 scope、selection version
+及 return requirement hash，接受後清除舊 Memory 並重查，保留 revision chain/budget。
+Provider 回傳不同已確認 path、同 bundle version 不同內容或 case/bundle 混版時拒絕。
+
+Reviewer 自身 findings 重算 evaluation，不接收 Assessment evaluation、Memory
+或 user risk。APPROVE 後執行 Decimal amount gate 與 v2 risk gate；HIGH/UNKNOWN
+進現有人審，金額原因優先，dossier 保存兩 gate。Resolution 表示授權，API 仍須
+等待必要退回／驗收；v2 FULL_REFUND Memory job 由 Agent DB correction/APPLIED
+durable join 觸發。v1 與 DECLINE 保留原流程。
+
 ## Runtime 邊界
 
 astart／aresume 可傳 activity_observer 與 run_id（Agent Service 使用 command_id）。

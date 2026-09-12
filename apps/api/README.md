@@ -88,8 +88,10 @@ API。每次 CLI 執行以單一 transaction 更新向量與 model tag，任一 
 冪等寫入，只有 payload 完全相同時才會回傳既有 submission reference。
 
 `query_approved` 只回傳 `APPROVED` 的資料，並對 market、reason、required
-claim、claimed-item categories、policy version 與 claim-registry major version
+claim、claimed-item categories、policy version 與 claim-registry major version（v1）
 做硬過濾；結果依 query_summary 的精確 cosine 排序（同分 confidence、核准時間遞減、memory ID 遞增），最多3筆 MemorySearchHit。候選入庫前由 API embedding，與 retrieval_summary 原子提交；失敗不留半筆記錄。
+v2 改用 exact Policy／registry／path 篩選；COOLING_OFF 的空 claims 以 path scope
+定位。切換政策路徑會清除前次 Memory 命中並重新檢索。
 
 核准與 retirement 是不屬於 Agent contract 的受信任治理操作，透過
 `OperationalMemoryGovernanceService` 執行唯一允許的
@@ -110,8 +112,10 @@ API integration owner 必須以 Allen 的 `CaseContextProvider` 注入
 case/order tables。Agent Service 則透過 contracts 的 `HttpVerificationProvider`
 呼叫 POST /internal/v1/verification，不能存取 API database。
 內部 API 要求 RETURN_AGENT_INTERNAL_SERVICE_TOKEN Bearer token；缺少設定回 503，錯誤憑證回 401。
-Risk Gate、其 HTTP endpoint 與金額門檻設定已移除。compose_safety_providers 只組裝 Verification。
-Reviewer 的 APPROVE 直接完成提案；三次修正後仍 REVISE 才透過 HumanReviewProvider 提交人工。
+舊 Risk Gate endpoint 不再使用，`compose_safety_providers` 只組裝 Verification。
+Reviewer 保持 APPROVE／REVISE；核准後仍須通過 deterministic 金額 gate，
+v2 FULL_REFUND 再取得 User Risk snapshot。三次修正後仍 REVISE 以既有異議進人審；
+高額或 HIGH／UNKNOWN risk 也須人工授權，均不把 gate 結果改寫為 Reviewer 異議。
 
 ### 升級與歷史資料
 
@@ -149,7 +153,7 @@ executor 時會讓 full-refund event 保持 pending，不會意外執行或 ACK�
 
 退款執行讀取同一 handoff 的 persisted proposal 與 Verification PASS。
 REVIEWER_APPROVE 的 handoff 來自 authenticated Agent Service event，不接受使用者提交的審核結果；必須帶 ApprovedReviewResult，final decision 必須等於原 proposal。
-HUMAN_APPROVE / HUMAN_EDIT 必須帶最後的 RevisedReviewResult，且對應資料庫裡已完成的
+HUMAN_APPROVE / HUMAN_EDIT 必須帶最後保存的 ReviewResult，且對應資料庫裡已完成的
 HumanReviewRecord；不能只憑 Agent 宣稱已有人核准。Human EDIT 必須與保存的人工作業完全一致。
 付款前重新核對 current snapshot、proposal 金額與 policy、Reviewer findings；Human edit 的 scope
 仍限原 proposal 的子集合，金額與 currency 依 current context 驗證。
@@ -219,7 +223,59 @@ Agent Service 重啟不會重複 submit review，因為 `review_ref` 已保存�
 此 profile 的 refund application 是 deterministic demo adapter；正式部署必須替換為
 Allen 的 `RefundApplicationProvider`，不得把 demo adapter 當成真實金流執行器。
 
-Frontend 使用下列 SSE endpoint 觀察 node：
+## Policy v2 User Risk 與 Demo 認證
+
+新案的版本由 API 依 `data/policy-v2-cases.json.example` 中的訂單 prefix 與 owner
+選用並持久化，未知 `ORDER-PV2-*` 或 owner 不符會拒絕；瀏覽器不可直接指定
+可信政策版本或配送 facts。v2 使用 `DEMO-TW-RETURNS:v2.0`／`claim-registry:2.0`，
+完整適用政策包來自 `data/policy-v2.json.example`。既有 v1 case／checkpoint 不跨版重播。
+
+設定 `RETURN_AGENT_DEMO_IDENTITIES_FILE` 指向受限 JSON：`identities` 每筆含
+`user_ref`、`role`（buyer／reviewer／operator）、個別憑證的 `credential_sha256`；
+`allowed_origins` 列出此環境允許的 Web origin。不要提交憑證或設定檔。
+`POST /auth/login` 只接受 user_ref／credential，後端決定角色，回傳不透明
+`return_agent_session` HttpOnly、SameSite=Strict cookie（HTTPS 時 Secure）。
+session hash 保存於 DB；`GET /auth/session` 與 `POST /auth/logout` 查詢／撤銷登入。
+狀態變更含登入、登出均檢查 Origin；內部 Provider 繼續使用 service Bearer token。
+
+買家只能操作自己的案件；reviewer 才能讀 risk dossier 與提交裁決，
+operator 才能模擬物流。後端對 Case JSON、case-events SSE、activities JSON／SSE
+與 narration 做角色投影，買家與 operator 不會取得 risk facts／gate／人審筆記；
+node inspector 使用同一投影，不依 UI 隱藏敏感欄位。
+
+| POST route | 授權與作用 |
+| --- | --- |
+| `/cases/{case_ref}/policy-confirmations` | owner buyer；核對 request／selection version，保存同意與 typed resume outbox，重送不得更改內容。 |
+| `/cases/{case_ref}/return-confirmations` | owner buyer；核對 authorization 與 return requirement hash，接受退回才進 AWAITING_RETURN。 |
+| `/internal/v2/return-events` | service token 加 `RETURN_AGENT_RETURN_PRODUCERS` allowlist；核對 producer/event identity、authorization／品項、順序與 payload hash。 |
+| `/demo/cases/{case_ref}/return-simulation` | operator；ARRIVED／PASS／DISPUTE／OVERDUE 產生 synthetic 事件，仍走同一履約驗證。 |
+| `/internal/v1/user-risk/snapshot` | service token；固定 case_opened_at cutoff 的 typed snapshot Provider。 |
+
+User Risk 僅用於 v2 Reviewer APPROVE + FULL_REFUND；Decimal evaluator 使用
+`config/user-risk.json`，LOW／MEDIUM 放行，HIGH／UNKNOWN 進人審，金額 gate 原因
+優先但 dossier 保留兩個 gate。API snapshots 排除 current case，首次保存後重送
+沿用完全相同的 facts。Human dossier 逐欄比對持久化 snapshot 與其 hash；僅有相同
+snapshot_ref 不足以授權。自動付款重算同 snapshot、同 config 的 PASS；人審
+APPROVE／EDIT／REJECT 比對 persisted dossier／result，revision exhaustion 可沒有 risk。
+
+核准後，須退回案件依序進 `AWAITING_RETURN_CONFIRMATION`（已有有效政策同意時
+可直接進下一步）、`AWAITING_RETURN`、`AWAITING_RETURN_INSPECTION`。合法驗收
+或合法免退才進付款；人工核准不跳過履約。付款前重驗 scope、最新可退額、reservation、
+consent、evaluation 與兩份 gate config；設定缺失／改變時停止付款並交專責，不重跑 Reviewer。
+UNKNOWN 付款結果保留 reservation，lease 到期後用原 execution key 恢復。
+
+`APPLIED` 成功 ledger、冪等 `REFUND_SUCCEEDED` risk event 與
+`refund_completion_outbox` 在同一 transaction 保存。等待退回、人審核准或結果
+未知都不寫成功事件；Agent Memory 以 correction／APPLIED durable join 後才排程。
+
+API migration 單鏈為 `0013_activity_tracing → 0014_user_risk_authorization →
+0015_policy_v2_fulfillment`。新 Risk 三表不讀寫 legacy `risk_evaluations`；
+v2 evaluation／selection／confirmation／authorization／receipt 與 Demo session 有歷史
+時禁止直接降版，offline PostgreSQL SQL 亦包含可執行保護。隔離驗證命令見
+[scripts runbook](../../scripts/README.md#policy-v2-migration-與-recovery-驗證)。
+
+以下是未啟用 Demo session 的 v1 開發環境 SSE 範例；v2 launcher 使用8200，
+呼叫端須帶已登入的 session cookie。Web 經同源 `/backend/*` proxy 訂閱：
 
 ```bash
 curl -N http://localhost:8000/cases/CASE-001/events

@@ -1,6 +1,6 @@
 # Operational Memory
 
-匯入版本的 Distiller prompt 2.1 排除 schema／prompt／整合缺陷及無根據的
+Distiller prompt 3.0 排除 schema／prompt／整合缺陷及無根據的
 Reviewer 異議；採納不等於普遍正確，結案不等於方法具有因果效益。
 目前仍為 correction-only 契約與觸發，不宣稱已有全流程 learning trace。
 
@@ -16,9 +16,9 @@ Operational Memory 用來保存可泛化的操作經驗，而不是自動改寫�
 
 只有取得最終核准/拒絕結果、適用 Policy 版本與完整 correction trace 後，才能啟動蒸餾。因此 `emit_resolution_handoff` 到 `enqueue_memory_distillation` 是 conditional edge：`revision_events` 為空且 human decision 非 `EDIT`/`REJECT` 的案件沒有 correction 可蒸餾，直接結束（見 [Agent Graph](01-agent-graph.md)）。
 
-此處的「最終結果」= `emit_resolution_handoff` 產出的 `ResolutionHandoff`（agent/human 端最終結果）。執行系統的執行確認不在 Agent 團隊範圍，蒸餾不等待它。
+v1 與 DECLINE 的「最終結果」沿用 `ResolutionHandoff`。v2 FULL_REFUND 另需 API `RefundAppliedEvent`：核准、等待退回、付款結果未知均不得視為成功經驗。API 只在執行 ledger 確認 APPLIED 的成功交易中寫成功事件。
 
-實作上，主 graph 的 `enqueue_memory_distillation` 只組裝 `MemoryDistillationInput` 並存入 LangGraph checkpoint。Agent Worker 發布 durable `RESOLVED` event 後即可完成主 command；另一個 consumer group 的 Memory Enqueue Worker 讀取 checkpoint payload，發布至 `return-agent.memory-jobs.v1`。Memory Worker 再獨立執行模型蒸餾與 `submit_candidate`。因此 memory 服務故障不會回滾或重跑已完成的客戶 resolution。
+主 graph 的 `enqueue_memory_distillation` 只組裝 `MemoryDistillationInput` 並存入 checkpoint，Agent Worker 發布 durable `RESOLVED` 後完成 command。Memory Enqueue Worker 將 v2 FULL_REFUND correction 與 APPLIED 以 authorization／resolution reference/hash 保存至 Agent DB `memory_completion_joins`；任意到達順序、重送均收斂為同一 logical job。v1 與 DECLINE 沿用直接 fan-out。Memory Worker 再獨立蒸餾與 `submit_candidate`，服務故障不回滾或重跑客戶 resolution。
 
 Memory Worker 在 Agent DB 的 `memory_job_results` 保存首次蒸餾結果及 prompt
 version，成功 commit 後才提交 candidate；再保存含 `submission_ref` 的完整 terminal
@@ -93,6 +93,9 @@ Agent 不得自行將 `CANDIDATE` 升級為 `APPROVED`。Approval workflow、sto
 | `reason_codes` | 空 = 不限 | 非空時只能取自本案最後提案的 `reason_code` |
 | `claim_ids` | 空 = 不限 | 非空時必須是適用條款 `required_claim_ids` 的子集合 |
 | `categories` | 空 = 不限 | 非空時必須是本案 `claimed_line_item_ids` 對應 `category_ref` 集合的子集合 |
+| `policy_path_id` | v1 為空；v2 必填 | 與已選 path 完全相同；換 path 必須清除舊命中並重查 |
+
+v2 retrieval 使用 exact Policy／registry／path，再依原 market／reason／category 篩選；v1 經驗不能改版本冒充 v2。P01 沒有 required claims，以明確 path scope 匹配空 claim scope；其餘 path 仍檢查 claim 交集。只接受 APPROVED，保留 cosine Top 3 原順序；補件、換路徑後空結果或 UNAVAILABLE 均清空舊卡片。Reviewer 不接收 Memory。
 
 `confidence` 是 candidate quality metadata，只用於 cosine 同分時的排序，**不得**用來越過 Policy 或自動 approve。
 

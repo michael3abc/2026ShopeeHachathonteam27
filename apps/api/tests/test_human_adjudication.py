@@ -188,7 +188,7 @@ def test_resubmission_cannot_replace_the_original_claimed_scope():
         ] == ["LI-001", "LI-002"]
 
 
-def test_case_api_validates_before_commit_and_preserves_closed_review():
+def test_case_api_validates_before_commit_and_preserves_closed_review(monkeypatch):
     from types import SimpleNamespace
 
     from fastapi.testclient import TestClient
@@ -200,6 +200,7 @@ def test_case_api_validates_before_commit_and_preserves_closed_review():
     from .test_agent_bridge import _case
 
     sessions, provider, ref, dossier = _pending()
+    monkeypatch.setattr(app.state, "session_factory", sessions)
     handoff = dossier.proposal_history[-1]
     with sessions.begin() as session:
         case = _case(handoff.case_ref)

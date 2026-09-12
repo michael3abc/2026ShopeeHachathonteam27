@@ -1,8 +1,8 @@
 # Policy v2：原專案增補規格
 
-狀態：**待實作，不是目前 runtime 行為，也不是可直接 ingest 的 v1 fixture。**
+狀態：**本分支已實作版本化 contracts、runtime、API 履約、User Risk 與角色 Web；完整驗收仍以 [progress](../progress.md) 為準。**
 
-目標為 `ShopeeHackthon2026`；以現有 Agent 規格及 `485048c` 重建快照為對照，吸收獨立 Demo 的四類政策設計，不移植其程式碼或簡化架構。本次僅交付規格，未新增生效 Policy、DTO、migration 或服務設定。
+此規格原由 `ShopeeHackthon2026` 複製，來源檔保留；本分支在 `2026ShopeeHachathonteam27` 的 `main@c70351e` 上實作，不移植獨立 Demo 程式碼或簡化架構。新 Policy 僅用於可信 scenario 選出的 v2 新案；v1 保留原政策與處理語意。以下保留需求編號，實際 wire shape 以 shared contracts 為準，不能把 v2 fixture 交給 v1 ingest。
 
 ## 1. 範圍與不變條件
 
@@ -65,7 +65,7 @@
 
 ## 4. Contracts 最小必要增補
 
-以下為待落地的 v2 欄位，不是目前 schema。實作時在 apps/contracts 一次更新 Python、Provider adapters、JSON Schema、TypeScript 與跨物件 validators；不只修改 prompt、不手改生成 schema。
+以下列出 v2 契約需求；apps/contracts 同步 Python、Provider adapters、JSON Schema、TypeScript 與跨物件 validators，不只修改 prompt、不手改生成 schema。
 
 ### 4.1 可信訂單與時間
 
@@ -185,7 +185,7 @@
 - **PV2-F04**：保留原 RefundExecutionRecord 的 SUCCEEDED／REJECTED 與 application APPLIED／REJECTED；不偷塞新 Demo 付款 enums。DECLINE 仍可依原規則結案且不付款；只有 APPLIED 才成功是指 FULL_REFUND 的退款，不把所有 RESOLVED 改定義成退款。
 - **PV2-F05**：待退回不是 terminal，case SSE 繼續且 refresh 能還原。審核階段換 path 用 graph resume；核准後確認退回／物流／驗收則只續 API 履約，不重跑 Reviewer。
 
-### 6.1 待實作介面
+### 6.1 公開介面
 
 以下不是既有可用 endpoint。既有 case events／activities 的 cursor／replay 語意不變。
 
@@ -275,4 +275,4 @@
 
 ## 10. 交付判讀
 
-這份是把新政策帶回原專案的規格，不是用獨立 Demo 替換原系統。政策文字、路徑化評估與付款釋放是三個必要部分；原 Intake、Reviewer、Memory 學習與 Activity 體驗均應保留。相關章節正文與可執行 DTO 目前仍描述 v1；待實作驗收後才切換成現行 v2，不宣稱本文件等於已完成整合。
+政策文字、路徑化評估與付款釋放是三個必要部分；原 Intake、Reviewer、Memory 學習與 Activity 體驗均保留。canonical contracts 同時描述 v1 與明確版本化的 v2；本規格不單独證明 A–F、B→C 學習或部署已通過，須核對 progress 與隔離驗收 artifacts。固定的 docs/reconstruction 快照不修改。

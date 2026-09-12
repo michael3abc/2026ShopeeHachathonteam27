@@ -273,6 +273,26 @@ class SqlAlchemyVerificationProvider(VerificationProvider):
                 bundle,
                 context.order_snapshot,
             )
+            if handoff.handoff_version == "2.0":
+                from return_agent_contracts.policy_v2 import evaluate_policy, content_hash
+                from .fulfillment import save_evaluation
+                from return_agent.db.models import PolicyConfirmationRecord
+                evaluation = handoff.policy_evaluation
+                expected = evaluate_policy(context=context.case_context,order=context.order_snapshot,bundle=bundle,
+                    claimed_line_item_ids=list(dict.fromkeys(x.line_item_id for x in evaluation.item_evaluations)),
+                    findings=handoff.assessment_findings,evidence=handoff.evidence_bundle,selection=handoff.policy_selection,
+                    evaluated_at=evaluation.evaluated_at)
+                if evaluation != expected:
+                    raise ContractInvariantError("policy evaluator recomputation mismatch")
+                with self._repository._session_factory.begin() as session:
+                    confirmation = handoff.policy_confirmation
+                    if confirmation is not None:
+                        record = session.get(PolicyConfirmationRecord,confirmation.request.request_ref)
+                        if record is None or record.response_payload != confirmation.model_dump(mode="json") or not confirmation.accepted:
+                            raise ContractInvariantError("policy confirmation is not canonical")
+                        if confirmation.request.case_ref != handoff.case_ref or confirmation.request.path_id is not handoff.policy_selection.selected_path_id or confirmation.request.original_scope_hash != content_hash(list(dict.fromkeys(x.line_item_id for x in evaluation.item_evaluations))):
+                            raise ContractInvariantError("policy confirmation binding mismatch")
+                    save_evaluation(session,evaluation)
             evidence_issues = self._evidence_issues(handoff)
             return self._failed(*evidence_issues) if evidence_issues else self._passed()
         except (ContractInvariantError, LookupError, ValueError) as error:

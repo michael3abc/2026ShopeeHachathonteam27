@@ -42,7 +42,7 @@ from .models import (
     ReviewResult,
 )
 from .registry import get_claim_definition
-from .policy_v2 import active_clauses, content_hash
+from .policy_v2 import active_clauses, content_hash, validate_policy_confirmation_request
 
 
 class ContractInvariantError(ValueError):
@@ -489,6 +489,10 @@ def validate_proposed_decision_handoff(
             if confirmation is None or not confirmation.accepted or confirmation.confirmation_ref != selection.confirmation_ref:
                 raise ContractInvariantError("v2 selection requires accepted confirmation")
             request = confirmation.request
+            try:
+                validate_policy_confirmation_request(request, policy_bundle)
+            except ValueError as error:
+                raise ContractInvariantError(str(error)) from error
             if (request.case_ref != handoff.case_ref or request.path_id != selection.selected_path_id
                     or request.selection_version != selection.selection_version
                     or request.original_scope_hash != content_hash(sorted(original_scope))):

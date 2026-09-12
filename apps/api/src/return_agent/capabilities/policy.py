@@ -1,6 +1,7 @@
 """Versioned structured Policy RAG with deterministic hard applicability gates."""
 
 from __future__ import annotations
+from return_agent_contracts.policy_v2 import PolicyPath, PolicyPathId, REASON_PATH, POLICY_V2_VERSION
 
 import json
 from collections import defaultdict
@@ -11,7 +12,7 @@ from hashlib import sha256
 from math import sqrt
 from pathlib import Path
 
-from pydantic import ValidationError, model_validator
+from pydantic import Field, ValidationError, model_validator
 from return_agent_contracts.base import (
     ContractModel,
     NonEmptyText,
@@ -94,6 +95,7 @@ class PolicyClauseFixture(ContractModel):
     """Fixture form of PolicyClause; document version is derived at ingestion."""
 
     clause_id: OpaqueRef
+    path_id: PolicyPathId | None = Field(default=None,exclude_if=lambda v: v is None)
     effective_from: UTCDateTime
     effective_to: UTCDateTime | None = None
     applicable_conditions: ApplicableConditions
@@ -104,7 +106,7 @@ class PolicyClauseFixture(ContractModel):
 
     @model_validator(mode="after")
     def _validate_clause_shape(self) -> PolicyClauseFixture:
-        if not self.required_claim_ids:
+        if not self.required_claim_ids and self.path_id is not PolicyPathId.COOLING_OFF:
             raise ValueError("policy clause requires at least one claim")
         if not self.allowed_actions:
             raise ValueError("policy clause requires at least one action")
@@ -120,6 +122,7 @@ class PolicyClauseFixture(ContractModel):
         """Validate the final executable PolicyClause using shared contracts."""
 
         return PolicyClause(
+            path_id=self.path_id,
             clause_id=self.clause_id,
             policy_version=policy_version,
             effective_from=self.effective_from,
@@ -136,6 +139,7 @@ class PolicyDocumentFixture(ContractModel):
     """A versioned source containing structured clauses, not raw RAG chunks."""
 
     policy_family: NonEmptyText
+    paths: list[PolicyPath] = Field(default_factory=list,exclude_if=lambda v: not v)
     version: NonEmptyText
     source_ref: OpaqueRef
     active: bool = True
@@ -143,6 +147,10 @@ class PolicyDocumentFixture(ContractModel):
 
     @model_validator(mode="after")
     def _validate_document_shape(self) -> PolicyDocumentFixture:
+        if self.paths:
+            PolicyBundle(schema_version="v2",policy_bundle_version=POLICY_V2_VERSION+":bundle:validation",
+                retrieval_status="OK",retrieved_at=self.paths[0].effective_from,paths=self.paths,
+                selected_path_id=self.paths[0].path_id,clauses=self.contract_clauses())
         if not self.clauses:
             raise ValueError("policy document requires at least one clause")
         clause_ids = [clause.clause_id for clause in self.clauses]
@@ -277,6 +285,7 @@ def ingest_policy_documents(
         clauses = document.contract_clauses()
         document_id = _document_id(document)
         document_record = PolicyDocumentRecord(
+            path_payload=[p.model_dump(mode="json") for p in document.paths] or None,
             document_id=document_id,
             policy_family=document.policy_family,
             version=document.version,
@@ -295,6 +304,7 @@ def ingest_policy_documents(
             )
             session.add(
                 PolicyClauseRecord(
+                    path_id=clause.path_id.value if clause.path_id else None,
                     clause_id=clause.clause_id,
                     document_id=document_id,
                     policy_version=clause.policy_version,
@@ -360,6 +370,7 @@ class SqlAlchemyPolicyProvider(PolicyProvider):
         order_snapshot: OrderSnapshot,
         reason_code: ReasonCode,
         claimed_line_item_ids: Sequence[OpaqueRef],
+        *, selected_path_id: PolicyPathId | None = None,
     ) -> PolicyBundle:
         try:
             normalized_reason_code = ReasonCode(reason_code)
@@ -376,6 +387,10 @@ class SqlAlchemyPolicyProvider(PolicyProvider):
             normalized_reason_code,
             claimed_line_item_ids,
         )
+        if selected_path_id is not None:
+            if case_context.policy_schema_version != "v2":
+                raise PolicyRetrievalInputError("v1 cannot select a v2 path")
+            request_hash = _canonical_hash([request_hash, selected_path_id])
         with self._session_factory.begin() as session:
             candidates = self._eligible_candidates(
                 session,
@@ -387,7 +402,9 @@ class SqlAlchemyPolicyProvider(PolicyProvider):
                 [candidate.clause for candidate in candidates],
                 self._embedding_provider.model_name,
             )
-            status = self._retrieval_status(candidates)
+            is_v2 = case_context.policy_schema_version == "v2"
+            paths = [PolicyPath.model_validate(p) for p in (candidates[0].document.path_payload or [])] if is_v2 and candidates else []
+            status = RetrievalStatus.OK if is_v2 and paths and normalized_reason_code in REASON_PATH else self._retrieval_status(candidates) if not is_v2 else RetrievalStatus.NOT_FOUND
             clauses = (
                 self._ranked_contract_clauses(
                     session,
@@ -399,7 +416,11 @@ class SqlAlchemyPolicyProvider(PolicyProvider):
                 if status is RetrievalStatus.OK
                 else []
             )
-            bundle = self._bundle(request_hash, status, clauses)
+            bundle = self._bundle(request_hash, status, clauses) if not is_v2 else PolicyBundle(
+                schema_version="v2",policy_bundle_version=POLICY_V2_VERSION+":bundle:"+request_hash[:32],
+                retrieval_status=status,retrieved_at=datetime.now(UTC),clauses=clauses,paths=paths,
+                common_constraints=["TW_TWD_BUSINESS_GENERAL_PHYSICAL_SINGLE_ITEM"],
+                selected_path_id=selected_path_id or REASON_PATH.get(normalized_reason_code))
             bundle = self._persist_bundle(session, request_hash, bundle)
         return bundle
 
@@ -456,6 +477,9 @@ class SqlAlchemyPolicyProvider(PolicyProvider):
         return _canonical_hash(
             {
                 "case_ref": case_context.case_ref,
+                "policy_schema_version": case_context.policy_schema_version,
+                "first_valid_submitted_at": case_context.first_valid_submitted_at.isoformat() if case_context.first_valid_submitted_at else None,
+                "order_facts": order_snapshot.policy_facts.model_dump(mode="json") if order_snapshot.policy_facts else None,
                 "market": case_context.market,
                 "case_opened_at": case_context.case_opened_at.isoformat(),
                 "order_snapshot_ref": order_snapshot.order_snapshot_ref,
@@ -481,6 +505,12 @@ class SqlAlchemyPolicyProvider(PolicyProvider):
         ).all()
         candidates: list[_PolicyCandidate] = []
         for document, clause in rows:
+            if case_context.policy_schema_version == "v2":
+                if document.policy_family == "DEMO-TW-RETURNS" and document.version == "v2.0" and document.path_payload:
+                    candidates.append(_PolicyCandidate(document=document,clause=clause))
+                continue
+            if document.path_payload:
+                continue
             if _as_utc(clause.effective_from) > case_context.case_opened_at:
                 continue
             if (
@@ -584,6 +614,7 @@ class SqlAlchemyPolicyProvider(PolicyProvider):
     @staticmethod
     def _to_contract_clause(record: PolicyClauseRecord) -> PolicyClause:
         return PolicyClause(
+            path_id=record.path_id,
             clause_id=record.clause_id,
             policy_version=record.policy_version,
             effective_from=_as_utc(record.effective_from),

@@ -42,11 +42,18 @@ from .db.models import HumanReviewRecord
 # Terminal statuses have no outgoing transitions; every other edge is one the
 # graph runner drives. AWAITING_* -> OBSERVING is the resume edge.
 ALLOWED_TRANSITIONS: dict[CaseStatus, frozenset[CaseStatus]] = {
+    CaseStatus.AWAITING_POLICY_CONFIRMATION: frozenset({CaseStatus.OBSERVING,CaseStatus.ESCALATED}),
+    CaseStatus.AWAITING_RETURN_CONFIRMATION: frozenset({CaseStatus.AWAITING_RETURN,CaseStatus.ESCALATED}),
+    CaseStatus.AWAITING_RETURN: frozenset({CaseStatus.AWAITING_RETURN_INSPECTION,CaseStatus.ESCALATED}),
+    CaseStatus.AWAITING_RETURN_INSPECTION: frozenset({CaseStatus.EXECUTING,CaseStatus.ESCALATED}),
     CaseStatus.OBSERVING: frozenset(
         {
             CaseStatus.AWAITING_CLARIFICATION,
             CaseStatus.AWAITING_EVIDENCE,
             CaseStatus.AWAITING_HUMAN_REVIEW,
+            CaseStatus.AWAITING_POLICY_CONFIRMATION,
+            CaseStatus.AWAITING_RETURN_CONFIRMATION,
+            CaseStatus.AWAITING_RETURN,
             CaseStatus.EXECUTING,
             CaseStatus.ESCALATED,
         }
@@ -199,6 +206,19 @@ def to_case_detail(store: CaseStore, case: CaseRecord) -> CaseDetail:
     evidence_request: EvidenceRequestView | None = None
     human_review: HumanReviewPayload | None = None
     status = CaseStatus(case.status)
+    policy_confirmation_request = None
+    fulfillment = None
+    policy_evaluation = None
+    if status is CaseStatus.AWAITING_POLICY_CONFIRMATION:
+        pending = store.latest_interrupt(case.case_ref)
+        policy_confirmation_request = getattr(pending.payload,"request",None) if pending else None
+    if case.policy_schema_version == "v2":
+        from .db.models import ReturnAuthorizationRecord
+        from .capabilities.fulfillment import fulfillment_projection
+        authorization = store._session.scalar(select(ReturnAuthorizationRecord).where(ReturnAuthorizationRecord.case_ref == case.case_ref))
+        if authorization is not None:
+            fulfillment = fulfillment_projection(authorization)
+            policy_evaluation = authorization.payload["resolution"]["policy_evaluation"]
     record = store.latest_human_review(case.case_ref)
     interrupt = (
         store.latest_interrupt(case.case_ref)
@@ -248,6 +268,10 @@ def to_case_detail(store: CaseStore, case: CaseRecord) -> CaseDetail:
             human_result = TypeAdapter(HumanReviewResult).validate_python(record.result_payload)
 
     return CaseDetail(
+        policy_schema_version=case.policy_schema_version,
+        policy_confirmation_request=policy_confirmation_request,
+        policy_evaluation=policy_evaluation,
+        fulfillment=fulfillment,
         case_ref=case.case_ref,
         order_ref=case.order_ref,
         user_ref=case.user_ref,

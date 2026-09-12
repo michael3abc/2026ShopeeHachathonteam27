@@ -23,6 +23,7 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from return_agent_contracts.enums import UserRole
+from return_agent_contracts.transport import PrepareUserRiskSnapshotRequest, PrepareUserRiskSnapshotResponse
 from return_agent_contracts.models import UserTurn
 from return_agent_contracts.runtime import (
     ClarificationResume,
@@ -89,6 +90,8 @@ from .store import (
 
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+    from .auth import configure_auth
+    configure_auth(application)
     _configure_integrated_demo(application)
     provider_bundle: IntegratedProviderBundle | None = application.state.provider_bundle
     bridge = AgentBridge.from_settings(
@@ -117,6 +120,11 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Adaptive Return Resolution API", lifespan=lifespan)
+from .auth import DemoAuthMiddleware, router as auth_router, identity
+app.add_middleware(DemoAuthMiddleware)
+app.include_router(auth_router)
+from .policy_routes import router as policy_router
+app.include_router(policy_router)
 from .activities import router as activity_router
 
 app.include_router(activity_router)
@@ -234,6 +242,22 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.post("/internal/v1/user-risk/snapshot")
+def prepare_user_risk_snapshot(
+    request: PrepareUserRiskSnapshotRequest,
+    providers: Annotated[IntegratedProviderBundle, Depends(get_provider_bundle)],
+    _authorization: Annotated[None, Depends(require_internal_service)],
+) -> PrepareUserRiskSnapshotResponse:
+    if providers.user_risk_provider is None:
+        raise HTTPException(503, "User risk provider unavailable")
+    try:
+        return PrepareUserRiskSnapshotResponse(result=providers.user_risk_provider.prepare_snapshot(**request.params.model_dump()))
+    except LookupError as error:
+        raise HTTPException(404, str(error)) from error
+    except ValueError as error:
+        raise HTTPException(409, str(error)) from error
+
+
 @app.post("/internal/v1/verification")
 def verify_handoff(
     request: VerifyHandoffRequest,
@@ -284,6 +308,7 @@ def retrieve_policy(
             params.order_snapshot,
             params.reason_code,
             params.claimed_line_item_ids,
+            **({"selected_path_id": params.selected_path_id} if params.selected_path_id is not None else {}),
         )
     )
 
@@ -299,6 +324,7 @@ def query_approved_memory(
         result=list(
             providers.operational_memory_store.query_approved(
                 query_summary=params.query_summary,
+                **({"policy_path_id":params.policy_path_id} if params.policy_path_id is not None else {}),
                 market=params.market,
                 reason_code=params.reason_code,
                 required_claim_ids=params.required_claim_ids,
@@ -375,6 +401,20 @@ def create_case(
 ) -> CreateCaseResponse:
     outbox = get_command_outbox(http_request)
     case = store.create(request)
+    principal = getattr(http_request.state,"demo_identity",None)
+    if principal is not None and principal.user_ref != request.user_ref:
+        raise HTTPException(403,"Case owner mismatch")
+    providers = http_request.app.state.provider_bundle
+    scenarios = getattr(providers.case_context_provider,"v2_scenarios",None) if providers else None
+    if scenarios is not None:
+        from .capabilities.policy_v2_demo import initialize_v2_case
+        try:
+            if initialize_v2_case(case,scenarios):
+                identity(http_request,{"buyer"})
+        except ValueError as error:
+            raise HTTPException(409,str(error)) from error
+    elif request.order_ref.startswith("ORDER-PV2-"):
+        raise HTTPException(503,"Policy v2 scenarios are not configured")
     initial_turn = _user_turn(request.initial_message, request.attached_artifact_refs)
     outbox.enqueue(
         session,
@@ -480,6 +520,9 @@ def complete_human_review(
     store: Annotated[CaseStore, Depends(get_store)],
     providers: Annotated[IntegratedProviderBundle, Depends(get_provider_bundle)],
 ) -> CaseDetail:
+    principal = getattr(http_request.state,"demo_identity",None)
+    if principal is not None and (principal.role != "reviewer" or request.reviewer_id != principal.user_ref):
+        raise HTTPException(403,"Reviewer identity mismatch")
     try:
         case = store.lock(case_ref)
         if CaseStatus(case.status) is not CaseStatus.AWAITING_HUMAN_REVIEW:

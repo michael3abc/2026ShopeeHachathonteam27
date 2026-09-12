@@ -567,7 +567,20 @@ class AgentEventProjector:
         event: AgentInterruptedEvent,
     ) -> None:
         interrupt = event.payload.result.interrupt_payload
-        if interrupt.kind is AgentInterruptKind.CLARIFICATION:
+        if interrupt.kind is AgentInterruptKind.POLICY_CONFIRMATION:
+            from .db.models import PolicyConfirmationRecord
+            request = interrupt.request
+            if request.case_ref != case.case_ref or case.policy_schema_version != "v2":
+                raise ValueError("policy confirmation case binding mismatch")
+            record = session.get(PolicyConfirmationRecord,request.request_ref)
+            if record is not None and record.request_payload != request.model_dump(mode="json"):
+                raise ValueError("policy confirmation request changed")
+            if record is None:
+                session.add(PolicyConfirmationRecord(request_ref=request.request_ref,case_ref=case.case_ref,request_payload=request.model_dump(mode="json")))
+            node = GraphNodeName.CONFIRM_POLICY_PATH
+            target = CaseStatus.AWAITING_POLICY_CONFIRMATION
+            view = {"interrupt_kind":"POLICY_CONFIRMATION","request":request.model_dump(mode="json")}
+        elif interrupt.kind is AgentInterruptKind.CLARIFICATION:
             node = GraphNodeName.REQUEST_CLARIFICATION
             target = CaseStatus.AWAITING_CLARIFICATION
             view = to_clarification_interrupt_payload(event.case_ref, interrupt.request)
@@ -621,6 +634,10 @@ class AgentEventProjector:
         event: AgentResolvedEvent,
     ) -> bool:
         handoff = event.payload.result.resolution_handoff
+        if case.policy_schema_version == "v2" and handoff.final_decision.action is ResolutionAction.FULL_REFUND:
+            from .capabilities.fulfillment import register_authorization
+            register_authorization(session,case,handoff,self._refund_execution_provider)
+            return False
         if (
             handoff.final_decision.action is ResolutionAction.FULL_REFUND
             and not handoff.execution_blocked
@@ -739,6 +756,8 @@ class AgentBridge:
             session_factory,
             refund_execution_provider,
         )
+        from .capabilities.fulfillment import FulfillmentWorker
+        self._fulfillment = FulfillmentWorker(session_factory,refund_execution_provider)
         self._outbox_owner = (
             settings.outbox_dispatcher_name
             or f"{settings.event_consumer_name}-{id(self)}"
@@ -862,6 +881,7 @@ class AgentBridge:
         while not self._stop.is_set():
             try:
                 worked = await self.dispatch_outbox_once()
+                worked = await self.dispatch_completion_once() or worked
             except asyncio.CancelledError:
                 raise
             except Exception:
@@ -870,6 +890,26 @@ class AgentBridge:
             if not worked:
                 await self._wait_when_idle()
 
+    async def dispatch_completion_once(self) -> bool:
+        from return_agent_contracts.completion import REFUND_COMPLETION_STREAM
+        from return_agent.db.models import RefundCompletionOutboxRecord
+        def pending():
+            with self._session_factory() as session:
+                row = session.scalar(select(RefundCompletionOutboxRecord).where(
+                    RefundCompletionOutboxRecord.published.is_(False)).order_by(RefundCompletionOutboxRecord.resolution_ref).limit(1))
+                return (row.resolution_ref,row.payload) if row else None
+        record = await asyncio.to_thread(pending)
+        if record is None:
+            return False
+        ref,payload = record
+        # Delivery may repeat after publish/commit failure. Agent joins by ref/hash.
+        await self._redis.xadd(REFUND_COMPLETION_STREAM,{REDIS_BODY_FIELD:_json(payload)})
+        def mark():
+            with self._session_factory.begin() as session:
+                session.get(RefundCompletionOutboxRecord,ref).published = True
+        await asyncio.to_thread(mark)
+        return True
+
     async def _run_events(self) -> None:
         group_ready = False
         while not self._stop.is_set():
@@ -877,6 +917,7 @@ class AgentBridge:
                 if not group_ready:
                     await self._ensure_event_group()
                     group_ready = True
+                await asyncio.to_thread(self._fulfillment.run_once)
                 await self.consume_event_once()
             except asyncio.CancelledError:
                 raise

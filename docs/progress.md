@@ -7,7 +7,7 @@
 | T01 骨架與依賴 | 骨架驗證通過 | 四個 packages 可安裝；Python 3.12.0、uv.lock、npm lock；3 項架構／health 測試通過，Next build 通過，Compose config 通過。Docker daemon／映像建置未驗證。 |
 | T02 Contracts | 契約層驗證通過 | 192 份生成 schemas、TS、93 項契約測試；Domain／Provider／Runtime／Service events／UI／Activity／Memory。持久化與執行端驗證續於 T03–T08。 |
 | T03 API／DB | 核心持久化通過 | 0001 migration、case create/get/messages/events、atomic outbox；9 項 PostgreSQL 測試與全套 105 項通過，含主庫已有 migration 的隔離回歸。service event 投影接線續於 T06。 |
-| T04 能力／退款 | 能力持久化通過，退款實作中 | 可信 context／metadata、exact Policy、冪等 verification、人審 dossier 與內部 token；退款 reservation／application 待驗證。 |
+| T04 能力／退款 | 核心持久化與模擬退款通過 | API 33 項 PostgreSQL 測試；獨立授權、原子人審／RESUME、品項 reservation、APPLIED ledger、未知結果同 key 恢復；跨服務接線待 T06。 |
 | T05 Graph | 未開始 | 待 T02。 |
 | T06 跨服務 | 未開始 | 待 T04、T05。 |
 | T07 VDB／Memory | 未開始 | 待 T06。 |
@@ -92,3 +92,6 @@ C01–C06、C10–C11 的上述**契約子案例**通過；C12–C13 僅已驗�
 - 新增 0002 migration：可信訂單、Evidence metadata、Policy clauses／retrievals、verification 與 human dossier。
 - API PostgreSQL 測試 18 passed，exit 0，3.52s；涵蓋 M04-R01–R03、C19 部分：同 ID／hash 重送、併發驗證、偽造金額／metadata、缺失原 Policy、可信 snapshot 改版、人審未驗證 dossier、內部 token／typed HTTP。
 - Policy 暫以精確條件篩選資料表；embedding／pgvector 為 T07 未完成項目。人審提交只是保存 dossier，待投影後才進入 canonical 待審狀態。
+- 新增 0003 migration：refund execution／reservation／successful item ledger／durable simulated receipt；有退款資料時禁止直接 downgrade。
+- API 測試 33 passed，exit 0，9.03s。新增 C19–C21 核心情境：高額偽造 auto、缺 gate／改版本、偽造 human、改最終金額、同品項跨案並行、同 execution 重送、多品項 reservation 回滾、APPLIED 後斷線恢復、遺失 reservation fail-closed、application 明確 REJECTED。
+- 人審 APPROVE／REJECT／EDIT 均測試；EDIT 可在原始申請 scope 內限縮，API 計算金額；過期 handoff、scope 越界、outbox 失敗不留下半筆裁決。以上為 deterministic／模擬付款，尚非跨服務 A/B/C。

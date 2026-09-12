@@ -16,6 +16,8 @@ from .settings import Settings
 from .capabilities import CapabilityNotFound, CapabilityStore
 from .internal import internal_router
 from return_agent_contracts.providers import ContractConflict, ProviderUnavailable
+from return_agent_contracts.human import ReviewDecision
+from .human_review import HumanReviewService
 
 
 def create_app(settings: Settings | None = None, *, store: CaseStore | None = None) -> FastAPI:
@@ -90,6 +92,10 @@ def create_app(settings: Settings | None = None, *, store: CaseStore | None = No
     @app.post("/cases/{case_ref}/messages", response_model=CaseDetail)
     def message(case_ref: str, body: SendMessageRequest) -> CaseDetail:
         return case_store().message(case_ref, body)
+
+    @app.post("/cases/{case_ref}/review", response_model=CaseDetail)
+    def review(case_ref: str, body: ReviewDecision) -> CaseDetail:
+        return HumanReviewService(CapabilityStore(case_store())).complete(case_ref, body)
 
     @app.get("/cases/{case_ref}/events")
     async def case_events(case_ref: str, request: Request) -> StreamingResponse:

@@ -136,6 +136,45 @@ class HumanReviewRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
+class RefundExecutionRow(Base):
+    __tablename__ = "refund_executions"
+    __table_args__ = (CheckConstraint("status IN ('IN_PROGRESS','SUCCEEDED','REJECTED')", name="refund_execution_status_valid"),)
+    execution_ref: Mapped[str] = mapped_column(Text, primary_key=True)
+    handoff_id: Mapped[str] = mapped_column(Text, unique=True)
+    case_ref: Mapped[str] = mapped_column(ForeignKey("cases.case_ref"), index=True)
+    order_ref: Mapped[str] = mapped_column(ForeignKey("trusted_orders.order_ref"))
+    payload_hash: Mapped[str] = mapped_column(String(64))
+    request: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(String(20))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    application_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    application_result: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+
+
+class RefundReservationRow(Base):
+    __tablename__ = "refund_item_reservations"
+    order_ref: Mapped[str] = mapped_column(ForeignKey("trusted_orders.order_ref"), primary_key=True)
+    line_item_ref: Mapped[str] = mapped_column(Text, primary_key=True)
+    execution_ref: Mapped[str] = mapped_column(ForeignKey("refund_executions.execution_ref"), index=True)
+    amount: Mapped[str] = mapped_column(Text)
+
+
+class RefundItemRow(Base):
+    __tablename__ = "refund_execution_items"
+    order_ref: Mapped[str] = mapped_column(ForeignKey("trusted_orders.order_ref"), primary_key=True)
+    line_item_ref: Mapped[str] = mapped_column(Text, primary_key=True)
+    execution_ref: Mapped[str] = mapped_column(ForeignKey("refund_executions.execution_ref"), index=True)
+    amount: Mapped[str] = mapped_column(Text)
+
+
+class MockRefundReceiptRow(Base):
+    __tablename__ = "mock_refund_receipts"
+    execution_ref: Mapped[str] = mapped_column(Text, primary_key=True)
+    payload_hash: Mapped[str] = mapped_column(String(64))
+    result: Mapped[dict[str, Any]] = mapped_column(JSONB)
+
+
 def make_engine(settings: Settings, *, schema: str | None = None) -> Engine:
     if not settings.database_url:
         raise ValueError("API_DATABASE_URL is required")

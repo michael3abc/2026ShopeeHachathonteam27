@@ -31,3 +31,20 @@
 - 補件文字只供 Distiller 回顧，不新增 Resolver 決策輸入；缺輸入能力是系統缺口，不學成成功方法。既有 Policy、授權、Reviewer 與治理不變。
 - Compass Distiller 獨立 Sol/high／Responses，其他模型不變；不 silent retry/fallback。Qwen 不誤套 Compass profile。
 - 以 prompt 3.1、dialogue version 與 replay model_profile 區別新工作；已保存結果原樣重播、舊 hash 保留、pending 不換 prompt/model 重算。部署前處理舊 pending；本批不部署。
+
+## Policy v2 與 User Risk 整合決策
+
+以下是目前獨立 `feat/policy-v2-user-risk` worktree 的契約決策；D01–D09 保留
+歷史意義。交付與驗收狀態見 [progress](progress.md)，不由本表宣稱完成。
+
+| ID | 決策 | 原因與影響 |
+| --- | --- | --- |
+| D10 | API 以可信 Demo scenario 在建案時固定 v1／v2 與 owner；User Risk 僅供 v2 新案 | 不接受瀏覽器指定可信版本／配送 facts；保留 v1 語意，禁止跨版 checkpoint 重播或自動降級。 |
+| D11 | Policy v2 四條獨立路徑，以 deterministic evaluation、版本化 selection／consent 持久化 | 不交叉套用路徑條件；P01 空 claims 仍驗可信 predicates，P04 僅用逐品項未交付 facts。 |
+| D12 | Reviewer 只讀自己的 findings，不讀 Assessment 結論、Memory 或 risk；gate 在核准後計算 | LOW／MEDIUM 可放行；HIGH／UNKNOWN 與金額 gate 走既有人審，保留兩個 gate 與原始 Reviewer verdict，金額原因優先。 |
+| D13 | API 擁有 cutoff snapshot 與人工授權；dossier snapshot 逐 facts 比對持久化原件 | cutoff 固定 case_opened_at、排除 current case；重送保持原 facts，不能以相同 snapshot_ref 冒充可信 risk assessment。 |
+| D14 | 退款核准與付款釋放分開；required return 仍須買家同意與合法驗收 | 人工授權不跳過履約；付款前重驗 scope／可退額／reservation／consent／evaluation／config。config 改變交專責，不重跑 Reviewer；unknown 用原 execution key 恢復。 |
+| D15 | APPLIED ledger、REFUND_SUCCEEDED 與 completion outbox 同 transaction；Agent 以 durable join 排程 v2 Memory | correction／APPLIED 任意順序與重送只對應一個 logical job；未付款不學習；v1／DECLINE 保留原流程。 |
+| D16 | 最小 Demo 認證使用個別憑證與 opaque HttpOnly session；角色由後端配置 | owner buyer 操作自己的案件、reviewer 讀 dossier／裁決、operator 模擬物流；JSON、雙 SSE、inspector／narration 都由 API 做角色投影；狀態變更驗 Origin，Provider 保留 service token。 |
+| D17 | API 與 Agent migration 維持單一線性 lineage | 新 risk 三表不讀寫 legacy risk_evaluations；非空 online／offline 降版均阻擋；Agent 首次並行 journal claim 以衝突安全 insert／row lock 處理。實際 revision 以 migration 檔為準。 |
+| D18 | Launcher project／ports／env file 可參數化，Web build 綁定相同 API URL | 新 worktree 使用獨立 Compose volumes／Redis／ports；不切換原服務，不修改固定 docs/reconstruction。 |

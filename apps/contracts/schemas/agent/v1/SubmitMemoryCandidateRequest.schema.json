@@ -2,6 +2,7 @@
   "$defs": {
     "ClaimId": {
       "enum": [
+        "ITEM_CONFIRMED_UNDELIVERED",
         "DELIVERY_CONFIRMED",
         "ORDER_WITHIN_RETURN_WINDOW",
         "SHIPMENT_SEAL_INTACT",
@@ -148,6 +149,17 @@
           "title": "Market",
           "type": "string"
         },
+        "policy_path_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyPathId"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "reason_codes": {
           "items": {
             "$ref": "#/$defs/ReasonCode"
@@ -161,6 +173,16 @@
       ],
       "title": "MemoryScope",
       "type": "object"
+    },
+    "PolicyPathId": {
+      "enum": [
+        "COOLING_OFF",
+        "DAMAGED_ON_ARRIVAL",
+        "WRONG_ITEM",
+        "UNDELIVERED_ITEM"
+      ],
+      "title": "PolicyPathId",
+      "type": "string"
     },
     "ReasonCode": {
       "enum": [

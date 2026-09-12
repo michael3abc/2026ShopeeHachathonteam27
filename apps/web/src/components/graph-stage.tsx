@@ -37,6 +37,8 @@ const nodePosition: Record<string, { x: number; y: number }> = {
   prepare_memory_query: { x: 570, y: 92 },
   retrieve_memory: { x: 730, y: 92 },
   assess_case: { x: 890, y: 92 },
+  evaluate_policy: { x: 410, y: 222 },
+  confirm_policy_path: { x: 570, y: 222 },
   propose_decision: { x: 1050, y: 92 },
   external_verification: { x: 1210, y: 92 },
   reviewer: { x: 1370, y: 92 },
@@ -66,6 +68,11 @@ const edgePath: Record<string, string> = {
   "reviewer>await_human_review": "M1400,118 C1400,160 1450,160 1450,194",
   "await_human_review>emit_resolution_handoff": "M1500,196 C1500,160 1530,160 1530,120",
   "emit_resolution_handoff>enqueue_memory_distillation": "M1560,118 C1560,160 1690,160 1690,194",
+  "assess_case>evaluate_policy": "M890,118 C890,164 410,164 410,194",
+  "evaluate_policy>propose_decision": "M440,196 C440,144 1050,144 1050,120",
+  "propose_decision>confirm_policy_path": "M1050,118 C1050,180 570,180 570,194",
+  "confirm_policy_path>retrieve_policy": "M570,248 C570,286 330,286 330,154 C330,140 410,154 410,120",
+  "evaluate_policy>request_evidence": "M410,248 C410,280 890,280 890,250",
 };
 
 const edgeLabels: { edge: string; x: number; y: number; text?: string; budget?: string }[] = [
@@ -129,15 +136,21 @@ export function GraphStage({
   progress,
   selectedNode,
   unavailable,
+  policyVersion = "v1",
 }: {
   onSelectNode: (node: string) => void;
   playback: StagePlayback;
   progress: GraphProgress;
   selectedNode: string;
   unavailable: boolean;
+  policyVersion?: "v1" | "v2";
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const { activeNode } = progress;
+  const visibleNodes = graphNodes.filter(({ node }) => policyVersion === "v2" || !["evaluate_policy", "confirm_policy_path"].includes(node));
+  const visibleNodeNames = new Set(visibleNodes.map(({ node }) => node));
+  const visibleEdges = graphEdges.filter(({ from, to }) => visibleNodeNames.has(from) && visibleNodeNames.has(to) &&
+    !(policyVersion === "v2" && from === "assess_case" && to === "propose_decision"));
 
   // Bring the running node into view only when it is off-screen, so a wide viewport stays still.
   useEffect(() => {
@@ -245,7 +258,7 @@ export function GraphStage({
                 </marker>
               ))}
             </defs>
-            {graphEdges.map((edge) => {
+            {visibleEdges.map((edge) => {
               const id = edgeId(edge.from, edge.to);
               const traversed = (progress.edgeTraversals[id] ?? 0) > 0;
               if (edge.kind === "failure" && !traversed) return null;
@@ -283,7 +296,7 @@ export function GraphStage({
               );
             })}
           </svg>
-          {graphNodes.map(({ node, lane }) => {
+          {visibleNodes.map(({ node, lane }) => {
             const position = nodePosition[node];
             const state = progress.states[node];
             const visits = progress.visits[node];

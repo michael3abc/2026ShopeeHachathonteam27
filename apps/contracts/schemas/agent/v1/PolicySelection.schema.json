@@ -1,0 +1,58 @@
+{
+  "$defs": {
+    "PolicyPathId": {
+      "enum": [
+        "COOLING_OFF",
+        "DAMAGED_ON_ARRIVAL",
+        "WRONG_ITEM",
+        "UNDELIVERED_ITEM"
+      ],
+      "title": "PolicyPathId",
+      "type": "string"
+    },
+    "RequestedAction": {
+      "enum": [
+        "REFUND",
+        "RETURN_AND_REFUND",
+        "EXCHANGE",
+        "UNSPECIFIED"
+      ],
+      "title": "RequestedAction",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "confirmation_ref": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confirmation Ref"
+    },
+    "original_requested_action": {
+      "$ref": "#/$defs/RequestedAction"
+    },
+    "selected_path_id": {
+      "$ref": "#/$defs/PolicyPathId"
+    },
+    "selection_version": {
+      "minimum": 1,
+      "title": "Selection Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "selected_path_id",
+    "selection_version",
+    "original_requested_action"
+  ],
+  "title": "PolicySelection",
+  "type": "object"
+}

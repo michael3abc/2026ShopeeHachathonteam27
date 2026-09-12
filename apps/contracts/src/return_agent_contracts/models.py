@@ -47,6 +47,16 @@ from .enums import (
     WaivedReturnReasonCode,
 )
 from .review_gates import HumanReviewRoutingReason, ReviewGateResult
+from .policy_v2 import (
+    OrderPolicyFacts,
+    PolicyConfirmation,
+    PolicyEvaluation,
+    PolicyPath,
+    PolicyPathId,
+    PolicySelection,
+    RefundReleaseCondition,
+)
+from .user_risk import UserRiskGateResult, UserRiskSnapshot
 
 ORDER_SUBJECT = "ORDER"
 REVIEW_REVISION_LIMIT = 3
@@ -62,6 +72,8 @@ class UserTurn(ContractModel):
 
 
 class CaseContext(ContractModel):
+    policy_schema_version: Literal["v1", "v2"] = Field(default="v1",exclude_if=lambda v: v == "v1")
+    first_valid_submitted_at: UTCDateTime | None = Field(default=None,exclude_if=lambda v: v is None)
     case_ref: OpaqueRef
     order_ref: OpaqueRef
     market: NonEmptyText
@@ -79,18 +91,21 @@ class OrderLineItem(ContractModel):
 
 
 class OrderSnapshot(ContractModel):
+    policy_facts: OrderPolicyFacts | None = Field(default=None,exclude_if=lambda v: v is None)
     order_snapshot_ref: OpaqueRef
     order_ref: OpaqueRef
     snapshot_version: PositiveInt
     captured_at: UTCDateTime
     currency: CurrencyCode
-    delivered_at: UTCDateTime
+    delivered_at: UTCDateTime | None
     line_items: list[OrderLineItem] = Field(min_length=1)
     refundable_amount_max: Money
     already_refunded_amount: Money
 
     @model_validator(mode="after")
     def _line_item_ids_are_unique(self) -> "OrderSnapshot":
+        if self.delivered_at is None and self.policy_facts is None:
+            raise ValueError("v1 order requires delivered_at")
         ids = [item.line_item_id for item in self.line_items]
         if len(ids) != len(set(ids)):
             raise ValueError("line_item_id values must be unique")
@@ -109,18 +124,23 @@ class ApplicableConditions(ContractModel):
 
 
 class PolicyClause(ContractModel):
+    path_id: PolicyPathId | None = Field(default=None,exclude_if=lambda v: v is None)
     clause_id: OpaqueRef
     policy_version: OpaqueRef
     effective_from: UTCDateTime
     effective_to: UTCDateTime | None = None
     applicable_conditions: ApplicableConditions
-    required_claim_ids: list[ClaimId] = Field(min_length=1)
+    required_claim_ids: list[ClaimId]
     allowed_actions: list[ResolutionAction] = Field(min_length=1)
     return_policy: ReturnPolicy
     text: NonEmptyText
 
     @model_validator(mode="after")
     def _effective_range_is_ordered(self) -> "PolicyClause":
+        if not self.required_claim_ids and self.path_id is not PolicyPathId.COOLING_OFF:
+            raise ValueError("only v2 cooling-off clauses have no required claims")
+        if self.path_id is None and ClaimId.ITEM_CONFIRMED_UNDELIVERED in self.required_claim_ids:
+            raise ValueError("v2 claim requires a v2 policy path")
         if self.effective_to is not None and self.effective_to < self.effective_from:
             raise ValueError("effective_to must be on or after effective_from")
         if len(self.required_claim_ids) != len(set(self.required_claim_ids)):
@@ -131,6 +151,10 @@ class PolicyClause(ContractModel):
 
 
 class PolicyBundle(ContractModel):
+    schema_version: Literal["v1", "v2"] = Field(default="v1",exclude_if=lambda v: v == "v1")
+    paths: list[PolicyPath] = Field(default_factory=list,exclude_if=lambda v: not v)
+    common_constraints: list[str] = Field(default_factory=list,exclude_if=lambda v: not v)
+    selected_path_id: PolicyPathId | None = Field(default=None,exclude_if=lambda v: v is None)
     policy_bundle_version: OpaqueRef
     retrieval_status: RetrievalStatus
     retrieved_at: UTCDateTime
@@ -138,6 +162,19 @@ class PolicyBundle(ContractModel):
 
     @model_validator(mode="after")
     def _ok_bundle_has_clauses(self) -> "PolicyBundle":
+        if self.schema_version == "v1" and (self.paths or self.selected_path_id or any(c.path_id for c in self.clauses)):
+            raise ValueError("v1 bundle cannot contain v2 paths")
+        if self.schema_version == "v2" and self.retrieval_status is RetrievalStatus.OK:
+            if len(self.paths) != 4 or {p.path_id for p in self.paths} != set(PolicyPathId):
+                raise ValueError("v2 retrieval requires all four paths")
+            if self.selected_path_id is None or not self.policy_bundle_version.startswith("DEMO-TW-RETURNS:v2.0:bundle:"):
+                raise ValueError("v2 bundle requires a selected path and exact version")
+            for path in self.paths:
+                clauses = [c for c in self.clauses if c.path_id is path.path_id]
+                if {c.clause_id for c in clauses} != set(path.clause_refs) or not clauses:
+                    raise ValueError("path clause references mismatch")
+                if any(c.return_policy is not path.return_policy or c.policy_version != path.policy_version or c.required_claim_ids != path.required_claim_ids for c in clauses):
+                    raise ValueError("path clause policy mismatch")
         if self.retrieval_status is RetrievalStatus.OK and not self.clauses:
             raise ValueError("OK PolicyBundle must contain at least one clause")
         return self
@@ -176,7 +213,13 @@ class EvidenceRequest(ContractModel):
 
 class _EvidenceAssessmentBase(ContractModel):
     claim_registry_version: OpaqueRef
-    claim_findings: list[ClaimFinding] = Field(min_length=1)
+    claim_findings: list[ClaimFinding]
+
+    @model_validator(mode="after")
+    def _v1_findings(self):
+        if not self.claim_findings and self.claim_registry_version != "claim-registry:2.0":
+            raise ValueError("v1 assessment requires findings")
+        return self
 
 
 class ApprovalEvidenceAssessment(_EvidenceAssessmentBase):
@@ -280,6 +323,7 @@ class PolicyReturnDecision(ContractModel):
 
 
 class ModelJudgmentReturnDecision(ContractModel):
+    basis_refs: list[OpaqueRef] = Field(default_factory=list,exclude_if=lambda v: not v)
     source: Literal[ReturnDecisionSource.MODEL_JUDGMENT]
     requirement: ReturnRequirement
 
@@ -364,7 +408,11 @@ ProposedDecision: TypeAlias = Annotated[
 
 
 class ProposedDecisionHandoff(ContractModel):
-    handoff_version: Literal["1.0"]
+    handoff_version: Literal["1.0", "2.0"]
+    policy_evaluation: PolicyEvaluation | None = Field(default=None,exclude_if=lambda v: v is None)
+    policy_selection: PolicySelection | None = Field(default=None,exclude_if=lambda v: v is None)
+    policy_confirmation: PolicyConfirmation | None = Field(default=None,exclude_if=lambda v: v is None)
+    assessment_findings: list[ClaimFinding] | None = Field(default=None,exclude_if=lambda v: v is None)
     handoff_id: OpaqueRef
     case_ref: OpaqueRef
     order_snapshot_ref: OpaqueRef
@@ -379,6 +427,12 @@ class ProposedDecisionHandoff(ContractModel):
 
     @model_validator(mode="after")
     def _references_are_consistent(self) -> "ProposedDecisionHandoff":
+        if self.handoff_version == "2.0":
+            evaluation = self.policy_evaluation
+            if evaluation is None or self.policy_selection != evaluation.selection or evaluation.case_ref != self.case_ref or evaluation.order_snapshot_ref != self.order_snapshot_ref or evaluation.policy_bundle_version != self.policy_bundle_version or evaluation.claim_registry_version != self.claim_registry_version:
+                raise ValueError("v2 handoff requires bound policy evaluation and selection")
+        elif self.policy_evaluation or self.policy_selection or self.policy_confirmation or self.assessment_findings is not None:
+            raise ValueError("v1 handoff cannot carry v2 authorization")
         evidence_ids = {item.evidence_id for item in self.evidence_bundle}
         if len(evidence_ids) != len(self.evidence_bundle):
             raise ValueError(
@@ -432,7 +486,7 @@ class RevisionReason(ContractModel):
 
 class ApprovedReviewResult(ContractModel):
     verdict: Literal[ReviewVerdict.APPROVE]
-    reviewer_claim_findings: list[ClaimFinding] = Field(min_length=1)
+    reviewer_claim_findings: list[ClaimFinding]
     revision_reasons: list[RevisionReason] = Field(default_factory=list, max_length=0)
     reviewer_prompt_version: OpaqueRef
     reviewed_at: UTCDateTime
@@ -440,7 +494,7 @@ class ApprovedReviewResult(ContractModel):
 
 class RevisedReviewResult(ContractModel):
     verdict: Literal[ReviewVerdict.REVISE]
-    reviewer_claim_findings: list[ClaimFinding] = Field(min_length=1)
+    reviewer_claim_findings: list[ClaimFinding]
     revision_reasons: list[RevisionReason] = Field(min_length=1)
     reviewer_prompt_version: OpaqueRef
     reviewed_at: UTCDateTime
@@ -468,6 +522,10 @@ class HumanReviewDossier(ContractModel):
     claim_registry_version: OpaqueRef
     routing_reason: HumanReviewRoutingReason = "REVISION_BUDGET_EXCEEDED"
     review_gate: ReviewGateResult | None = None
+    user_risk_snapshot: UserRiskSnapshot | None = Field(default=None,exclude_if=lambda v: v is None)
+    user_risk_gate: UserRiskGateResult | None = Field(default=None,exclude_if=lambda v: v is None)
+    reviewer_evaluations: list[PolicyEvaluation] = Field(default_factory=list,exclude_if=lambda v: not v)
+    policy_bundle_history: list[PolicyBundle] = Field(default_factory=list,exclude_if=lambda v: not v)
     order_snapshot: OrderSnapshot
     policy_bundle: PolicyBundle
     proposal_history: list[ProposedDecisionHandoff] = Field(min_length=1)
@@ -501,7 +559,8 @@ class HumanReviewDossier(ContractModel):
         for index, proposal in enumerate(proposals):
             if proposal.revision_round != index:
                 raise ValueError("dossier revision rounds must start at zero and be contiguous")
-            if proposal.policy_bundle_version != self.policy_bundle.policy_bundle_version:
+            allowed_bundles = {b.policy_bundle_version for b in self.policy_bundle_history} if self.policy_bundle.schema_version == "v2" else set()
+            if proposal.policy_bundle_version != self.policy_bundle.policy_bundle_version and proposal.policy_bundle_version not in allowed_bundles:
                 raise ValueError("dossier policy version mismatch")
             if proposal.order_snapshot_ref != self.order_snapshot.order_snapshot_ref:
                 raise ValueError("dossier order snapshot mismatch")
@@ -511,6 +570,7 @@ class HumanReviewDossier(ContractModel):
 
 
 class CorrectedFullRefundDecision(ContractModel):
+    policy_findings: list[ClaimFinding] | None = Field(default=None,exclude_if=lambda v: v is None)
     action: Literal[ResolutionAction.FULL_REFUND]
     refund_scope: NonEmptyRefundScope
     return_decision: HumanReviewReturnDecision
@@ -528,6 +588,7 @@ CorrectedDecision: TypeAlias = Annotated[
 
 
 class _HumanReviewResultBase(ContractModel):
+    policy_evaluation: PolicyEvaluation | None = Field(default=None,exclude_if=lambda v: v is None)
     review_note: NonEmptyText
     reviewer_id: OpaqueRef = "demo_reviewer"
     generalizable: bool | None = None
@@ -602,6 +663,9 @@ HumanEditedFinalDecision: TypeAlias = Annotated[
 
 class _ResolutionHandoffBase(ContractModel):
     review_gate: ReviewGateResult | None = None
+    user_risk_gate: UserRiskGateResult | None = Field(default=None,exclude_if=lambda v: v is None)
+    policy_evaluation: PolicyEvaluation | None = Field(default=None,exclude_if=lambda v: v is None)
+    refund_release_condition: RefundReleaseCondition | None = Field(default=None,exclude_if=lambda v: v is None)
     case_ref: OpaqueRef
     handoff_id: OpaqueRef
     emitted_at: UTCDateTime
@@ -892,6 +956,7 @@ class ManualEscalationHandoff(ContractModel):
 
 
 class MemoryScope(ContractModel):
+    policy_path_id: PolicyPathId | None = Field(default=None,exclude_if=lambda v: v is None)
     market: NonEmptyText
     reason_codes: list[ReasonCode] = Field(default_factory=list)
     claim_ids: list[ClaimId] = Field(default_factory=list)

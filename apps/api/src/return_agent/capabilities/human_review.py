@@ -1,6 +1,7 @@
 """Durable Human Review submission, completion, and polling capability."""
 
 from __future__ import annotations
+from return_agent_contracts.user_risk import UserRiskConfig
 from return_agent_contracts.review_gates import ReviewerGateConfig
 from return_agent_contracts.validation import validate_human_review_entry
 
@@ -34,6 +35,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from return_agent.capabilities.safety import SqlAlchemyPolicyBundleRepository
 from return_agent.db.models import HandoffVerificationRecord, HumanReviewRecord
+from .user_risk import validate_persisted_dossier_snapshot
 
 _RESULT_ADAPTER = TypeAdapter(HumanReviewResult)
 
@@ -74,9 +76,11 @@ class SqlAlchemyHumanReviewProvider(HumanReviewProvider):
         session_factory: sessionmaker[Session],
         case_context_provider: CaseContextProvider | None = None,
         reviewer_gate_config: ReviewerGateConfig | None = None,
+        user_risk_config: UserRiskConfig | None = None,
     ) -> None:
         self._session_factory = session_factory
         self._reviewer_gate_config = reviewer_gate_config or ReviewerGateConfig()
+        self._user_risk_config = user_risk_config or UserRiskConfig()
         self._case_context_provider = case_context_provider
         self._policy_bundles = SqlAlchemyPolicyBundleRepository(session_factory)
 
@@ -93,7 +97,7 @@ class SqlAlchemyHumanReviewProvider(HumanReviewProvider):
             raise HumanReviewConflictError("dossier does not match the final review")
         if dossier is not None:
             try:
-                validate_human_review_entry(handoff, review, dossier, self._reviewer_gate_config)
+                validate_human_review_entry(handoff, review, dossier, self._reviewer_gate_config, self._user_risk_config)
             except ValueError as error:
                 raise HumanReviewConflictError(str(error)) from error
         elif review.verdict is not ReviewVerdict.REVISE or handoff.revision_round < REVIEW_REVISION_LIMIT:
@@ -109,6 +113,11 @@ class SqlAlchemyHumanReviewProvider(HumanReviewProvider):
         )
         review_ref = f"human-review:{handoff.handoff_id}"
         with self._session_factory.begin() as session:
+            if dossier is not None:
+                try:
+                    validate_persisted_dossier_snapshot(session, dossier, handoff.case_ref)
+                except ValueError as error:
+                    raise HumanReviewConflictError(str(error)) from error
             existing = session.scalar(
                 select(HumanReviewRecord)
                 .where(HumanReviewRecord.handoff_id == handoff.handoff_id)
@@ -190,10 +199,11 @@ class SqlAlchemyHumanReviewProvider(HumanReviewProvider):
             )
         dossier = HumanReviewDossier.model_validate(record.dossier_payload)
         try:
+            validate_persisted_dossier_snapshot(session, dossier, case_ref)
             validate_human_review_entry(
                 ProposedDecisionHandoff.model_validate(record.handoff_payload),
                 TypeAdapter(ReviewResult).validate_python(record.review_payload),
-                dossier, self._reviewer_gate_config,
+                dossier, self._reviewer_gate_config, self._user_risk_config,
             )
         except ValueError as error:
             raise HumanReviewConflictError(str(error)) from error
@@ -238,6 +248,21 @@ class SqlAlchemyHumanReviewProvider(HumanReviewProvider):
                 context.order_snapshot,
                 bundle,
             )
+            if bundle.schema_version == "v2" and result.decision.value != "REJECT":
+                from return_agent_contracts.policy_v2 import evaluate_policy
+                from .fulfillment import save_evaluation
+                corrected = human_corrected_decision(result,dossier.proposal_history[-1])
+                if corrected.action.value == "FULL_REFUND":
+                    findings = corrected.policy_findings if result.decision.value == "EDIT" else dossier.review_history[-1].reviewer_claim_findings
+                    if findings is None:
+                        raise ContractInvariantError("v2 Human EDIT requires explicit policy findings")
+                    evaluation = evaluate_policy(context=context.case_context,order=context.order_snapshot,bundle=bundle,
+                        claimed_line_item_ids=dossier.claimed_line_item_ids,findings=findings,
+                        evidence=dossier.proposal_history[-1].evidence_bundle,selection=dossier.proposal_history[-1].policy_selection,evaluated_at=reviewed_at)
+                    if any(item.status != "ELIGIBLE" for item in evaluation.item_evaluations if item.path_id is bundle.selected_path_id):
+                        raise ContractInvariantError("human findings do not establish the selected path")
+                    result = result.model_copy(update={"policy_evaluation":evaluation})
+                    save_evaluation(session,evaluation)
         except (ContractInvariantError, ValueError, LookupError, RuntimeError) as error:
             raise HumanReviewConflictError(str(error)) from error
         record.result_payload = result.model_dump(mode="json")

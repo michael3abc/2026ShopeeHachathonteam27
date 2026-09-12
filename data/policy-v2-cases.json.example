@@ -1,0 +1,14 @@
+{
+  "version": "synthetic-policy-v2-cases:1",
+  "scenarios": [
+    {"id":"A","order_prefix":"ORDER-PV2-A-","user_ref":"USER-NORMAL","amount":"1200","delivery":"RECEIVED"},
+    {"id":"B","order_prefix":"ORDER-PV2-B-","user_ref":"USER-NORMAL","amount":"6000","delivery":"RECEIVED"},
+    {"id":"C","order_prefix":"ORDER-PV2-C-","user_ref":"USER-NORMAL","amount":"6000","delivery":"RECEIVED"},
+    {"id":"D","order_prefix":"ORDER-PV2-D-","user_ref":"USER-NORMAL","amount":"1200","delivery":"RECEIVED"},
+    {"id":"E","order_prefix":"ORDER-PV2-E-","user_ref":"USER-NORMAL","amount":"1200","delivery":"RECEIVED"},
+    {"id":"F","order_prefix":"ORDER-PV2-F-","user_ref":"USER-NORMAL","amount":"1200","delivery":"CONFIRMED_UNDELIVERED"},
+    {"id":"NORMAL","order_prefix":"ORDER-PV2-NORMAL-","user_ref":"USER-NORMAL","amount":"1200","delivery":"RECEIVED"},
+    {"id":"WATCH","order_prefix":"ORDER-PV2-WATCH-","user_ref":"USER-WATCH","amount":"1200","delivery":"RECEIVED"},
+    {"id":"HIGH-RISK","order_prefix":"ORDER-PV2-HIGH-","user_ref":"USER-HIGH-RISK","amount":"1200","delivery":"RECEIVED"}
+  ]
+}

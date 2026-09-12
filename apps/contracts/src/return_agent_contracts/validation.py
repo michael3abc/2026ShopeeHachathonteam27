@@ -1,7 +1,6 @@
 """Deterministic validation that needs more than one contract DTO."""
 
 from __future__ import annotations
-
 import re
 from collections.abc import Iterable
 from decimal import Decimal
@@ -40,6 +39,13 @@ from .models import (
 )
 from .registry import get_claim_definition
 from .review_gates import ReviewerGateConfig, evaluate_review_gate
+from .policy_v2 import active_clauses, content_hash, validate_policy_confirmation_request
+from .user_risk import (
+    UserRiskConfig,
+    evaluate_user_risk,
+    not_applicable_user_risk_gate,
+    unavailable_user_risk_gate,
+)
 
 
 class ContractInvariantError(ValueError):
@@ -115,7 +121,11 @@ def validate_applicable_policy_bundle(
         raise ContractInvariantError(
             "a non-OK PolicyBundle must follow its fail-closed graph route"
         )
-    for clause in policy_bundle.clauses:
+    if case_context.policy_schema_version != policy_bundle.schema_version:
+        raise ContractInvariantError("case and policy schema version mismatch")
+    if policy_bundle.schema_version == "v2":
+        return  # Each path's effective interval is evaluated independently.
+    for clause in active_clauses(policy_bundle):
         if clause.effective_from > case_context.case_opened_at or (
             clause.effective_to is not None
             and clause.effective_to < case_context.case_opened_at
@@ -163,7 +173,7 @@ def expected_claim_pairs(
     if not policy_bundle.clauses:
         raise ContractInvariantError("assessment requires a non-empty PolicyBundle")
     expected: set[ClaimSubjectPair] = set()
-    for clause in policy_bundle.clauses:
+    for clause in active_clauses(policy_bundle):
         for claim_id in clause.required_claim_ids:
             definition = get_claim_definition(claim_id)
             if definition.subject_scope is SubjectScope.ORDER:
@@ -212,7 +222,7 @@ def expected_evidence_status(
     by_pair = _findings_by_pair(findings)
     required_claim_ids = {
         claim_id
-        for clause in policy_bundle.clauses
+        for clause in active_clauses(policy_bundle)
         for claim_id in clause.required_claim_ids
     }
     order_claims = [
@@ -335,9 +345,9 @@ def _validate_action_against_policy(
 ) -> ReturnPolicy:
     if not policy_bundle.clauses:
         raise ContractInvariantError("decision requires a non-empty PolicyBundle")
-    if any(action not in clause.allowed_actions for clause in policy_bundle.clauses):
+    if any(action not in clause.allowed_actions for clause in active_clauses(policy_bundle)):
         raise ContractInvariantError("action is not allowed by every applicable clause")
-    return_policies = {clause.return_policy for clause in policy_bundle.clauses}
+    return_policies = {clause.return_policy for clause in active_clauses(policy_bundle)}
     if {ReturnPolicy.REQUIRED, ReturnPolicy.NOT_REQUIRED}.issubset(return_policies):
         raise ContractInvariantError("applicable clauses disagree on return policy")
     if ReturnPolicy.REQUIRED in return_policies:
@@ -355,7 +365,7 @@ def _supported_item_ids(
     by_pair = _findings_by_pair(findings)
     required_claim_ids = {
         claim_id
-        for clause in policy_bundle.clauses
+        for clause in active_clauses(policy_bundle)
         for claim_id in clause.required_claim_ids
     }
     supported: set[str] = set()
@@ -477,6 +487,39 @@ def validate_proposed_decision_handoff(
     policy_bundle: PolicyBundle,
     order_snapshot: OrderSnapshot,
 ) -> None:
+    if (handoff.handoff_version == "2.0") != (policy_bundle.schema_version == "v2"):
+        raise ContractInvariantError("handoff policy schema mismatch")
+    if handoff.handoff_version == "2.0":
+        evaluation = handoff.policy_evaluation
+        if evaluation is None or evaluation.evidence_bundle_hash != content_hash(handoff.evidence_bundle) or evaluation.findings_ref != f"findings:{content_hash(handoff.assessment_findings)}":
+            raise ContractInvariantError("v2 evidence or findings binding mismatch")
+        if evaluation.selection.selected_path_id is not policy_bundle.selected_path_id:
+            raise ContractInvariantError("v2 selection mismatch")
+        selected = [item for item in evaluation.item_evaluations if item.path_id is policy_bundle.selected_path_id]
+        original_scope = {item.line_item_id for item in evaluation.item_evaluations}
+        if len(original_scope) != 1 or {item.line_item_id for item in selected} != original_scope:
+            raise ContractInvariantError("v2 requires exactly one original item")
+        if handoff.proposed_decision.action is ResolutionAction.FULL_REFUND and set(handoff.proposed_decision.refund_scope.line_item_ids) != original_scope:
+            raise ContractInvariantError("v2 refund scope must match the original evaluated scope")
+        selection, confirmation = handoff.policy_selection, handoff.policy_confirmation
+        if selection.confirmation_ref is not None:
+            if confirmation is None or not confirmation.accepted or confirmation.confirmation_ref != selection.confirmation_ref:
+                raise ContractInvariantError("v2 selection requires accepted confirmation")
+            request = confirmation.request
+            try:
+                validate_policy_confirmation_request(request, policy_bundle)
+            except ValueError as error:
+                raise ContractInvariantError(str(error)) from error
+            if (request.case_ref != handoff.case_ref or request.path_id != selection.selected_path_id
+                    or request.selection_version != selection.selection_version
+                    or request.original_scope_hash != content_hash(sorted(original_scope))):
+                raise ContractInvariantError("v2 confirmation binding mismatch")
+        elif confirmation is not None or selection.selection_version != 1:
+            raise ContractInvariantError("v2 selection lineage is incomplete")
+        if handoff.proposed_decision.action is ResolutionAction.FULL_REFUND and (not selected or any(item.status != "ELIGIBLE" for item in selected)):
+            raise ContractInvariantError("v2 refund requires eligible selected path")
+        if handoff.proposed_decision.action is ResolutionAction.DECLINE and (any(item.status == "ELIGIBLE" for item in evaluation.item_evaluations) or any(item.reason_codes != ["CLAIM_CONTRADICTED"] for item in selected)):
+            raise ContractInvariantError("v2 decline requires counterevidence and no unhandled eligible alternative")
     if handoff.order_snapshot_ref != order_snapshot.order_snapshot_ref:
         raise ContractInvariantError(
             "handoff order_snapshot_ref does not match snapshot"
@@ -500,6 +543,14 @@ def validate_proposed_decision_handoff(
                 raise ContractInvariantError(
                     "MODEL_JUDGMENT policy requires MODEL_JUDGMENT return decision"
                 )
+            if handoff.handoff_version == "2.0" and not return_decision.requirement.required:
+                facts = order_snapshot.policy_facts
+                trusted_refs = {ref for item in facts.items for ref in item.waiver_basis_refs
+                    if item.line_item_id in decision.refund_scope.line_item_ids} if facts else set()
+                evidence_refs = {item.evidence_id for item in handoff.evidence_bundle
+                    if item.subject in decision.refund_scope.line_item_ids}
+                if not return_decision.basis_refs or not set(return_decision.basis_refs).issubset(trusted_refs | evidence_refs):
+                    raise ContractInvariantError("v2 waiver requires scoped disposition facts or case evidence")
         else:
             if return_decision.source is not ReturnDecisionSource.POLICY:
                 raise ContractInvariantError(
@@ -528,7 +579,7 @@ def validate_proposed_decision_handoff(
 
     requires_user_evidence = any(
         SatisfiableBy.USER_EVIDENCE in get_claim_definition(claim_id).satisfiable_by
-        for clause in policy_bundle.clauses
+        for clause in active_clauses(policy_bundle)
         for claim_id in clause.required_claim_ids
     )
     if requires_user_evidence and not handoff.evidence_bundle:
@@ -537,17 +588,35 @@ def validate_proposed_decision_handoff(
         )
 
 
-def validate_human_review_entry(handoff: ProposedDecisionHandoff, review: ReviewResult, dossier: HumanReviewDossier, config: ReviewerGateConfig) -> None:
+def validate_human_review_entry(handoff: ProposedDecisionHandoff, review: ReviewResult, dossier: HumanReviewDossier, config: ReviewerGateConfig, user_risk_config: UserRiskConfig | None = None) -> None:
     if dossier.proposal_history[-1] != handoff or dossier.review_history[-1] != review:
         raise ContractInvariantError("human dossier does not match final proposal and review")
     if dossier.routing_reason == "REVISION_BUDGET_EXCEEDED":
-        if review.verdict is not ReviewVerdict.REVISE or handoff.revision_round < REVIEW_REVISION_LIMIT or dossier.review_gate is not None:
+        if review.verdict is not ReviewVerdict.REVISE or handoff.revision_round < REVIEW_REVISION_LIMIT or dossier.review_gate is not None or dossier.user_risk_gate is not None or dossier.user_risk_snapshot is not None:
             raise ContractInvariantError("revision entry requires exhausted REVISE without monetary gate")
         return
     decision = handoff.proposed_decision
     expected = evaluate_review_gate(decision.action, decision.amount, decision.currency, config)
-    if (review.verdict is not ReviewVerdict.APPROVE or expected.status != "HUMAN_REQUIRED"
-        or dossier.review_gate != expected or dossier.routing_reason != expected.reason):
+    if review.verdict is not ReviewVerdict.APPROVE or dossier.review_gate != expected:
+        raise ContractInvariantError("human review requires valid Reviewer approval and monetary gate")
+    risk = None
+    if handoff.handoff_version == "2.0":
+        risk_config = user_risk_config or UserRiskConfig()
+        snapshot = dossier.user_risk_snapshot
+        if decision.action is ResolutionAction.DECLINE:
+            risk = not_applicable_user_risk_gate(risk_config)
+        elif snapshot is None:
+            risk = unavailable_user_risk_gate(risk_config)
+        else:
+            if snapshot.case_ref != handoff.case_ref or snapshot.reason_code != decision.reason_code:
+                raise ContractInvariantError("risk snapshot case or reason mismatch")
+            risk = evaluate_user_risk(decision.action,snapshot,risk_config)
+        if dossier.user_risk_gate != risk:
+            raise ContractInvariantError("human user risk gate is invalid or configuration changed")
+    elif dossier.user_risk_gate is not None or dossier.user_risk_snapshot is not None:
+        raise ContractInvariantError("v1 does not use user risk")
+    reason = expected.reason if expected.status == "HUMAN_REQUIRED" else risk.reason if risk and risk.status == "HUMAN_REQUIRED" else None
+    if reason is None or dossier.routing_reason != reason:
         raise ContractInvariantError("human amount-gate entry is invalid or configuration changed")
 
 
@@ -582,7 +651,7 @@ def validate_human_decision(
             raise ContractInvariantError("Policy waives return")
         if not dossier.proposal_history[-1].evidence_bundle and any(
             SatisfiableBy.USER_EVIDENCE in get_claim_definition(claim).satisfiable_by
-            for clause in policy_bundle.clauses for claim in clause.required_claim_ids
+            for clause in active_clauses(policy_bundle) for claim in clause.required_claim_ids
         ):
             raise ContractInvariantError("required user evidence is absent")
     return amount

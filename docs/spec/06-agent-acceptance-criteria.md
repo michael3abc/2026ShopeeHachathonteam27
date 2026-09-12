@@ -1,5 +1,20 @@
 # Agent Acceptance Criteria
 
+## Policy v2 與 User Risk 驗收入口
+
+v2 只適用可信 scenario 選定的新案。以下為 [PV2-AT01～17](09-policy-v2-integration.md#91-deterministic--integration-驗收) 的可重跑入口；真模型、PostgreSQL／Redis、瀏覽器結果分開記錄於 [progress](../progress.md)，不以單元測試替代。
+
+| 驗收範圍 | 測試入口與限制 |
+| --- | --- |
+| AT01～07 | `apps/contracts/tests/contracts/test_policy_v2.py`：Provider deadline、空 claims、到貨時點、成交規格、例外、scope、可信未交付與獨立 path。 |
+| AT08、09、16 | `packages/agent_runtime/tests/test_policy_v2_runtime.py`、原 prompt/boundary/revision suites：typed resume、雙 gates 優先序、獨立 Reviewer、bundle／同意 binding、v1 保留。 |
+| AT09～12 | `apps/api/tests/test_policy_v2_fulfillment.py`、`test_user_risk_v2.py`、`test_human_adjudication.py`：未履約零付款、偽造 gate／snapshot、人工 APPROVE／EDIT／REJECT、config 變更、事件倒序及 UNKNOWN 原 key 恢復。 |
+| AT13 | contracts/runtime Memory suites、API `test_operational_memory.py` 與 Web `present-event`／workspace tests：exact Policy／registry／path、P01 空 claim scope、空結果清卡、cosine 順序。 |
+| AT14、17 | Agent `test_memory_completion.py`、`test_policy_v2_redis_recovery.py`；API `test_policy_v2_migrations.py`、`test_policy_v2_recovery.py`：APPLIED join 任意順序、ACK loss、四 worker、scratch PostgreSQL DB migrations 與非空 downgrade 防護。 |
+| AT15、16、權限 | API `test_demo_auth.py`；Web `workspace.spec.ts`、graph playback：個別憑證／owner／role、JSON 與雙 SSE risk 投影、cursor／source ID、路徑確認、履約與刷新。 |
+
+外部 DB suites 只在配置對應測試環境變數時執行；預設 skipped 不代表通過。命令、scratch DB 清理與實測證據见 [scripts](../../scripts/README.md)。A–F 的訂單、付款與 Evidence metadata 為 synthetic，模型與 embedding 使用真實 configured provider。拍攝時間必須與可信收貨時間一致；舊 fixture 若矛盾，保留原案的拒絕紀錄，再使用新 identity／artifact 驗證，不覆寫 immutable facts。B→C 只有真實 correction、APPLIED、Candidate 核准及同筆 Memory 命中才可宣稱達成。
+
 本文件驗收 Agent workflow、structured outputs、prompts 與 memory 行為。可使用固定 JSON fixtures 取代外部結果，但不要求 Agent 團隊建立 Mock API，也不涵蓋 frontend/backend、真實退款、部署或 E2E Demo。
 
 驗收分兩層，這個區分決定了測試成本：

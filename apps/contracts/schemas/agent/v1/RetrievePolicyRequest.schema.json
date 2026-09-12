@@ -14,6 +14,20 @@
           "title": "Case Ref",
           "type": "string"
         },
+        "first_valid_submitted_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "First Valid Submitted At"
+        },
         "market": {
           "minLength": 1,
           "title": "Market",
@@ -22,6 +36,15 @@
         "order_ref": {
           "minLength": 1,
           "title": "Order Ref",
+          "type": "string"
+        },
+        "policy_schema_version": {
+          "default": "v1",
+          "enum": [
+            "v1",
+            "v2"
+          ],
+          "title": "Policy Schema Version",
           "type": "string"
         },
         "snapshot_version": {
@@ -38,6 +61,206 @@
         "snapshot_version"
       ],
       "title": "CaseContext",
+      "type": "object"
+    },
+    "ItemPolicyFacts": {
+      "additionalProperties": false,
+      "properties": {
+        "cancelled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cancelled"
+        },
+        "deadlines": {
+          "items": {
+            "$ref": "#/$defs/PathDeadline"
+          },
+          "title": "Deadlines",
+          "type": "array"
+        },
+        "delivery_status": {
+          "default": "UNKNOWN",
+          "enum": [
+            "RECEIVED",
+            "CONFIRMED_UNDELIVERED",
+            "IN_TRANSIT",
+            "UNKNOWN"
+          ],
+          "title": "Delivery Status",
+          "type": "string"
+        },
+        "exception": {
+          "default": "UNKNOWN",
+          "enum": [
+            "NONE_CONFIRMED",
+            "ESTABLISHED",
+            "UNKNOWN",
+            "DISPUTED"
+          ],
+          "title": "Exception",
+          "type": "string"
+        },
+        "exception_source_ref": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exception Source Ref"
+        },
+        "investigation_ref": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Investigation Ref"
+        },
+        "is_bundle": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Is Bundle"
+        },
+        "line_item_id": {
+          "minLength": 1,
+          "title": "Line Item Id",
+          "type": "string"
+        },
+        "pending_split_delivery": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pending Split Delivery"
+        },
+        "purchased_spec": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Purchased Spec",
+          "type": "object"
+        },
+        "received_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Received At"
+        },
+        "refunded": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Refunded"
+        },
+        "reservation_case_ref": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reservation Case Ref"
+        },
+        "returnable_quantity": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Returnable Quantity"
+        },
+        "shipment_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Shipment Refs",
+          "type": "array"
+        },
+        "source_ref": {
+          "minLength": 1,
+          "title": "Source Ref",
+          "type": "string"
+        },
+        "transaction_version": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Transaction Version"
+        },
+        "waiver_basis_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Waiver Basis Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "line_item_id",
+        "source_ref"
+      ],
+      "title": "ItemPolicyFacts",
       "type": "object"
     },
     "OrderLineItem": {
@@ -85,6 +308,72 @@
       "title": "OrderLineItem",
       "type": "object"
     },
+    "OrderPolicyFacts": {
+      "additionalProperties": false,
+      "properties": {
+        "cross_border": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cross Border"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/ItemPolicyFacts"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "platform": {
+          "default": "UNKNOWN",
+          "enum": [
+            "SHOPEE_TW",
+            "OTHER",
+            "UNKNOWN"
+          ],
+          "title": "Platform",
+          "type": "string"
+        },
+        "product_type": {
+          "default": "UNKNOWN",
+          "enum": [
+            "GENERAL_PHYSICAL",
+            "SPECIAL",
+            "UNKNOWN"
+          ],
+          "title": "Product Type",
+          "type": "string"
+        },
+        "seller_type": {
+          "default": "UNKNOWN",
+          "enum": [
+            "BUSINESS",
+            "MALL",
+            "PERSONAL",
+            "UNKNOWN"
+          ],
+          "title": "Seller Type",
+          "type": "string"
+        },
+        "source_ref": {
+          "minLength": 1,
+          "title": "Source Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_ref",
+        "items"
+      ],
+      "title": "OrderPolicyFacts",
+      "type": "object"
+    },
     "OrderSnapshot": {
       "additionalProperties": false,
       "properties": {
@@ -107,10 +396,17 @@
           "type": "string"
         },
         "delivered_at": {
-          "format": "date-time",
-          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
-          "title": "Delivered At",
-          "type": "string"
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Delivered At"
         },
         "line_items": {
           "items": {
@@ -129,6 +425,17 @@
           "minLength": 1,
           "title": "Order Snapshot Ref",
           "type": "string"
+        },
+        "policy_facts": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OrderPolicyFacts"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "refundable_amount_max": {
           "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
@@ -154,6 +461,54 @@
       ],
       "title": "OrderSnapshot",
       "type": "object"
+    },
+    "PathDeadline": {
+      "additionalProperties": false,
+      "properties": {
+        "deadline_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Deadline At",
+          "type": "string"
+        },
+        "policy_path_id": {
+          "$ref": "#/$defs/PolicyPathId"
+        },
+        "rule_source_ref": {
+          "minLength": 1,
+          "title": "Rule Source Ref",
+          "type": "string"
+        },
+        "rule_source_version": {
+          "minLength": 1,
+          "title": "Rule Source Version",
+          "type": "string"
+        },
+        "timezone": {
+          "const": "Asia/Taipei",
+          "default": "Asia/Taipei",
+          "title": "Timezone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "policy_path_id",
+        "deadline_at",
+        "rule_source_ref",
+        "rule_source_version"
+      ],
+      "title": "PathDeadline",
+      "type": "object"
+    },
+    "PolicyPathId": {
+      "enum": [
+        "COOLING_OFF",
+        "DAMAGED_ON_ARRIVAL",
+        "WRONG_ITEM",
+        "UNDELIVERED_ITEM"
+      ],
+      "title": "PolicyPathId",
+      "type": "string"
     },
     "ReasonCode": {
       "enum": [
@@ -187,6 +542,17 @@
         },
         "reason_code": {
           "$ref": "#/$defs/ReasonCode"
+        },
+        "selected_path_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyPathId"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [

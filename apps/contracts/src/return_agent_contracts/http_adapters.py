@@ -1,6 +1,7 @@
 """Synchronous HTTP adapters for Agent-to-API Provider boundaries."""
 
 from __future__ import annotations
+from .policy_v2 import PolicyPathId
 
 from .models import ReviewResult
 
@@ -11,6 +12,10 @@ from pydantic import ValidationError
 
 from .base import NonEmptyText, OpaqueRef, PositiveInt
 from .enums import ClaimId, ReasonCode, VerificationStatus
+from .base import UTCDateTime
+from .user_risk import UserRiskSnapshot
+from .interfaces import UserRiskProvider
+from .transport import PrepareUserRiskSnapshotRequest, PrepareUserRiskSnapshotResponse
 from .interfaces import (
     CaseContextProvider,
     EvidenceProvider,
@@ -109,6 +114,13 @@ class HttpCaseContextProvider(_HttpProvider, CaseContextProvider):
         )
 
 
+class HttpUserRiskProvider(_HttpProvider, UserRiskProvider):
+    def prepare_snapshot(self, case_ref: OpaqueRef, reason_code: ReasonCode, as_of: UTCDateTime) -> UserRiskSnapshot:
+        return self._post("/internal/v1/user-risk/snapshot", PrepareUserRiskSnapshotRequest(
+            method="UserRiskProvider.prepare_snapshot",params={"case_ref":case_ref,"reason_code":reason_code,"as_of":as_of}),
+            PrepareUserRiskSnapshotResponse)
+
+
 class HttpPolicyProvider(_HttpProvider, PolicyProvider):
     def retrieve_policy(
         self,
@@ -116,6 +128,7 @@ class HttpPolicyProvider(_HttpProvider, PolicyProvider):
         order_snapshot: OrderSnapshot,
         reason_code: ReasonCode,
         claimed_line_item_ids: Sequence[OpaqueRef],
+        *, selected_path_id: PolicyPathId | None = None,
     ) -> PolicyBundle:
         return self._post(
             "/internal/v1/policy",
@@ -126,6 +139,7 @@ class HttpPolicyProvider(_HttpProvider, PolicyProvider):
                     "order_snapshot": order_snapshot,
                     "reason_code": reason_code,
                     "claimed_line_item_ids": list(claimed_line_item_ids),
+                    **({"selected_path_id": selected_path_id} if selected_path_id is not None else {}),
                 },
             ),
             RetrievePolicyResponse,
@@ -143,6 +157,7 @@ class HttpOperationalMemoryStore(_HttpProvider, OperationalMemoryStore):
         policy_versions: Sequence[OpaqueRef],
         claim_registry_major: PositiveInt,
         top_k: PositiveInt = 3,
+        *, policy_path_id: PolicyPathId | None = None,
     ) -> Sequence[MemorySearchHit]:
         return self._post(
             "/internal/v1/memory/query",
@@ -157,6 +172,7 @@ class HttpOperationalMemoryStore(_HttpProvider, OperationalMemoryStore):
                     "policy_versions": list(policy_versions),
                     "claim_registry_major": claim_registry_major,
                     "top_k": top_k,
+                    **({"policy_path_id":policy_path_id} if policy_path_id is not None else {}),
                 },
             ),
             QueryApprovedMemoryResponse,

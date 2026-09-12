@@ -5,6 +5,8 @@ const nodeLabels = {
   prepare_memory_query: "摘要本案查詢",
   retrieve_memory: "檢索操作經驗",
   assess_case: "評估申請證據",
+  evaluate_policy: "判定政策途徑",
+  confirm_policy_path: "確認政策途徑",
   propose_decision: "產生處理建議",
   external_verification: "驗證處理建議",
   request_clarification: "等待補充說明",
@@ -70,7 +72,7 @@ export function presentEvent(event) {
           ? "需要補充說明"
           : kind === "EVIDENCE_REQUEST"
             ? "需要補交資料"
-            : "等待人工審核";
+            : kind === "POLICY_CONFIRMATION" ? "確認政策途徑" : "等待人工審核";
       return { title, detail: "案件需要下一步操作", tone: "warning" };
     }
     case "state_change":
@@ -97,6 +99,10 @@ export function statusLabel(status) {
     AWAITING_CLARIFICATION: "等待補充說明",
     AWAITING_EVIDENCE: "等待補交資料",
     AWAITING_HUMAN_REVIEW: "等待人工審核",
+    AWAITING_POLICY_CONFIRMATION: "等待確認途徑",
+    AWAITING_RETURN_CONFIRMATION: "等待同意退回",
+    AWAITING_RETURN: "等待商品退回",
+    AWAITING_RETURN_INSPECTION: "等待退回驗收",
     EXECUTING: "等待退款執行",
     RESOLVED: "案件已完成",
     ESCALATED: "案件已轉交處理",

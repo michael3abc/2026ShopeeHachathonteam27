@@ -9,7 +9,7 @@ from pydantic import Field, model_validator
 from .base import ContractModel, CurrencyCode, Money, OpaqueRef
 from .enums import ResolutionAction
 
-HumanReviewRoutingReason = Literal["REVISION_BUDGET_EXCEEDED", "HIGH_VALUE_ITEM", "CURRENCY_THRESHOLD_UNCONFIGURED"]
+HumanReviewRoutingReason = Literal["REVISION_BUDGET_EXCEEDED", "HIGH_VALUE_ITEM", "CURRENCY_THRESHOLD_UNCONFIGURED", "HIGH_USER_RISK", "USER_RISK_UNAVAILABLE"]
 
 def _canonical_decimal(value: Decimal) -> str:
     # Decimal.normalize() can round under the process decimal context.

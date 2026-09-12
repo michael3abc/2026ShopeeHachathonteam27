@@ -40,14 +40,33 @@ def _rehash(connection, *, upgrade):
 
 
 def upgrade():
+    offline = op.get_context().as_sql
+    if offline:
+        op.execute(
+            "DO $$ BEGIN IF EXISTS (SELECT 1 FROM operational_memories) "
+            "THEN RAISE EXCEPTION 'online migration required to rehash operational memories'; "
+            "END IF; END $$"
+        )
     with op.batch_alter_table("operational_memories") as batch:
         batch.alter_column("source_revision_event_refs", new_column_name="source_event_refs", existing_type=sa.JSON())
         batch.add_column(sa.Column("applicability_limits", sa.JSON(), nullable=False, server_default="[]"))
         batch.add_column(sa.Column("prohibited_inferences", sa.JSON(), nullable=False, server_default="[]"))
-    _rehash(op.get_bind(), upgrade=True)
+    if not offline:
+        _rehash(op.get_bind(), upgrade=True)
 
 
 def downgrade():
+    if op.get_context().as_sql:
+        op.execute(
+            "DO $$ BEGIN IF EXISTS (SELECT 1 FROM operational_memories) "
+            "THEN RAISE EXCEPTION 'online migration required to validate learning sources'; "
+            "END IF; END $$"
+        )
+        with op.batch_alter_table("operational_memories") as batch:
+            batch.alter_column("source_event_refs", new_column_name="source_revision_event_refs", existing_type=sa.JSON())
+            batch.drop_column("applicability_limits")
+            batch.drop_column("prohibited_inferences")
+        return
     connection = op.get_bind()
     table = sa.Table("operational_memories", sa.MetaData(), autoload_with=connection)
     for row in connection.execute(sa.select(table)).mappings():

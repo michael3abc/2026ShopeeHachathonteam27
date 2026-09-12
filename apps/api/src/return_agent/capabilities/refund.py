@@ -1,6 +1,9 @@
 """Authorized, idempotent refund execution owned by the API service."""
 
 from __future__ import annotations
+from return_agent_contracts.user_risk import UserRiskConfig, evaluate_user_risk
+from return_agent.capabilities.user_risk import SqlAlchemyUserRiskProvider, append_risk_event, validate_persisted_dossier_snapshot
+from return_agent.db.case import CaseRecord
 from return_agent_contracts.review_gates import ReviewerGateConfig, evaluate_review_gate
 from return_agent_contracts.validation import validate_human_review_entry
 
@@ -125,6 +128,7 @@ class PersistedRefundExecution:
     state: str
     created_at: datetime
     updated_at: datetime
+    application_started_at: datetime | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -283,6 +287,11 @@ class SqlAlchemyRefundExecutionRepository:
                 payload_hash,
                 handoff.handoff_id,
             )
+            if record.state == "IN_PROGRESS" and record.application_started_at is None:
+                record.state = "REJECTED"
+                record.application_result_payload = result.model_dump(mode="json")
+                record.completed_at = now
+                record.updated_at = now
             return self._snapshot(record)
 
     def mark_application_started(
@@ -361,6 +370,23 @@ class SqlAlchemyRefundExecutionRepository:
             record.updated_at = now
             if application_result.status is RefundApplicationStatus.APPLIED:
                 self._store_successful_items(session, record, application_result)
+                resolution = self._parse_execute_request(record.request_payload).resolution_handoff
+                case = session.get(CaseRecord, resolution.case_ref)
+                if case is not None and case.policy_schema_version == "v2":
+                    from return_agent_contracts.completion import RefundAppliedEvent
+                    from return_agent_contracts.policy_v2 import content_hash
+                    from return_agent.db.models import RefundCompletionOutboxRecord
+                    event = RefundAppliedEvent(case_ref=case.case_ref,resolution_ref=resolution.handoff_id,
+                        authorization_ref=f"authorization:{resolution.handoff_id}",resolution_hash=content_hash(resolution),
+                        execution_ref=record.execution_ref,application_ref=application_result.application_ref,
+                        applied_at=application_result.applied_at)
+                    session.add(RefundCompletionOutboxRecord(resolution_ref=resolution.handoff_id,
+                        payload=event.model_dump(mode="json"),published=False))
+                    case = session.get(CaseRecord, resolution.case_ref)
+                    if case is None:
+                        raise RefundExecutionDataIntegrityError("risk success event requires case owner")
+                    append_risk_event(session,user_ref=case.user_ref,case_ref=case.case_ref,order_ref=case.order_ref,
+                        event_type="REFUND_SUCCEEDED",reason_code=resolution.final_decision.reason_code.value,occurred_at=application_result.applied_at)
             else:
                 session.execute(delete(RefundItemReservation).where(
                     RefundItemReservation.execution_ref == execution_ref
@@ -501,6 +527,7 @@ class SqlAlchemyRefundExecutionRepository:
             state=record.state,
             created_at=_as_utc(record.created_at),
             updated_at=_as_utc(record.updated_at),
+            application_started_at=_as_utc(record.application_started_at) if record.application_started_at else None,
         )
 
 
@@ -513,9 +540,14 @@ class SqlAlchemyRefundExecutionProvider(RefundExecutionProvider):
         case_context_provider: CaseContextProvider,
         refund_application_provider: RefundApplicationProvider,
         reviewer_gate_config: ReviewerGateConfig | None = None,
+        user_risk_config: UserRiskConfig | None = None,
+        user_risk_provider: SqlAlchemyUserRiskProvider | None = None,
     ) -> None:
         self._repository = SqlAlchemyRefundExecutionRepository(session_factory)
+        self._session_factory = session_factory
         self._reviewer_gate_config = reviewer_gate_config or ReviewerGateConfig()
+        self._user_risk_config = user_risk_config or UserRiskConfig()
+        self._user_risk_provider = user_risk_provider or SqlAlchemyUserRiskProvider(session_factory,case_context_provider)
         self._policy_bundles = SqlAlchemyPolicyBundleRepository(session_factory)
         self._case_context_provider = case_context_provider
         self._refund_application_provider = refund_application_provider
@@ -524,8 +556,20 @@ class SqlAlchemyRefundExecutionProvider(RefundExecutionProvider):
         payload_hash = _canonical_hash(request.model_dump(mode="json"))
         handoff = request.resolution_handoff
         existing = self._repository.find_by_handoff(handoff.handoff_id, payload_hash)
-        if existing is not None:
+        if existing is not None and (existing.state != "IN_PROGRESS" or existing.application_started_at is not None):
             return self._terminal_or_resume(existing)
+
+        if handoff.policy_evaluation is not None:
+            import os
+            from return_agent_contracts.review_gates import load_reviewer_gate_config
+            from return_agent_contracts.user_risk import load_user_risk_config
+            try:
+                if path := os.environ.get("RETURN_AGENT_REVIEW_GATE_CONFIG"):
+                    self._reviewer_gate_config = load_reviewer_gate_config(path)
+                if path := os.environ.get("RETURN_AGENT_USER_RISK_CONFIG"):
+                    self._user_risk_config = load_user_risk_config(path)
+            except (ValueError,OSError):
+                return self._terminal_or_resume(self._repository.create_rejected(request,payload_hash,["AUTHORIZATION_CONFIG_UNAVAILABLE"]))
 
         authorization = self._repository.load_authorization(handoff.handoff_id)
         rejection = self._authorization_rejection(request, authorization)
@@ -538,6 +582,15 @@ class SqlAlchemyRefundExecutionProvider(RefundExecutionProvider):
             return self._terminal_or_resume(rejected)
 
         assert authorization is not None
+        if authorization.handoff.handoff_version == "2.0":
+            from .fulfillment import check_release
+            try:
+                with self._session_factory() as session:
+                    check_release(session,handoff,self._reviewer_gate_config,self._user_risk_config)
+            except ValueError as error:
+                if str(error) == "RETURN_FULFILLMENT_PENDING":
+                    raise RefundExecutionUnavailableError(str(error)) from error
+                return self._terminal_or_resume(self._repository.create_rejected(request,payload_hash,[str(error)]))
         order_snapshot = self._load_order_snapshot(request.resolution_handoff)
         bundle = self._policy_bundles.get_persisted_bundle(
             authorization.handoff.policy_bundle_version
@@ -608,7 +661,7 @@ class SqlAlchemyRefundExecutionProvider(RefundExecutionProvider):
             payload_hash=payload_hash,
             order_ref=order_snapshot.order_ref,
         )
-        return self._terminal_or_resume(pending)
+        return self._resume(pending,authorization_checked=True)
 
     def get_status(self, execution_ref: str) -> RefundExecutionRecord | None:
         existing = self._repository.find(execution_ref)
@@ -628,8 +681,10 @@ class SqlAlchemyRefundExecutionProvider(RefundExecutionProvider):
             return self._resume(execution)
         return self._terminal_record(execution)
 
-    def _resume(self, execution: PersistedRefundExecution) -> RefundExecutionRecord:
+    def _resume(self, execution: PersistedRefundExecution, *, authorization_checked: bool = False) -> RefundExecutionRecord:
         request = self._repository._parse_execute_request(execution.request_payload)
+        if request.resolution_handoff.policy_evaluation is not None and execution.application_started_at is None and not authorization_checked:
+            return self.execute(request)
         try:
             execution = self._repository.mark_application_started(
                 execution.execution_ref,
@@ -743,6 +798,21 @@ class SqlAlchemyRefundExecutionProvider(RefundExecutionProvider):
                 return ["REVIEW_GATE_INVALID"]
             if gate.status != "PASS":
                 return ["HUMAN_AUTHORIZATION_REQUIRED"]
+            if authorization.handoff.handoff_version == "2.0":
+                risk = resolution.user_risk_gate
+                if risk is None or risk.snapshot_ref is None:
+                    return ["USER_RISK_GATE_MISSING"]
+                try:
+                    snapshot = self._user_risk_provider.load_snapshot(risk.snapshot_ref)
+                    if snapshot.case_ref != resolution.case_ref or snapshot.reason_code != decision.reason_code:
+                        return ["USER_RISK_SNAPSHOT_INVALID"]
+                    expected_risk = evaluate_user_risk(decision.action,snapshot,self._user_risk_config)
+                except (ValueError,LookupError):
+                    return ["USER_RISK_SNAPSHOT_INVALID"]
+                if risk != expected_risk:
+                    return ["USER_RISK_GATE_INVALID"]
+                if expected_risk.status != "PASS":
+                    return ["HUMAN_AUTHORIZATION_REQUIRED"]
             return None
         if source is OutcomeSource.HUMAN_APPROVE:
             if not self._matches_human_authorization(resolution, authorization):
@@ -767,8 +837,12 @@ class SqlAlchemyRefundExecutionProvider(RefundExecutionProvider):
             return False
         try:
             dossier = HumanReviewDossier.model_validate(record.dossier_payload)
-            validate_human_review_entry(authorization.handoff, resolution.review_result, dossier, self._reviewer_gate_config)
+            validate_human_review_entry(authorization.handoff, resolution.review_result, dossier, self._reviewer_gate_config, self._user_risk_config)
+            with self._session_factory() as session:
+                validate_persisted_dossier_snapshot(session, dossier, resolution.case_ref)
             if resolution.review_gate != dossier.review_gate:
+                return False
+            if resolution.user_risk_gate != dossier.user_risk_gate:
                 return False
         except ValueError:
             return False

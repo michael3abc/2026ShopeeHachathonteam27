@@ -14,6 +14,16 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    if op.get_context().as_sql:
+        op.execute(
+            "DO $$ BEGIN IF EXISTS (SELECT 1 FROM memory_job_results "
+            "WHERE model_profile IS NOT NULL) THEN RAISE EXCEPTION "
+            "'cannot discard recorded memory model provenance'; "
+            "END IF; END $$"
+        )
+        with op.batch_alter_table("memory_job_results") as batch:
+            batch.drop_column("model_profile")
+        return
     connection = op.get_bind()
     recorded = connection.scalar(sa.text(
         "SELECT 1 FROM memory_job_results WHERE model_profile IS NOT NULL LIMIT 1"

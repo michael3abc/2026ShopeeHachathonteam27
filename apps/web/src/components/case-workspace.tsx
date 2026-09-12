@@ -28,6 +28,8 @@ import { parseAgentEvent, presentEvent, statusLabel } from "@/lib/present-event.
 import { useActivityPlayback } from "@/lib/use-activity-playback";
 import { useCaseActivities } from "@/lib/use-case-activities";
 import { cn } from "@/lib/utils";
+import { useDemoIdentity } from "@/components/demo-session";
+import { confirmPolicy, confirmReturn, simulateReturn } from "@/lib/api";
 
 const eventTypes = [
   "node_enter",
@@ -87,6 +89,7 @@ function connectionLabel(connection: "connecting" | "live" | "reconnecting" | "c
 }
 
 export function CaseWorkspace({ caseRef }: { caseRef: string }) {
+  const identity = useDemoIdentity();
   const [detail, setDetail] = useState<CaseDetail>();
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
@@ -123,7 +126,7 @@ export function CaseWorkspace({ caseRef }: { caseRef: string }) {
       try {
         await refresh();
         if (disposed) return;
-        source = new EventSource(caseEventsUrl(caseRef));
+        source = new EventSource(caseEventsUrl(caseRef), {withCredentials:true});
         source.onopen = () => setConnection("live");
         source.onerror = () => {
           if (!disposed) setConnection("reconnecting");
@@ -190,13 +193,15 @@ export function CaseWorkspace({ caseRef }: { caseRef: string }) {
   const stageProgress = caughtUp ? withRefundWait(progress, detail.status) : progress;
   // The inspector follows the running node until a node is picked on the stage.
   const inspectedNode = selectedNode ?? stageProgress.activeNode ?? stageProgress.lastNode ?? "parse_request";
-  const activePanel = sidePanel ?? (detail.human_review ? "review" : "inspector");
+  const canReview = !identity || identity.role === "reviewer";
+  const activePanel = canReview ? sidePanel ?? (detail.human_review ? "review" : "inspector") : "inspector";
 
   return (
     <main className="flex min-h-screen flex-col bg-stone-100 xl:h-screen">
       <CaseHeader detail={detail} connection={connection} />
       <div className="flex flex-col gap-3 p-3 xl:min-h-0 xl:flex-1">
         <GraphStage
+          policyVersion={detail.policy_schema_version}
           onSelectNode={(node) => {
             setSelectedNode(node);
             setSidePanel("inspector");
@@ -211,6 +216,7 @@ export function CaseWorkspace({ caseRef }: { caseRef: string }) {
           selectedNode={inspectedNode}
           unavailable={activityFeed.unavailable}
         />
+        <FulfillmentPanel detail={detail} onUpdated={refresh} />
         <div className="grid gap-3 xl:min-h-[420px] xl:flex-1 xl:grid-cols-[minmax(420px,1fr)_minmax(480px,1.15fr)]">
           <ConversationPanel
             detail={detail}
@@ -224,13 +230,13 @@ export function CaseWorkspace({ caseRef }: { caseRef: string }) {
               <SidePanelTab active={activePanel === "inspector"} onSelect={() => setSidePanel("inspector")}>
                 節點檢視
               </SidePanelTab>
-              <SidePanelTab
+              {canReview && <SidePanelTab
                 active={activePanel === "review"}
                 attention={detail.status === "AWAITING_HUMAN_REVIEW"}
                 onSelect={() => setSidePanel("review")}
               >
                 人工審核
-              </SidePanelTab>
+              </SidePanelTab>}
             </div>
             {activePanel === "inspector" ? (
               <NodeInspector
@@ -313,7 +319,7 @@ function CaseHeader({
         <span className="grid size-8 place-items-center rounded-full bg-stone-900 text-[10px] font-bold text-white">
           DC
         </span>
-        <span className="hidden text-xs font-medium text-stone-500 md:inline">demo_customer</span>
+        <span className="hidden text-xs font-medium text-stone-500 md:inline">{detail.user_ref}</span>
       </div>
     </header>
   );
@@ -332,12 +338,13 @@ function ConversationPanel({
   onMessageSent: (message: LocalMessage) => void;
   onUpdated: () => Promise<CaseDetail>;
 }) {
+  const identity = useDemoIdentity();
   const [message, setMessage] = useState("");
   const [artifactRef, setArtifactRef] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string>();
   const needsInput =
-    detail.status === "AWAITING_CLARIFICATION" || detail.status === "AWAITING_EVIDENCE";
+    (!identity || identity.role === "buyer") && (detail.status === "AWAITING_CLARIFICATION" || detail.status === "AWAITING_EVIDENCE");
   const isEvidence = detail.status === "AWAITING_EVIDENCE";
   const isAgentWorking = detail.status === "OBSERVING";
 
@@ -512,7 +519,50 @@ function ConversationBubble({ item }: { item: ConversationItem }) {
   );
 }
 
+function FulfillmentPanel({detail,onUpdated}: {detail:CaseDetail;onUpdated:() => Promise<CaseDetail>}) {
+  const identity = useDemoIdentity();
+  const [pending,setPending] = useState(false);
+  const [error,setError] = useState("");
+  const confirmation = detail.policy_confirmation_request;
+  const fulfillment = detail.fulfillment;
+  const path = fulfillment?.selected_path_id ?? detail.policy_evaluation?.selection.selected_path_id;
+  async function perform(action: () => Promise<unknown>) {
+    setPending(true); setError("");
+    try { await action(); await onUpdated(); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : "無法更新狀態"); }
+    finally { setPending(false); }
+  }
+  if (detail.policy_schema_version !== "v2") return null;
+  const paths: Record<string,string> = {COOLING_OFF:"一般退貨",DAMAGED_ON_ARRIVAL:"到貨實體損壞",WRONG_ITEM:"寄錯商品",UNDELIVERED_ITEM:"獨立品項未交付"};
+  return <Card className="space-y-2 p-4 text-sm" aria-label="退回與退款進度">
+    <p>途徑：{path ? paths[path] : "判定中"} · {statusLabel(detail.status)}</p>
+    {fulfillment && <p>{fulfillment.return_required ? "退回驗收後付款" : "免退授權"} · 付款：{fulfillment.payment_status === "SUCCEEDED" ? "已完成" : fulfillment.payment_status === "REJECTED" ? "未執行，交專責處理" : "尚未完成"}</p>}
+    {confirmation && <div>
+      <p>請確認以「{paths[confirmation.path_id]}」處理本次申請，{confirmation.return_required ? "需退回商品並通過驗收" : "不需退回商品"}。</p>
+      {identity?.role === "buyer" && <div className="mt-2 flex gap-2">
+        <Button disabled={pending} onClick={() => perform(() => confirmPolicy(detail.case_ref,confirmation.request_ref,confirmation.selection_version,true))}>同意此途徑</Button>
+        <Button disabled={pending} variant="outline" onClick={() => perform(() => confirmPolicy(detail.case_ref,confirmation.request_ref,confirmation.selection_version,false))}>不同意</Button>
+      </div>}
+    </div>}
+    {fulfillment?.state === "AWAITING_RETURN_CONFIRMATION" && identity?.role === "buyer" && <div className="flex gap-2">
+      <Button disabled={pending} onClick={() => perform(() => confirmReturn(detail.case_ref,fulfillment.authorization_ref,fulfillment.return_requirement_hash,true))}>同意退回並等待驗收</Button>
+      <Button disabled={pending} variant="outline" onClick={() => perform(() => confirmReturn(detail.case_ref,fulfillment.authorization_ref,fulfillment.return_requirement_hash,false))}>交專責協助</Button>
+    </div>}
+    {identity?.role === "operator" && fulfillment && <div className="flex gap-2">
+      {fulfillment.state === "AWAITING_RETURN" && <Button disabled={pending} onClick={() => perform(() => simulateReturn(detail.case_ref,"ARRIVED"))}>模擬退回送達</Button>}
+      {fulfillment.state === "AWAITING_RETURN_INSPECTION" && <>
+        <Button disabled={pending} onClick={() => perform(() => simulateReturn(detail.case_ref,"PASS"))}>模擬驗收通過</Button>
+        <Button disabled={pending} variant="outline" onClick={() => perform(() => simulateReturn(detail.case_ref,"DISPUTE"))}>模擬驗收爭議</Button>
+      </>}
+      {["AWAITING_RETURN","AWAITING_RETURN_INSPECTION"].includes(fulfillment.state) && <Button disabled={pending} variant="outline" onClick={() => perform(() => simulateReturn(detail.case_ref,"OVERDUE"))}>模擬逾期</Button>}
+    </div>}
+    {error && <p role="alert" className="text-red-700">{error}</p>}
+  </Card>;
+}
+
 function ReviewerPanel({ detail, onUpdated }: { detail: CaseDetail; onUpdated: () => Promise<CaseDetail> }) {
+  const identity = useDemoIdentity();
+  const [findingStatuses,setFindingStatuses] = useState<Record<string,"SUPPORTED" | "UNSUPPORTED" | "CONTRADICTED">>({});
   const [note, setNote] = useState("");
   const [editing, setEditing] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[] | null>(null);
@@ -525,7 +575,7 @@ function ReviewerPanel({ detail, onUpdated }: { detail: CaseDetail; onUpdated: (
     setSubmitting(true);
     setError(undefined);
     try {
-      const common = { review_note: note.trim(), reviewer_id: DEMO_REVIEWER_REF, handoff_id: review?.handoff_id };
+      const common = { review_note: note.trim(), reviewer_id: identity?.user_ref ?? DEMO_REVIEWER_REF, handoff_id: review?.handoff_id };
       if (decision === "EDIT") {
         if (!review?.dossier) throw new Error("缺少原申請範圍與完整審核資料");
         const items = selectedItems ?? review.refund_scope.line_item_ids ?? [];
@@ -533,6 +583,7 @@ function ReviewerPanel({ detail, onUpdated }: { detail: CaseDetail; onUpdated: (
         await submitCaseReview(detail.case_ref, {
           ...common, decision: "EDIT", correction_reason_code: "OTHER",
           corrected_decision: {
+            ...(detail.policy_schema_version === "v2" ? {policy_findings:(review.review_result.reviewer_claim_findings ?? []).map(f => ({...f,status:findingStatuses[f.claim_id] ?? f.status}))} : {}),
             action: "FULL_REFUND", refund_scope: { line_item_ids: items as [string, ...string[]] },
             return_decision: {
               source: "HUMAN_REVIEW",
@@ -557,7 +608,9 @@ function ReviewerPanel({ detail, onUpdated }: { detail: CaseDetail; onUpdated: (
   const review = detail.human_review;
   const dossier = review?.dossier;
   const monetaryReview = review?.routing_reason === "HIGH_VALUE_ITEM" || review?.routing_reason === "CURRENCY_THRESHOLD_UNCONFIGURED";
-  const returnPolicies = dossier?.policy_bundle.clauses?.map((clause) => clause.return_policy) ?? [];
+  const riskReview = review?.routing_reason === "HIGH_USER_RISK" || review?.routing_reason === "USER_RISK_UNAVAILABLE";
+  const gatedReview = monetaryReview || riskReview;
+  const returnPolicies = dossier?.policy_bundle.clauses?.filter(clause => dossier.policy_bundle.schema_version !== "v2" || clause.path_id === dossier.policy_bundle.selected_path_id).map((clause) => clause.return_policy) ?? [];
   const fixedReturn = returnPolicies.includes("REQUIRED") ? true : returnPolicies.includes("NOT_REQUIRED") ? false : undefined;
   const effectiveReturn = fixedReturn ?? requireReturn;
   const isReviewing = detail.status === "AWAITING_HUMAN_REVIEW" && Boolean(review);
@@ -574,10 +627,10 @@ function ReviewerPanel({ detail, onUpdated }: { detail: CaseDetail; onUpdated: (
       <div className={cn("flex min-h-[62px] items-center justify-between gap-4 border-b px-5 py-3", isReviewing ? "border-orange-100 bg-orange-50/60" : "border-stone-200")}>
         <div>
           <h2 className="text-sm font-bold text-stone-950">人工最終裁決</h2>
-          <p className="mt-1 text-[10px] text-stone-400">{monetaryReview ? "金額規則命中 · 提案已核准，等待人工授權" : "Agent 無法收斂 · 由人工依現有證據裁決"}</p>
+          <p className="mt-1 text-[10px] text-stone-400">{monetaryReview ? "金額規則命中 · 提案已核准，等待人工授權" : riskReview ? "使用者風險授權 · 提案已核准，等待人工授權" : "Agent 無法收斂 · 由人工依現有證據裁決"}</p>
         </div>
         <Badge className={isReviewing ? "border-orange-100 bg-orange-100 text-orange-800" : ""}>
-          {DEMO_REVIEWER_REF}
+          {identity?.user_ref ?? DEMO_REVIEWER_REF}
         </Badge>
       </div>
       {review ? (
@@ -591,6 +644,24 @@ function ReviewerPanel({ detail, onUpdated }: { detail: CaseDetail; onUpdated: (
               <span className="text-[11px] text-stone-400">{lineItemCount} 件商品</span>
             </div>
             <p className="mt-2 text-xs leading-5 text-stone-600">{review.rationale_summary}</p>
+            {dossier?.user_risk_gate && <section aria-label="使用者風險授權" className="mt-3 rounded border p-3 text-xs">
+              <strong>使用者風險授權：{dossier.user_risk_gate.status}</strong>
+              <p>等級：{dossier.user_risk_gate.risk_level} · 分數：{dossier.user_risk_gate.score ?? "未知"}</p>
+              <p>標記：{dossier.user_risk_gate.tags?.join("、") || "無"}</p>
+              <p>快照：{dossier.user_risk_snapshot?.snapshot_ref ?? "無法取得"}</p>
+              <p>截至：{dossier.user_risk_snapshot?.as_of ?? "未知"}</p>
+              <p>帳號天數：{dossier.user_risk_snapshot?.account_age_days ?? "未知"}；訂單：{dossier.user_risk_snapshot?.orders_90d ?? "未知"}；同原因申請：{dossier.user_risk_snapshot?.same_reason_claims_90d ?? "未知"}；退款訂單：{dossier.user_risk_snapshot?.refunded_orders_90d ?? "未知"}</p>
+              <p>人工核准後仍須符合退回與驗收條件。</p>
+            </section>}
+            {editing && detail.policy_schema_version === "v2" && <section aria-label="人工政策 findings" className="mt-3 space-y-2 text-xs">
+              {review.review_result.reviewer_claim_findings.map(f => <label key={f.claim_id} className="block">
+                {f.claim_id} · {f.subject}
+                <select className="ml-2 border p-1" value={findingStatuses[f.claim_id] ?? f.status} onChange={e => setFindingStatuses({...findingStatuses,[f.claim_id]:e.target.value as "SUPPORTED" | "UNSUPPORTED" | "CONTRADICTED"})}>
+                  <option value="SUPPORTED">有證據支持</option><option value="UNSUPPORTED">資料不足</option><option value="CONTRADICTED">有反證</option>
+                </select>
+                <span className="block">{(f.supporting_evidence_refs ?? []).join("、")} · {f.explanation}</span>
+              </label>)}
+            </section>}
             <ul className="mt-3 space-y-2 text-xs text-red-800" aria-label="Reviewer 未解決異議">
               {review.review_result.revision_reasons?.map((reason, index) => (
                 <li key={index}>
@@ -602,7 +673,7 @@ function ReviewerPanel({ detail, onUpdated }: { detail: CaseDetail; onUpdated: (
               ))}
             </ul>
             <div className="mt-3 flex flex-wrap gap-2">
-              <Badge>{monetaryReview ? "Reviewer 已核准 · 等待人工授權" : "修正次數已用盡 · Reviewer 尚未核准"}</Badge>
+              <Badge>{gatedReview ? "Reviewer 已核准 · 等待人工授權" : "修正次數已用盡 · Reviewer 尚未核准"}</Badge>
               <Badge>{review.evidence_refs?.length ?? 0} 份證據</Badge>
               <Badge>{returnLabel}</Badge>
             </div>
@@ -623,7 +694,7 @@ function ReviewerPanel({ detail, onUpdated }: { detail: CaseDetail; onUpdated: (
                     <p>{reason.subject} · {reason.message}</p><p>所需修正：{reason.required_change}</p>
                     <p>政策：{reason.policy_refs?.join("、")}；證據：{reason.evidence_refs?.join("、")}</p>
                   </div>)}
-                  {dossier.proposal_history[index + 1] ? <p className="mt-2">下一輪提案：{dossier.proposal_history[index + 1].rationale_summary}</p> : <p className="mt-2">{monetaryReview ? "提案通過 Reviewer，依金額規則交由人工授權。" : "最後未解決異議，交由人工裁決。"}</p>}
+                  {dossier.proposal_history[index + 1] ? <p className="mt-2">下一輪提案：{dossier.proposal_history[index + 1].rationale_summary}</p> : <p className="mt-2">{gatedReview ? "提案通過 Reviewer，依授權規則交由人工核准。" : "最後未解決異議，交由人工裁決。"}</p>}
                 </details>
               ))}
             </section>
@@ -648,6 +719,7 @@ function ReviewerPanel({ detail, onUpdated }: { detail: CaseDetail; onUpdated: (
             <h3 className="text-sm font-semibold">最後決定</h3>
             <p className="text-xs text-stone-500">只依現有資料裁決。無法判定時保持待人工，這版不提供再次補件。</p>
             <Textarea aria-label="人工審核理由" placeholder="請填寫審核理由" value={note} onChange={(event) => setNote(event.target.value)} disabled={submitting} />
+            <Button disabled={submitting || !note.trim() || !dossier} onClick={() => void submit("APPROVE")} size="sm">採用原建議</Button>
             <Button disabled={submitting || !dossier} onClick={() => setEditing(!editing)} size="sm" variant="outline">決定退款</Button>
             {editing && dossier ? (
               <fieldset disabled={submitting} className="space-y-2 text-xs">

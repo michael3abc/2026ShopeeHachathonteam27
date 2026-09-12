@@ -112,6 +112,18 @@ class PostgresCommandJournal:
         claimed_until = now + timedelta(seconds=self._lease_seconds)
         async with self._pool.connection() as connection:
             async with connection.transaction():
+                inserted = await connection.execute(
+                    """
+                    INSERT INTO agent_command_journal (
+                        command_id, state, claimed_by, claimed_until, updated_at
+                    ) VALUES (%s, 'RUNNING', %s, %s, %s)
+                    ON CONFLICT (command_id) DO NOTHING
+                    RETURNING command_id
+                    """,
+                    (command_id, self._owner, claimed_until, now),
+                )
+                if await inserted.fetchone() is not None:
+                    return CommandClaim.CLAIMED
                 cursor = await connection.execute(
                     """
                     SELECT state, claimed_by, claimed_until
@@ -123,15 +135,9 @@ class PostgresCommandJournal:
                 )
                 row = await cursor.fetchone()
                 if row is None:
-                    await connection.execute(
-                        """
-                        INSERT INTO agent_command_journal (
-                            command_id, state, claimed_by, claimed_until, updated_at
-                        ) VALUES (%s, 'RUNNING', %s, %s, %s)
-                        """,
-                        (command_id, self._owner, claimed_until, now),
-                    )
-                    return CommandClaim.CLAIMED
+                    # A concurrent owner abandoned it after our conflicting insert.
+                    # Leave this delivery pending for the normal reclaim cycle.
+                    return CommandClaim.BUSY
                 state, _claimed_by, existing_until = row
                 if state in {"COMPLETED", "FAILED"}:
                     return CommandClaim.TERMINAL

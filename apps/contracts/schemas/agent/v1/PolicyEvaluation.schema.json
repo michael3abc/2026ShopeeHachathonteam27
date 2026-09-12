@@ -1,0 +1,272 @@
+{
+  "$defs": {
+    "ClaimId": {
+      "enum": [
+        "ITEM_CONFIRMED_UNDELIVERED",
+        "DELIVERY_CONFIRMED",
+        "ORDER_WITHIN_RETURN_WINDOW",
+        "SHIPMENT_SEAL_INTACT",
+        "ITEM_PHYSICALLY_DAMAGED",
+        "DAMAGE_PRESENT_ON_ARRIVAL",
+        "ITEM_FUNCTIONALLY_IMPAIRED",
+        "ITEM_DIFFERS_FROM_LISTING",
+        "WRONG_ITEM_RECEIVED",
+        "ITEM_NOT_IN_SHIPMENT",
+        "ITEM_UNUSED"
+      ],
+      "title": "ClaimId",
+      "type": "string"
+    },
+    "ItemPolicyEvaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_refs": {
+          "items": {
+            "$ref": "#/$defs/ClaimId"
+          },
+          "title": "Claim Refs",
+          "type": "array"
+        },
+        "clause_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Clause Refs",
+          "type": "array"
+        },
+        "line_item_id": {
+          "minLength": 1,
+          "title": "Line Item Id",
+          "type": "string"
+        },
+        "path_id": {
+          "$ref": "#/$defs/PolicyPathId"
+        },
+        "predicates": {
+          "items": {
+            "$ref": "#/$defs/PredicateFinding"
+          },
+          "title": "Predicates",
+          "type": "array"
+        },
+        "reason_codes": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "ELIGIBLE",
+            "INELIGIBLE",
+            "NEEDS_INFORMATION",
+            "SPECIALIST_REQUIRED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "line_item_id",
+        "path_id",
+        "status",
+        "predicates",
+        "clause_refs",
+        "claim_refs",
+        "reason_codes"
+      ],
+      "title": "ItemPolicyEvaluation",
+      "type": "object"
+    },
+    "PolicyPathId": {
+      "enum": [
+        "COOLING_OFF",
+        "DAMAGED_ON_ARRIVAL",
+        "WRONG_ITEM",
+        "UNDELIVERED_ITEM"
+      ],
+      "title": "PolicyPathId",
+      "type": "string"
+    },
+    "PolicySelection": {
+      "additionalProperties": false,
+      "properties": {
+        "confirmation_ref": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confirmation Ref"
+        },
+        "original_requested_action": {
+          "$ref": "#/$defs/RequestedAction"
+        },
+        "selected_path_id": {
+          "$ref": "#/$defs/PolicyPathId"
+        },
+        "selection_version": {
+          "minimum": 1,
+          "title": "Selection Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "selected_path_id",
+        "selection_version",
+        "original_requested_action"
+      ],
+      "title": "PolicySelection",
+      "type": "object"
+    },
+    "PredicateFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "predicate": {
+          "$ref": "#/$defs/SystemPredicate"
+        },
+        "source_ref": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Ref"
+        },
+        "status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNKNOWN"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "predicate",
+        "status",
+        "source_ref"
+      ],
+      "title": "PredicateFinding",
+      "type": "object"
+    },
+    "RequestedAction": {
+      "enum": [
+        "REFUND",
+        "RETURN_AND_REFUND",
+        "EXCHANGE",
+        "UNSPECIFIED"
+      ],
+      "title": "RequestedAction",
+      "type": "string"
+    },
+    "SystemPredicate": {
+      "enum": [
+        "TRANSACTION_IN_SCOPE",
+        "SINGLE_REFUNDABLE_ITEM",
+        "NO_EXCEPTION_ESTABLISHED",
+        "WITHIN_PATH_WINDOW",
+        "RECEIPT_CONFIRMED",
+        "PURCHASE_SPEC_AVAILABLE",
+        "NONDELIVERY_CONFIRMED",
+        "NO_PENDING_SPLIT_DELIVERY",
+        "PAYMENT_SCOPE_AVAILABLE"
+      ],
+      "title": "SystemPredicate",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "case_ref": {
+      "minLength": 1,
+      "title": "Case Ref",
+      "type": "string"
+    },
+    "claim_registry_version": {
+      "const": "claim-registry:2.0",
+      "default": "claim-registry:2.0",
+      "title": "Claim Registry Version",
+      "type": "string"
+    },
+    "evaluated_at": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+      "title": "Evaluated At",
+      "type": "string"
+    },
+    "evaluation_hash": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Evaluation Hash",
+      "type": "string"
+    },
+    "evaluation_ref": {
+      "minLength": 1,
+      "title": "Evaluation Ref",
+      "type": "string"
+    },
+    "evaluator_version": {
+      "const": "policy-evaluator:2.0",
+      "default": "policy-evaluator:2.0",
+      "title": "Evaluator Version",
+      "type": "string"
+    },
+    "evidence_bundle_hash": {
+      "title": "Evidence Bundle Hash",
+      "type": "string"
+    },
+    "findings_ref": {
+      "minLength": 1,
+      "title": "Findings Ref",
+      "type": "string"
+    },
+    "item_evaluations": {
+      "items": {
+        "$ref": "#/$defs/ItemPolicyEvaluation"
+      },
+      "minItems": 1,
+      "title": "Item Evaluations",
+      "type": "array"
+    },
+    "order_snapshot_ref": {
+      "minLength": 1,
+      "title": "Order Snapshot Ref",
+      "type": "string"
+    },
+    "policy_bundle_version": {
+      "minLength": 1,
+      "title": "Policy Bundle Version",
+      "type": "string"
+    },
+    "selection": {
+      "$ref": "#/$defs/PolicySelection"
+    }
+  },
+  "required": [
+    "evaluation_ref",
+    "evaluation_hash",
+    "case_ref",
+    "order_snapshot_ref",
+    "policy_bundle_version",
+    "evidence_bundle_hash",
+    "findings_ref",
+    "item_evaluations",
+    "selection",
+    "evaluated_at"
+  ],
+  "title": "PolicyEvaluation",
+  "type": "object"
+}

@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 
 from return_agent_contracts.review_gates import load_reviewer_gate_config
+from return_agent_contracts.user_risk import load_user_risk_config
 
 
 def test_compose_resolves_one_reviewer_gate_config_for_api_and_agent() -> None:
@@ -39,3 +40,13 @@ def test_compose_resolves_one_reviewer_gate_config_for_api_and_agent() -> None:
     assert api_config.version == agent_config.version == "reviewer-gates:1.0"
     assert api_config.fingerprint == agent_config.fingerprint
     assert api_config.thresholds == agent_config.thresholds
+    risk_paths = []
+    for name in ("api", "agent-service"):
+        service = services[name]
+        path = service["environment"]["RETURN_AGENT_USER_RISK_CONFIG"]
+        mount = next(m for m in service["volumes"] if m["target"] == path)
+        assert mount["read_only"] is True
+        risk_paths.append(mount["source"])
+    assert risk_paths[0] == risk_paths[1]
+    assert load_user_risk_config(risk_paths[0]).fingerprint == load_user_risk_config(risk_paths[1]).fingerprint
+    assert any(s["source"] == "demo_identities" for s in services["api"]["secrets"])

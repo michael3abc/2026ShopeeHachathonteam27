@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DemoSession } from "@/components/demo-session";
 
 import "./globals.css";
 
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="zh-Hant">
-      <body>{children}</body>
+      <body><DemoSession>{children}</DemoSession></body>
     </html>
   );
 }

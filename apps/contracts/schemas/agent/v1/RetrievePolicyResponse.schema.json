@@ -32,6 +32,7 @@
     },
     "ClaimId": {
       "enum": [
+        "ITEM_CONFIRMED_UNDELIVERED",
         "DELIVERY_CONFIRMED",
         "ORDER_WITHIN_RETURN_WINDOW",
         "SHIPMENT_SEAL_INTACT",
@@ -56,6 +57,20 @@
           "title": "Clauses",
           "type": "array"
         },
+        "common_constraints": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Common Constraints",
+          "type": "array"
+        },
+        "paths": {
+          "items": {
+            "$ref": "#/$defs/PolicyPath"
+          },
+          "title": "Paths",
+          "type": "array"
+        },
         "policy_bundle_version": {
           "minLength": 1,
           "title": "Policy Bundle Version",
@@ -69,6 +84,26 @@
           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
           "title": "Retrieved At",
           "type": "string"
+        },
+        "schema_version": {
+          "default": "v1",
+          "enum": [
+            "v1",
+            "v2"
+          ],
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "selected_path_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyPathId"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -118,6 +153,17 @@
           "default": null,
           "title": "Effective To"
         },
+        "path_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyPathId"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "policy_version": {
           "minLength": 1,
           "title": "Policy Version",
@@ -127,7 +173,6 @@
           "items": {
             "$ref": "#/$defs/ClaimId"
           },
-          "minItems": 1,
           "title": "Required Claim Ids",
           "type": "array"
         },
@@ -152,6 +197,111 @@
       ],
       "title": "PolicyClause",
       "type": "object"
+    },
+    "PolicyPath": {
+      "additionalProperties": false,
+      "properties": {
+        "clause_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Clause Refs",
+          "type": "array"
+        },
+        "effective_from": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Effective From",
+          "type": "string"
+        },
+        "effective_to": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effective To"
+        },
+        "entry_reasons": {
+          "items": {
+            "$ref": "#/$defs/ReasonCode"
+          },
+          "minItems": 1,
+          "title": "Entry Reasons",
+          "type": "array"
+        },
+        "interpretation_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Interpretation Hash",
+          "type": "string"
+        },
+        "path_id": {
+          "$ref": "#/$defs/PolicyPathId"
+        },
+        "policy_version": {
+          "const": "DEMO-TW-RETURNS:v2.0",
+          "default": "DEMO-TW-RETURNS:v2.0",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "required_claim_ids": {
+          "items": {
+            "$ref": "#/$defs/ClaimId"
+          },
+          "title": "Required Claim Ids",
+          "type": "array"
+        },
+        "return_policy": {
+          "$ref": "#/$defs/ReturnPolicy"
+        },
+        "source_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "system_predicates": {
+          "items": {
+            "$ref": "#/$defs/SystemPredicate"
+          },
+          "title": "System Predicates",
+          "type": "array"
+        }
+      },
+      "required": [
+        "path_id",
+        "clause_refs",
+        "required_claim_ids",
+        "system_predicates",
+        "entry_reasons",
+        "return_policy",
+        "effective_from",
+        "source_refs",
+        "interpretation_hash"
+      ],
+      "title": "PolicyPath",
+      "type": "object"
+    },
+    "PolicyPathId": {
+      "enum": [
+        "COOLING_OFF",
+        "DAMAGED_ON_ARRIVAL",
+        "WRONG_ITEM",
+        "UNDELIVERED_ITEM"
+      ],
+      "title": "PolicyPathId",
+      "type": "string"
     },
     "ReasonCode": {
       "enum": [
@@ -189,6 +339,21 @@
         "MODEL_JUDGMENT"
       ],
       "title": "ReturnPolicy",
+      "type": "string"
+    },
+    "SystemPredicate": {
+      "enum": [
+        "TRANSACTION_IN_SCOPE",
+        "SINGLE_REFUNDABLE_ITEM",
+        "NO_EXCEPTION_ESTABLISHED",
+        "WITHIN_PATH_WINDOW",
+        "RECEIPT_CONFIRMED",
+        "PURCHASE_SPEC_AVAILABLE",
+        "NONDELIVERY_CONFIRMED",
+        "NO_PENDING_SPLIT_DELIVERY",
+        "PAYMENT_SCOPE_AVAILABLE"
+      ],
+      "title": "SystemPredicate",
       "type": "string"
     }
   },

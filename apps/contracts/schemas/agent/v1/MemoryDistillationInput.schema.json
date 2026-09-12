@@ -94,7 +94,6 @@
           "items": {
             "$ref": "#/$defs/ClaimFinding"
           },
-          "minItems": 1,
           "title": "Claim Findings",
           "type": "array"
         },
@@ -142,6 +141,17 @@
           "default": null,
           "title": "Generalizable"
         },
+        "policy_evaluation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyEvaluation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "review_note": {
           "minLength": 1,
           "title": "Review Note",
@@ -182,7 +192,6 @@
           "items": {
             "$ref": "#/$defs/ClaimFinding"
           },
-          "minItems": 1,
           "title": "Reviewer Claim Findings",
           "type": "array"
         },
@@ -228,6 +237,20 @@
           "title": "Case Ref",
           "type": "string"
         },
+        "first_valid_submitted_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "First Valid Submitted At"
+        },
         "market": {
           "minLength": 1,
           "title": "Market",
@@ -236,6 +259,15 @@
         "order_ref": {
           "minLength": 1,
           "title": "Order Ref",
+          "type": "string"
+        },
+        "policy_schema_version": {
+          "default": "v1",
+          "enum": [
+            "v1",
+            "v2"
+          ],
+          "title": "Policy Schema Version",
           "type": "string"
         },
         "snapshot_version": {
@@ -293,6 +325,7 @@
     },
     "ClaimId": {
       "enum": [
+        "ITEM_CONFIRMED_UNDELIVERED",
         "DELIVERY_CONFIRMED",
         "ORDER_WITHIN_RETURN_WINDOW",
         "SHIPMENT_SEAL_INTACT",
@@ -380,6 +413,21 @@
           "title": "Action",
           "type": "string"
         },
+        "policy_findings": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ClaimFinding"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Policy Findings"
+        },
         "refund_scope": {
           "$ref": "#/$defs/NonEmptyRefundScope"
         },
@@ -461,7 +509,6 @@
           "items": {
             "$ref": "#/$defs/ClaimFinding"
           },
-          "minItems": 1,
           "title": "Claim Findings",
           "type": "array"
         },
@@ -621,6 +668,17 @@
           ],
           "default": null,
           "title": "Generalizable"
+        },
+        "policy_evaluation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyEvaluation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "review_note": {
           "minLength": 1,
@@ -936,6 +994,28 @@
           "title": "Outcome Source",
           "type": "string"
         },
+        "policy_evaluation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyEvaluation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "refund_release_condition": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefundReleaseCondition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "review_gate": {
           "anyOf": [
             {
@@ -964,6 +1044,17 @@
             }
           ],
           "title": "Review Result"
+        },
+        "user_risk_gate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UserRiskGateResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -1045,6 +1136,28 @@
           "title": "Outcome Source",
           "type": "string"
         },
+        "policy_evaluation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyEvaluation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "refund_release_condition": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefundReleaseCondition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "review_gate": {
           "anyOf": [
             {
@@ -1073,6 +1186,17 @@
             }
           ],
           "title": "Review Result"
+        },
+        "user_risk_gate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UserRiskGateResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -1161,6 +1285,28 @@
           "title": "Outcome Source",
           "type": "string"
         },
+        "policy_evaluation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyEvaluation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "refund_release_condition": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefundReleaseCondition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "review_gate": {
           "anyOf": [
             {
@@ -1189,6 +1335,17 @@
             }
           ],
           "title": "Review Result"
+        },
+        "user_risk_gate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UserRiskGateResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -1244,7 +1401,6 @@
           "items": {
             "$ref": "#/$defs/ClaimFinding"
           },
-          "minItems": 1,
           "title": "Claim Findings",
           "type": "array"
         },
@@ -1361,6 +1517,70 @@
         "requested_action"
       ],
       "title": "IntakeResult",
+      "type": "object"
+    },
+    "ItemPolicyEvaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_refs": {
+          "items": {
+            "$ref": "#/$defs/ClaimId"
+          },
+          "title": "Claim Refs",
+          "type": "array"
+        },
+        "clause_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Clause Refs",
+          "type": "array"
+        },
+        "line_item_id": {
+          "minLength": 1,
+          "title": "Line Item Id",
+          "type": "string"
+        },
+        "path_id": {
+          "$ref": "#/$defs/PolicyPathId"
+        },
+        "predicates": {
+          "items": {
+            "$ref": "#/$defs/PredicateFinding"
+          },
+          "title": "Predicates",
+          "type": "array"
+        },
+        "reason_codes": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "ELIGIBLE",
+            "INELIGIBLE",
+            "NEEDS_INFORMATION",
+            "SPECIALIST_REQUIRED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "line_item_id",
+        "path_id",
+        "status",
+        "predicates",
+        "clause_refs",
+        "claim_refs",
+        "reason_codes"
+      ],
+      "title": "ItemPolicyEvaluation",
       "type": "object"
     },
     "LearningDecision": {
@@ -2065,6 +2285,14 @@
     "ModelJudgmentReturnDecision": {
       "additionalProperties": false,
       "properties": {
+        "basis_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Basis Refs",
+          "type": "array"
+        },
         "requirement": {
           "discriminator": {
             "mapping": {
@@ -2164,6 +2392,20 @@
           "title": "Clauses",
           "type": "array"
         },
+        "common_constraints": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Common Constraints",
+          "type": "array"
+        },
+        "paths": {
+          "items": {
+            "$ref": "#/$defs/PolicyPath"
+          },
+          "title": "Paths",
+          "type": "array"
+        },
         "policy_bundle_version": {
           "minLength": 1,
           "title": "Policy Bundle Version",
@@ -2177,6 +2419,26 @@
           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
           "title": "Retrieved At",
           "type": "string"
+        },
+        "schema_version": {
+          "default": "v1",
+          "enum": [
+            "v1",
+            "v2"
+          ],
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "selected_path_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyPathId"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -2226,6 +2488,17 @@
           "default": null,
           "title": "Effective To"
         },
+        "path_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyPathId"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "policy_version": {
           "minLength": 1,
           "title": "Policy Version",
@@ -2235,7 +2508,6 @@
           "items": {
             "$ref": "#/$defs/ClaimId"
           },
-          "minItems": 1,
           "title": "Required Claim Ids",
           "type": "array"
         },
@@ -2260,6 +2532,274 @@
       ],
       "title": "PolicyClause",
       "type": "object"
+    },
+    "PolicyConfirmation": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "confirmation_ref": {
+          "minLength": 1,
+          "title": "Confirmation Ref",
+          "type": "string"
+        },
+        "confirmed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Confirmed At",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/PolicyConfirmationRequest"
+        }
+      },
+      "required": [
+        "confirmation_ref",
+        "request",
+        "accepted",
+        "confirmed_at"
+      ],
+      "title": "PolicyConfirmation",
+      "type": "object"
+    },
+    "PolicyConfirmationRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "original_path_id": {
+          "$ref": "#/$defs/PolicyPathId"
+        },
+        "original_scope_hash": {
+          "title": "Original Scope Hash",
+          "type": "string"
+        },
+        "path_id": {
+          "$ref": "#/$defs/PolicyPathId"
+        },
+        "request_ref": {
+          "minLength": 1,
+          "title": "Request Ref",
+          "type": "string"
+        },
+        "return_required": {
+          "title": "Return Required",
+          "type": "boolean"
+        },
+        "return_requirement_hash": {
+          "title": "Return Requirement Hash",
+          "type": "string"
+        },
+        "selection_version": {
+          "minimum": 1,
+          "title": "Selection Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "request_ref",
+        "case_ref",
+        "original_scope_hash",
+        "original_path_id",
+        "path_id",
+        "selection_version",
+        "return_required",
+        "return_requirement_hash"
+      ],
+      "title": "PolicyConfirmationRequest",
+      "type": "object"
+    },
+    "PolicyEvaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "claim_registry_version": {
+          "const": "claim-registry:2.0",
+          "default": "claim-registry:2.0",
+          "title": "Claim Registry Version",
+          "type": "string"
+        },
+        "evaluated_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Evaluated At",
+          "type": "string"
+        },
+        "evaluation_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Evaluation Hash",
+          "type": "string"
+        },
+        "evaluation_ref": {
+          "minLength": 1,
+          "title": "Evaluation Ref",
+          "type": "string"
+        },
+        "evaluator_version": {
+          "const": "policy-evaluator:2.0",
+          "default": "policy-evaluator:2.0",
+          "title": "Evaluator Version",
+          "type": "string"
+        },
+        "evidence_bundle_hash": {
+          "title": "Evidence Bundle Hash",
+          "type": "string"
+        },
+        "findings_ref": {
+          "minLength": 1,
+          "title": "Findings Ref",
+          "type": "string"
+        },
+        "item_evaluations": {
+          "items": {
+            "$ref": "#/$defs/ItemPolicyEvaluation"
+          },
+          "minItems": 1,
+          "title": "Item Evaluations",
+          "type": "array"
+        },
+        "order_snapshot_ref": {
+          "minLength": 1,
+          "title": "Order Snapshot Ref",
+          "type": "string"
+        },
+        "policy_bundle_version": {
+          "minLength": 1,
+          "title": "Policy Bundle Version",
+          "type": "string"
+        },
+        "selection": {
+          "$ref": "#/$defs/PolicySelection"
+        }
+      },
+      "required": [
+        "evaluation_ref",
+        "evaluation_hash",
+        "case_ref",
+        "order_snapshot_ref",
+        "policy_bundle_version",
+        "evidence_bundle_hash",
+        "findings_ref",
+        "item_evaluations",
+        "selection",
+        "evaluated_at"
+      ],
+      "title": "PolicyEvaluation",
+      "type": "object"
+    },
+    "PolicyPath": {
+      "additionalProperties": false,
+      "properties": {
+        "clause_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Clause Refs",
+          "type": "array"
+        },
+        "effective_from": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Effective From",
+          "type": "string"
+        },
+        "effective_to": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effective To"
+        },
+        "entry_reasons": {
+          "items": {
+            "$ref": "#/$defs/ReasonCode"
+          },
+          "minItems": 1,
+          "title": "Entry Reasons",
+          "type": "array"
+        },
+        "interpretation_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Interpretation Hash",
+          "type": "string"
+        },
+        "path_id": {
+          "$ref": "#/$defs/PolicyPathId"
+        },
+        "policy_version": {
+          "const": "DEMO-TW-RETURNS:v2.0",
+          "default": "DEMO-TW-RETURNS:v2.0",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "required_claim_ids": {
+          "items": {
+            "$ref": "#/$defs/ClaimId"
+          },
+          "title": "Required Claim Ids",
+          "type": "array"
+        },
+        "return_policy": {
+          "$ref": "#/$defs/ReturnPolicy"
+        },
+        "source_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "system_predicates": {
+          "items": {
+            "$ref": "#/$defs/SystemPredicate"
+          },
+          "title": "System Predicates",
+          "type": "array"
+        }
+      },
+      "required": [
+        "path_id",
+        "clause_refs",
+        "required_claim_ids",
+        "system_predicates",
+        "entry_reasons",
+        "return_policy",
+        "effective_from",
+        "source_refs",
+        "interpretation_hash"
+      ],
+      "title": "PolicyPath",
+      "type": "object"
+    },
+    "PolicyPathId": {
+      "enum": [
+        "COOLING_OFF",
+        "DAMAGED_ON_ARRIVAL",
+        "WRONG_ITEM",
+        "UNDELIVERED_ITEM"
+      ],
+      "title": "PolicyPathId",
+      "type": "string"
     },
     "PolicyReturnDecision": {
       "additionalProperties": false,
@@ -2295,6 +2835,78 @@
       "title": "PolicyReturnDecision",
       "type": "object"
     },
+    "PolicySelection": {
+      "additionalProperties": false,
+      "properties": {
+        "confirmation_ref": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confirmation Ref"
+        },
+        "original_requested_action": {
+          "$ref": "#/$defs/RequestedAction"
+        },
+        "selected_path_id": {
+          "$ref": "#/$defs/PolicyPathId"
+        },
+        "selection_version": {
+          "minimum": 1,
+          "title": "Selection Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "selected_path_id",
+        "selection_version",
+        "original_requested_action"
+      ],
+      "title": "PolicySelection",
+      "type": "object"
+    },
+    "PredicateFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "predicate": {
+          "$ref": "#/$defs/SystemPredicate"
+        },
+        "source_ref": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Ref"
+        },
+        "status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNKNOWN"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "predicate",
+        "status",
+        "source_ref"
+      ],
+      "title": "PredicateFinding",
+      "type": "object"
+    },
     "ProposedDecisionHandoff": {
       "additionalProperties": false,
       "properties": {
@@ -2302,6 +2914,21 @@
           "minLength": 1,
           "title": "Agent Prompt Version",
           "type": "string"
+        },
+        "assessment_findings": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ClaimFinding"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assessment Findings"
         },
         "case_ref": {
           "minLength": 1,
@@ -2326,7 +2953,10 @@
           "type": "string"
         },
         "handoff_version": {
-          "const": "1.0",
+          "enum": [
+            "1.0",
+            "2.0"
+          ],
           "title": "Handoff Version",
           "type": "string"
         },
@@ -2340,6 +2970,28 @@
           "title": "Policy Bundle Version",
           "type": "string"
         },
+        "policy_confirmation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyConfirmation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "policy_evaluation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyEvaluation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "policy_refs": {
           "items": {
             "minLength": 1,
@@ -2348,6 +3000,17 @@
           "minItems": 1,
           "title": "Policy Refs",
           "type": "array"
+        },
+        "policy_selection": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicySelection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "proposed_decision": {
           "discriminator": {
@@ -2406,6 +3069,14 @@
       "title": "ReasonCode",
       "type": "string"
     },
+    "RefundReleaseCondition": {
+      "enum": [
+        "RETURN_INSPECTION_PASSED",
+        "AUTHORIZED_NO_RETURN"
+      ],
+      "title": "RefundReleaseCondition",
+      "type": "string"
+    },
     "RejectedHumanReviewResult": {
       "additionalProperties": false,
       "properties": {
@@ -2430,6 +3101,17 @@
           ],
           "default": null,
           "title": "Generalizable"
+        },
+        "policy_evaluation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyEvaluation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "review_note": {
           "minLength": 1,
@@ -2470,6 +3152,7 @@
     },
     "RequiredReturnReasonCode": {
       "enum": [
+        "POLICY_RETURN_REQUIRED",
         "RESALE_VALUE_RETAINED",
         "RETURN_REQUIRED_FOR_INSPECTION"
       ],
@@ -2642,6 +3325,28 @@
           "title": "Outcome Source",
           "type": "string"
         },
+        "policy_evaluation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyEvaluation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "refund_release_condition": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefundReleaseCondition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "review_gate": {
           "anyOf": [
             {
@@ -2655,6 +3360,17 @@
         },
         "review_result": {
           "$ref": "#/$defs/ApprovedReviewResult"
+        },
+        "user_risk_gate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UserRiskGateResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -2682,7 +3398,6 @@
           "items": {
             "$ref": "#/$defs/ClaimFinding"
           },
-          "minItems": 1,
           "title": "Reviewer Claim Findings",
           "type": "array"
         },
@@ -2776,6 +3491,30 @@
       "title": "RevisionReasonCode",
       "type": "string"
     },
+    "RiskTag": {
+      "enum": [
+        "REPEATED_SAME_REASON_CLAIMS",
+        "HIGH_REFUND_RATE",
+        "NEW_ACCOUNT_REPEATED_CLAIMS"
+      ],
+      "title": "RiskTag",
+      "type": "string"
+    },
+    "SystemPredicate": {
+      "enum": [
+        "TRANSACTION_IN_SCOPE",
+        "SINGLE_REFUNDABLE_ITEM",
+        "NO_EXCEPTION_ESTABLISHED",
+        "WITHIN_PATH_WINDOW",
+        "RECEIPT_CONFIRMED",
+        "PURCHASE_SPEC_AVAILABLE",
+        "NONDELIVERY_CONFIRMED",
+        "NO_PENDING_SPLIT_DELIVERY",
+        "PAYMENT_SCOPE_AVAILABLE"
+      ],
+      "title": "SystemPredicate",
+      "type": "string"
+    },
     "UnavailableVerificationResult": {
       "additionalProperties": false,
       "properties": {
@@ -2804,6 +3543,103 @@
       ],
       "title": "UnavailableVerificationResult",
       "type": "object"
+    },
+    "UserRiskGateResult": {
+      "additionalProperties": false,
+      "properties": {
+        "config_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Config Hash",
+          "type": "string"
+        },
+        "config_version": {
+          "minLength": 1,
+          "title": "Config Version",
+          "type": "string"
+        },
+        "matched_rules": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Matched Rules",
+          "type": "array"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "HIGH_USER_RISK",
+                "USER_RISK_UNAVAILABLE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason"
+        },
+        "risk_level": {
+          "$ref": "#/$defs/UserRiskLevel"
+        },
+        "score": {
+          "minimum": 0,
+          "title": "Score",
+          "type": "integer"
+        },
+        "snapshot_ref": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Snapshot Ref"
+        },
+        "status": {
+          "enum": [
+            "PASS",
+            "HUMAN_REQUIRED",
+            "NOT_APPLICABLE"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "$ref": "#/$defs/RiskTag"
+          },
+          "title": "Tags",
+          "type": "array"
+        }
+      },
+      "required": [
+        "config_version",
+        "config_hash",
+        "status",
+        "risk_level",
+        "score",
+        "tags",
+        "matched_rules",
+        "reason",
+        "snapshot_ref"
+      ],
+      "title": "UserRiskGateResult",
+      "type": "object"
+    },
+    "UserRiskLevel": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "UNKNOWN"
+      ],
+      "title": "UserRiskLevel",
+      "type": "string"
     },
     "VerificationIssue": {
       "additionalProperties": false,
@@ -2834,6 +3670,7 @@
     },
     "WaivedReturnReasonCode": {
       "enum": [
+        "ITEM_NOT_RECEIVED",
         "ITEM_UNSALVAGEABLE",
         "HYGIENE_RISK",
         "RETURN_UNECONOMICAL",

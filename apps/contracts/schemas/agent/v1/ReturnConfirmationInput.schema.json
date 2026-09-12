@@ -1,0 +1,32 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "accept": {
+      "title": "Accept",
+      "type": "boolean"
+    },
+    "authorization_ref": {
+      "minLength": 1,
+      "title": "Authorization Ref",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "return_requirement_hash": {
+      "minLength": 1,
+      "title": "Return Requirement Hash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "authorization_ref",
+    "return_requirement_hash",
+    "accept",
+    "idempotency_key"
+  ],
+  "title": "ReturnConfirmationInput",
+  "type": "object"
+}

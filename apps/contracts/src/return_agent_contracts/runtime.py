@@ -22,9 +22,11 @@ from .models import (
     UserTurn,
 )
 from .review_gates import HumanReviewRoutingReason, ReviewGateResult
+from .policy_v2 import PolicyConfirmation, PolicyConfirmationRequest
 
 
 class AgentInterruptKind(StrEnum):
+    POLICY_CONFIRMATION = "POLICY_CONFIRMATION"
     CLARIFICATION = "CLARIFICATION"
     EVIDENCE_REQUEST = "EVIDENCE_REQUEST"
     HUMAN_REVIEW = "HUMAN_REVIEW"
@@ -42,6 +44,8 @@ class AgentRunResultType(StrEnum):
 
 
 class GraphNodeName(StrEnum):
+    EVALUATE_POLICY = "evaluate_policy"
+    CONFIRM_POLICY_PATH = "confirm_policy_path"
     PARSE_REQUEST = "parse_request"
     REQUEST_CLARIFICATION = "request_clarification"
     LOAD_CASE_CONTEXT = "load_case_context"
@@ -178,8 +182,13 @@ class HumanReviewPollResume(ContractModel):
     kind: Literal[AgentInterruptKind.HUMAN_REVIEW]
 
 
+class PolicyConfirmationResume(ContractModel):
+    kind: Literal[AgentInterruptKind.POLICY_CONFIRMATION]
+    confirmation: PolicyConfirmation
+
+
 ResumePayload: TypeAlias = Annotated[
-    ClarificationResume | EvidenceResume | HumanReviewPollResume,
+    ClarificationResume | EvidenceResume | HumanReviewPollResume | PolicyConfirmationResume,
     Field(discriminator="kind"),
 ]
 
@@ -214,10 +223,18 @@ class HumanReviewInterruptPayload(ContractModel):
     memory_ids: list[OpaqueRef] = Field(default_factory=list)
 
 
+class PolicyConfirmationInterruptPayload(ContractModel):
+    kind: Literal[AgentInterruptKind.POLICY_CONFIRMATION]
+    case_ref: OpaqueRef
+    request: PolicyConfirmationRequest
+
+
 AgentInterruptPayload: TypeAlias = Annotated[
     ClarificationInterruptPayload
     | EvidenceInterruptPayload
-    | HumanReviewInterruptPayload,
+    | HumanReviewInterruptPayload
+    | PolicyConfirmationInterruptPayload,
+    # Policy consent comes from the authenticated API command outbox.
     Field(discriminator="kind"),
 ]
 

@@ -5,6 +5,7 @@ provider owner may implement them directly or provide an adapter around its API.
 """
 
 from __future__ import annotations
+from .policy_v2 import PolicyPathId
 
 from .models import ReviewResult
 
@@ -13,6 +14,8 @@ from typing import Protocol, runtime_checkable
 
 from .base import NonEmptyText, OpaqueRef, PositiveInt
 from .enums import ClaimId, ReasonCode
+from .base import UTCDateTime
+from .user_risk import UserRiskSnapshot
 from .models import (
     ApplyRefundRequest,
     CaseContext,
@@ -33,6 +36,11 @@ from .models import (
 
 
 @runtime_checkable
+class UserRiskProvider(Protocol):
+    def prepare_snapshot(self, case_ref: OpaqueRef, reason_code: ReasonCode, as_of: UTCDateTime) -> UserRiskSnapshot: ...
+
+
+@runtime_checkable
 class CaseContextProvider(Protocol):
     """Graph node: load_case_context. Read-only and safe to retry."""
 
@@ -49,6 +57,7 @@ class PolicyProvider(Protocol):
         order_snapshot: OrderSnapshot,
         reason_code: ReasonCode,
         claimed_line_item_ids: Sequence[OpaqueRef],
+        *, selected_path_id: PolicyPathId | None = None,
     ) -> PolicyBundle: ...
 
 
@@ -85,6 +94,7 @@ class OperationalMemoryStore(Protocol):
         policy_versions: Sequence[OpaqueRef],
         claim_registry_major: PositiveInt,
         top_k: PositiveInt = 3,
+        *, policy_path_id: PolicyPathId | None = None,
     ) -> Sequence[MemorySearchHit]: ...
 
     def submit_candidate(self, candidate: MemoryCandidate) -> OpaqueRef: ...

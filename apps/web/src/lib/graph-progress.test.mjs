@@ -58,6 +58,23 @@ test("a paused node is waiting, not active, so the agent is never shown as worki
   assert.equal(progress.activeNode, "request_evidence");
 });
 
+test("v2 policy confirmation replays its pause and policy retrieval without spending revision budget", () => {
+  const history = [
+    ...completed("assess_case", "A1", "evaluate_policy"),
+    ...completed("evaluate_policy", "V1", "confirm_policy_path"),
+    started("confirm_policy_path", "C1"),
+    ended("confirm_policy_path", "C1", "PAUSED"),
+  ];
+  assert.equal(graphProgress(history).states.confirm_policy_path, "waiting");
+  const progress = graphProgress([...history, ...completed("confirm_policy_path", "C2", "retrieve_policy"), started("retrieve_policy", "P2")]);
+  assert.equal(progress.activeNode, "retrieve_policy");
+  assert.equal(progress.visits.confirm_policy_path.length, 1);
+  assert.equal(progress.edgeTraversals["assess_case>evaluate_policy"], 1);
+  assert.equal(progress.edgeTraversals["evaluate_policy>confirm_policy_path"], 1);
+  assert.equal(progress.edgeTraversals["confirm_policy_path>retrieve_policy"], 1);
+  assert.equal(progress.budgets.revision.used, 0);
+});
+
 test("await_human_review re-entering itself after submitting is one visit without a drawn edge", () => {
   const progress = graphProgress([
     ...completed("await_human_review", "H1", "await_human_review"),

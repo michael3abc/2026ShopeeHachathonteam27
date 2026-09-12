@@ -1,6 +1,6 @@
 # Operational Memory
 
-Distiller prompt 3.1 以完整 learning trace 與可追溯的去識別化對話產生整案回顧、學習判定及至多一則候選。排除系統缺陷與無根據的 Reviewer 異議；採納不等於普遍正確，結案不等於因果效益。Memory 改善下一案尚須對照驗證。
+Distiller prompt 3.2 以完整 learning trace 與可追溯的去識別化對話產生整案回顧、學習判定及至多一則候選。Policy v2 額外保留 policy path、confirmation 與 APPLIED completion lineage。排除系統缺陷與無根據的 Reviewer 異議；採納不等於普遍正確，結案不等於因果效益。Memory 改善下一案尚須對照驗證。
 
 人工無法收斂裁決沿用既有 correction trace 與非同步 Distiller：保留原 Reviewer 意見、人工最終決定及整體 review_note，不將人工改判偽裝成 Reviewer APPROVE。人工結果帶 reviewer_id 作稽核；不因此自動核准 Memory，也不新增歷史案件索引。
 
@@ -14,9 +14,9 @@ Operational Memory 用來保存可泛化的操作經驗，而不是自動改寫�
 
 所有取得最終核准／拒絕結果的案件均準備背景蒸餾，包含無修正案件。等待補件、等待人工與技術性終止不算完成裁決。缺失、超限或不安全的 learning trace 明確 SKIP；不得以 correction history 或 Activity 補造完整歷程。
 
-此處的「最終結果」= `emit_resolution_handoff` 產出的 `ResolutionHandoff`（agent/human 端最終結果）。執行系統的執行確認不在 Agent 團隊範圍，蒸餾不等待它。
+v1 與 DECLINE 的「最終結果」沿用 `ResolutionHandoff`。v2 FULL_REFUND 另需 API `RefundAppliedEvent`：核准、等待退回、付款結果未知均不得視為成功經驗。API 只在執行 ledger 確認 APPLIED 的成功交易中寫成功事件。
 
-實作上，主 graph 的 `enqueue_memory_distillation` 只組裝 `MemoryDistillationInput` 並存入 LangGraph checkpoint。Agent Worker 發布 durable `RESOLVED` event 後即可完成主 command；另一個 consumer group 的 Memory Enqueue Worker 讀取 checkpoint payload，發布至 `return-agent.memory-jobs.v2`。Memory Worker 再獨立執行模型蒸餾與 `submit_candidate`。因此 memory 服務故障不會回滾或重跑已完成的客戶 resolution。
+主 graph 的 `enqueue_memory_distillation` 只組裝 `MemoryDistillationInput` 並存入 checkpoint，Agent Worker 發布 durable `RESOLVED` 後完成 command。Memory Enqueue Worker 將 v2 FULL_REFUND 的全案 input 與 APPLIED 以 authorization／resolution reference/hash 保存至 Agent DB `memory_completion_joins`；任意到達順序、重送均收斂為同一 logical job。v1 與 DECLINE 沿用直接 fan-out。Memory Worker 再獨立蒸餾與 `submit_candidate`，服務故障不回滾或重跑客戶 resolution。
 
 Memory Worker 在 Agent DB 的 `memory_job_results` 保存首次蒸餾結果及 prompt
 version，成功 commit 後才提交 candidate；再保存含 `submission_ref` 的完整 terminal
@@ -126,6 +126,9 @@ Agent 不得自行將 `CANDIDATE` 升級為 `APPROVED`。Approval workflow、sto
 | `reason_codes` | 空 = 不限 | 非空時只能取自本案最後提案的 `reason_code` |
 | `claim_ids` | 空 = 不限 | 非空時必須是適用條款 `required_claim_ids` 的子集合 |
 | `categories` | 空 = 不限 | 非空時必須是本案 `claimed_line_item_ids` 對應 `category_ref` 集合的子集合 |
+| `policy_path_id` | v1 為空；v2 必填 | 與已選 path 完全相同；換 path 必須清除舊命中並重查 |
+
+v2 retrieval 使用 exact Policy／registry／path，再依原 market／reason／category 篩選；v1 經驗不能改版本冒充 v2。P01 沒有 required claims，以明確 path scope 匹配空 claim scope；其餘 path 仍檢查 claim 交集。只接受 APPROVED，保留 cosine Top 3 原順序；補件、換路徑後空結果或 UNAVAILABLE 均清空舊卡片。Reviewer 不接收 Memory。
 
 `confidence` 是 candidate quality metadata，只用於 cosine 同分時的排序，**不得**用來越過 Policy 或自動 approve。
 

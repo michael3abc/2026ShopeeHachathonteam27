@@ -57,6 +57,8 @@ class CaseRecord(Base):
     )
 
     case_ref: Mapped[str] = mapped_column(String(128), primary_key=True)
+    policy_schema_version: Mapped[str] = mapped_column(String(8),default="v1",server_default="v1")
+    v2_context_payload: Mapped[dict | None] = mapped_column(JSON,nullable=True)
     # Backend-private LangGraph thread. Unique because resuming a case must
     # reuse its thread and a new case must never reuse an old one.
     thread_id: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)

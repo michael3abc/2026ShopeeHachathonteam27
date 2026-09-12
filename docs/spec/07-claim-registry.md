@@ -2,6 +2,8 @@
 
 Version: `claim-registry:1.0`
 
+Policy v2 新包另使用 `claim-registry:2.0`（`registry_for_version`）；v1 保留原語意。v2 新增 `ITEM_CONFIRMED_UNDELIVERED`，subject 為 LINE_ITEM、僅能由 SYSTEM_FACTS 支持，引用可信調查 reference，不得出現在 EvidenceRequest。`ITEM_NOT_IN_SHIPMENT` 仍描述包裹缺件，不能代替確認整件未交付。P01 的 required claims 為空，但所有固定 system predicates 仍須通過；P02 分開判定實體損壞與到貨時點。
+
 Claim 是本系統唯一的「待證事實」單位。Policy 條款不描述證據，只引用 claim id；`assess_case` 只判定 claim；`EvidenceRequest` 由 claim 定義查表產生。本檔是 claim 的受控詞彙（controlled vocabulary），不是 Policy。
 
 引入 registry 的目的：

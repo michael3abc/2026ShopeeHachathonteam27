@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createCase } from "@/lib/api";
+import { useDemoIdentity } from "@/components/demo-session";
 
 export function CreateCaseForm() {
   const router = useRouter();
+  const identity = useDemoIdentity();
   const [orderRef, setOrderRef] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string>();
@@ -21,7 +23,7 @@ export function CreateCaseForm() {
     setSubmitting(true);
     setError(undefined);
     try {
-      const result = await createCase(orderRef.trim(), message.trim());
+      const result = await createCase(orderRef.trim(), message.trim(), identity?.user_ref);
       router.push(`/cases/${encodeURIComponent(result.case_ref)}`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "目前無法建立案件，請稍後再試。");
@@ -61,7 +63,7 @@ export function CreateCaseForm() {
             <Button
               className="mb-1 size-10 shrink-0 rounded-xl p-0"
               type="submit"
-              disabled={submitting}
+              disabled={submitting || Boolean(identity && identity.role !== "buyer")}
               aria-label="送出"
             >
               {submitting ? (
@@ -74,7 +76,7 @@ export function CreateCaseForm() {
         </div>
         {error ? <p role="alert" className="mt-2 text-sm text-red-600">{error}</p> : null}
         <p className="mt-2 text-center text-xs text-stone-400">
-          Demo 使用固定測試帳號，不會執行真實退款
+          合成 Demo 案件，退款由模擬付款服務記錄
         </p>
       </form>
     </div>

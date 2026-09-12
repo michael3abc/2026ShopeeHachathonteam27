@@ -1,5 +1,17 @@
 # External Interfaces
 
+## Policy v2／User Risk 增補
+
+- PolicyProvider 可收 `selected_path_id`，只適用固定版本的 v2 context；原 reason 不因途徑切換改寫，回傳完整四路徑包。
+- Memory query 增 `policy_path_id`；v2 必須 exact Policy／registry／path，相容 P01 空 claims。v1 呼叫保留原欄位與 major 比對。
+- `POST /internal/v1/user-risk/snapshot` 使用 service token、case_ref／reason_code／as_of；as_of 必等於 v2 case_opened_at，排除 current case，重送讀取同一 immutable snapshot。
+- 買家 `POST /cases/{case_ref}/policy-confirmations`、`return-confirmations`；operator `POST /demo/cases/{case_ref}/return-simulation`；可信 producer `POST /internal/v2/return-events`。各自驗 role／owner 或 service token，版本與要求 hash 不符回 409。
+- `POST /auth/login` 使用後端配置之個人憑證，發不透明 HttpOnly cookie；瀏覽器不能提交可信 role。狀態變更要求配置的同源 Origin。
+- Human dossier 的 snapshot 必須逐 facts 與持久化原件相符；相同 reference 不足以授權。
+- API APPLIED transaction 同時寫入成功 ledger、REFUND_SUCCEEDED 與 `refund_completion_outbox`，發至 `return-agent.refund-completions.v2`。Agent DB 的 correction／APPLIED join 使用原 resolution_ref、authorization_ref、resolution_hash；任意到達順序及重送只建立一個 logical job。
+
+上述為跨組邊界；履約等待不重跑 Reviewer。詳細限制與驗收見 [Policy v2](09-policy-v2-integration.md)、[User Risk](../USER_RISK_SPEC.md)。
+
 本文件是 Agent 團隊遞交給其他團隊的**介面需求**。它定義 Agent 需要什麼，不規範對方如何實作。
 
 Ownership 與 interface 是兩件事：退貨期限幾天由 Policy owner 決定（ownership），但條款必須以什麼欄位交付給 Agent 由 Agent 團隊決定（interface）。本文件只涵蓋後者。
@@ -603,6 +615,7 @@ start/resume command 並發布 lifecycle/terminal event。可執行 DTO 與 stre
 | `return-agent.memory-jobs.v2` | `MemoryDistillationJob` | Memory Enqueue Worker 在 durable `RESOLVED` event 後，讀取 graph checkpoint 中的全案 learning trace 並發布蒸餾工作。 |
 | `return-agent.memory-events.v2` | `MemoryServiceEvent` | Memory Worker 發布 `COMPLETED`（candidate 已提交或明確 `SKIP`）或 `FAILED`；事件含實際 distiller prompt version。 |
 | `return-agent.memory-jobs.dlq.v2` | `MemoryJobDeadLetter` | 無法通過 memory job contract 的原始 payload；成功寫入 DLQ 後才 ACK。 |
+| `return-agent.refund-completions.v2` | `RefundAppliedEvent` | API 成功交易的 completion outbox 發布；Agent durable join 配對 resolution／authorization reference 與 resolution hash。 |
 
 每筆 Redis entry 只有一個 `body` 欄位，內容是完整 JSON。`command_id` 是執行
 冪等鍵；`event_id` 是投影去重鍵；`event_index` 表示同一 command 內的順序。
@@ -613,15 +626,22 @@ consumer group；兩者都會看到完整事件，不會互相搶走訊息。Mem
 只對 `AgentResolvedEvent` 查詢 checkpoint；沒有完整蒸餾 input 的 resolution
 直接 ACK，不建立 job。`job_id = "memory-v2:" + handoff_id`，Memory Worker 以 durable
 journal 去重；`submit_candidate` 再以 `memory_id` 冪等，因此重送不得建立重複候選。
+v2 FULL_REFUND 的 correction 與 APPLIED 分別保存到 Agent `memory_completion_joins`，
+兩者皆存在且 resolution／authorization binding 相符才發布 job。允許任意到達
+順序與重送；API 核准、等待退回、未知付款結果均不能替代 APPLIED。
 首次模型結果與完整 terminal event 另存於 Agent DB `memory_job_results`，分別在
 candidate submit／Redis publish 前 commit。重播只沿用已保存的 output、prompt
 version、submission reference 與事件，不再呼叫模型；store 的 immutable-content
 conflict 規則保持不變。Agent Service 的 Alembic version table 為
 `agent_service_alembic_version`，不使用 API migration history。
-Agent migration `0002_memory_model_profile` 另存 credential-free 模型設定；pending
+Agent migration `0002_memory_model_profile` 另存 credential-free 模型設定，
+`0003_memory_completion` 保存 v2 completion join；pending
 工作不能換 prompt／profile 重算，舊已完成結果不改写。API start／resume command
 與 USER_TURN event 共用訊息 ID；`EvidenceResume.turn` 僅為 learning 對話用途，
 不替代 EvidenceProvider。新舊 DTO 需協調升級；舊缺對話 input 可裁決但蒸餾 SKIP。
+Startup 以 advisory transaction lock 序列化；offline PostgreSQL SQL 與 online migration 都阻止丟棄非空 completion join。
+首次 journal claim 使用 conflict-safe insert 加 row lock，並行新 job 只有一位
+owner，其餘留待正常 lease／ACK replay，不因 initial insert race 產生 unique violation。
 兩個 Memory loops 對 retry-safe 暫時性傳輸例外以 capped exponential backoff
 恢復，stop/cancellation 可中斷等待；永久授權／契約／程式錯誤不得無限重試。
 這個 fan-out 發生在主 Agent command 完成之後，Memory pipeline 的錯誤不得轉成
@@ -639,7 +659,8 @@ payload 為 `HumanReviewPollResume`；Agent Service 再呼叫 `fetch_result`。R
 
 ### Repository reference transport
 
-Policy CLI 與 integrated-demo 必須共用 `data/policy.json.example`；整合版以
+v1 Policy CLI 與 integrated-demo 必須共用 `data/policy.json.example`；v2 另用
+明確版本化的 `data/policy-v2.json.example`，不改寫 v1 Policy。整合版以
 `RETURN_AGENT_DEMO_DATA_DIR` 指定其所在目錄。不得另存同 family/version 卻不同
 immutable content 的啟動 fixture。文件匯入後啟動整合版應為冪等重播；舊版衝突
 fixture 仍須明確拒絕，不得自動覆寫既有 Policy 或刪除 retrieval history。
@@ -663,6 +684,7 @@ Ingestion／整合啟動與 retrieval 在不一致時明確失敗；維護者可
 | Evidence | `POST /internal/v1/evidence/resolve` |
 | Verification | `POST /internal/v1/verification` |
 | Human Review | `POST /internal/v1/human-reviews`、`POST /internal/v1/human-reviews/result` |
+| User Risk（僅 v2） | `POST /internal/v1/user-risk/snapshot` |
 
 HTTP status、timeout 或 schema 錯誤由 adapter 轉成明確例外，再由 graph 依本文件的
 fail-closed/non-blocking 規則處理。這些 routes 是 repository deployment choice，
@@ -670,11 +692,11 @@ fail-closed/non-blocking 規則處理。這些 routes 是 repository deployment 
 
 ## Demo/UI adapter boundary
 
-目前 live demo 驗證的是 Reviewer APPROVE happy path；no-UI automated test 使用 demo
-providers 並停在 `EXECUTING` 邊界，不代表所有 safety providers 已完成跨服務
-驗收。高額 HUMAN → 人工核准 → execution，以及 correction → candidate →
-明確 governance approval → 下一案 retrieval，仍須各自完成跨服務 E2E。
-Demo RefundApplication 不代表真實外部退款或金流效果驗證。
+v2 deterministic 測試已覆蓋 gates、人審、履約、APPLIED 與 recovery；真模型
+A–F、三個 risk persona 與 correction → candidate → governance → 下一案 retrieval
+須以各自 artifact 驗收，最新完成與未完成項目見 [進度](../progress.md)。
+舊 v1 no-UI／UI runner 沒有 Demo role 登入步驟，不代表 v2 整合驗收。
+Demo RefundApplication 是模擬金流，APPLIED 不代表真實外部付款。
 
 Demo/UI 使用獨立的 projection DTO，不直接使用、複製或改寫 Agent graph state。可執行來源是 [`ui.py`](../../apps/contracts/src/return_agent_contracts/ui.py)，雙向轉換集中在 [`adapters.py`](../../apps/contracts/src/return_agent_contracts/adapters.py)；非 Python 實作者使用 [UI v1 JSON Schema](../../apps/contracts/schemas/ui/v1/)。Core 與 UI contract 都集中在 `apps/contracts`，但仍維持不同 DTO，避免 UI payload 成為 Agent state。
 
@@ -690,14 +712,16 @@ Demo/UI 使用獨立的 projection DTO，不直接使用、複製或改寫 Agent
 - `GET /cases/{case_ref}/events` 以 SSE 傳送既有 `case_events` 中的 `agent_event`；SSE `id = seq`，`Last-Event-ID` 只續傳更大的序號。`user_turn` 共用 sequence 但不進此 stream，因此序號可有間隔。
 - SSE disconnect 不取消 graph；Backend 以 250 ms 預設間隔短輪詢、每 15 秒送 heartbeat，terminal case 送完剩餘事件後關閉。兩個間隔皆由 API settings 控制。
 
-### 三種 interrupt 不得混用
+### Typed interrupt 與履約確認不得混用
 
 | Graph 情境 | UI projection | UI 回傳／後續 | 邊界 |
 | --- | --- | --- | --- |
 | `request_clarification` | `ClarificationInterruptPayload` | 使用者回覆新的 `UserTurn`，以 `ClarificationResume` 恢復 graph | 這是意圖／訂單品項澄清，不是補件或 Human Review。Backend 顯示狀態為 `AWAITING_CLARIFICATION`。 |
 | `request_evidence` | `EvidenceRequestView` | 使用者補交 opaque `artifact_ref`，resume 後由 `EvidenceProvider.resolve` 解析 | 這是使用者補件，不是 Human Review。 |
+| v2 `confirm_policy_path` | `PolicyConfirmationRequest` | owner buyer 經 policy-confirmations 保存回答，再以 PolicyConfirmationResume 恢復 | AWAITING_POLICY_CONFIRMATION；綁定政策／registry／path／scope／selection version／requirement hash。 |
 | Reviewer 回 REVISE 且 revision_round >= 3 | HumanReviewPayload | APPROVE / EDIT / REJECT 後 resume | routing_reason = REVISION_BUDGET_EXCEEDED，提案尚未獲 Reviewer 核准。 |
 | Reviewer APPROVE 且 Python 金額 gate 命中 | HumanReviewPayload + dossier.review_gate | 人工裁決後直接 emit，不再回 Reviewer | 高額待授權，顯示已核准、金額、門檻、幣別、規則版本及原因，不虛構異議。 |
+| v2 Reviewer APPROVE + FULL_REFUND 且 risk HIGH／UNKNOWN | HumanReviewPayload + dossier.user_risk_gate | reviewer 角色人工裁決後 emit，仍受退回履約限制 | 金額 gate 原因優先；dossier 保存兩個 gate，買家不可讀 risk facts。 |
 | Reviewer 回 `REVISE` 且 revision_round < 3 | 不建立 UI interrupt | 經 `record_revision_event` 回 `propose_decision` | 這是 Agent 內部 revision loop。 |
 
 `HumanReviewPayload` 包含可稽核摘要與 dossier：handoff、decision、graph-derived amount/currency、evidence/policy display references、完整已審提案與 review history、最後的 review_result、routing_reason 與 memory ids。它不含 Chain-of-Thought 或大型 artifact bytes；artifact 使用既有受控 reference。金額使用 decimal string，例如 `amount = "1200"`、`currency = TWD` 表示 TWD 1,200。
@@ -706,7 +730,7 @@ Demo/UI 使用獨立的 projection DTO，不直接使用、複製或改寫 Agent
 
 目前 Web 透過同源 `/backend/*` proxy 呼叫 Case API，SSE 不啟用 gzip buffering。
 同案件頁的專用人工裁決面板串接 `POST /cases/{case_ref}/review`；UI 明確顯示「決定退款」（EDIT）與「決定不退款」（REJECT，永遠表示 DECLINE，不是反轉原建議）。APPROVE 契約保留給採用原建議的呼叫端。
-退款可選原申請內的任何品項，包含原提案為 DECLINE 的案件；不可輸入金額。固定 return Policy 鎖定退貨要求。送出必須帶目前 `handoff_id`、非空整體 `review_note` 與 reviewer_id；舊 DTO 可解碼缺 handoff_id，但 API completion 會拒絕缺少／過期 handoff。
+退款可選原申請內的合法品項，包含原提案為 DECLINE 的案件；v2 目前限定原先單一品項，API 重算 evaluation／金額。不可輸入金額，固定 return Policy 鎖定退回要求。送出必須帶目前 `handoff_id`、非空整體 `review_note` 與 reviewer_id；啟用 Demo 認證時 reviewer_id 必須等於登入身分。舊 DTO 可解碼缺 handoff_id，但 API completion 拒絕缺少／過期 handoff。
 API 先驗證持久化 dossier 與目前 Policy／訂單、範圍／退貨要求／退款上限，再以同一 transaction 保存結果、轉 OBSERVING 並 enqueue resume。失敗保留待人工並回傳原因；不新增人工補件。執行層依 persisted human authorization 重新核對，不再要求人工退款必須源自原本的 FULL_REFUND。
 `CaseDetail.human_review` 結案後仍從 durable dossier 重建；`human_review_result` 顯示理由、身份與時間。送出後重新讀取 Backend projection，不在前端猜測終態。
 LLM `reviewer` 與 Human Review 在畫面上分別呈現，不能互相代替。
@@ -762,15 +786,16 @@ Reviewer 回 REVISE 且 revision_round >= 3 時，graph 產生 REVISION_BUDGET_E
 
 API 與 Agent Runtime 的 Python invocation boundary 以
 [`return_agent_contracts.runtime`](../../apps/contracts/src/return_agent_contracts/runtime.py)
-為 canonical source，包含 start/resume request、三種 interrupt 與 terminal result
+為 canonical source，包含 start/resume request、clarification／evidence／human review／policy confirmation interrupt 與 terminal result
 union。Human Review interrupt 同時攜帶 UI projection 所需的 handoff、review_result、policy
 與 memory references；Backend 不讀取 LangGraph private state。Runtime 不得向 API
 回傳未定型 interrupt dictionary。
 
-## 獨立 Activity API v1（內部 demo／審核人員）
+## 獨立 Activity API v1
 
-Activity 不改變既有 `/cases/{case_ref}/events`、案件狀態或退款授權；不提供 UI 訂閱／元件。
-存取控制沿用目前 demo API 邊界，**不可當作具備租戶隔離的公開客戶 API 部署**。
+Activity 不改變既有 `/cases/{case_ref}/events`、案件狀態或退款授權，Web 使用
+typed activities 與 narration 顯示流程。啟用 Demo session 時，JSON 與 SSE
+均受同一 owner／role 授權及 risk projection；內部完整 tracing 不直接暴露給買家。
 
 - `GET /cases/{case_ref}/activities?after_seq=0&limit=100`：回傳 `{events, next_cursor, has_more}`，limit 1–500；按每案獨立 seq 遞增。沒有新資料時 cursor 不變。
 - `GET /cases/{case_ref}/activities/stream?after_seq=0`：SSE `event: activity`、`id: <seq>`；非負整數 `Last-Event-ID` 優先於 query。不存在案件 404、非法 header 400、非法 query 422。
@@ -839,3 +864,84 @@ API 與 Memory 使用相同 embedding provider；部署目標統一 Compass text
 Agent node EXIT 的 memory_retrieval 透過既有 NODE_OBSERVED envelope 傳到 Redis。API 同 transaction 投影 node_exit 與 memory_retrieval SSE，沿用 event ID/index replay 去重。
 UI 消費 status/query_summary/hits/error_code，依 seq 只保留最新整批結果，cosine 不等於 candidate confidence。
 切換與回填順序見 [Memory runbook](04-operational-memory.md#遷移與切換-runbook)，舊工作與暫停 checkpoint 先排空／協調，不做即時相容 fallback。
+
+## Policy v2、可信 snapshot 與退回履約
+
+API 建案依後端 Demo scenario 的 order prefix／owner 選用政策，將
+`policy_schema_version` 與可信 `v2_context_payload` 固定保存。未知 v2 prefix 或
+owner 不符拒絕，不讀買家提供的角色、版本、例外或配送調查作為可信 facts。
+v1 DTO／evaluator 保持原語意，v2 使用 `DEMO-TW-RETURNS:v2.0` 與
+`claim-registry:2.0`；checkpoint 不跨版重播、不自動降級。
+
+Policy provider 回傳完整適用包，四條路徑獨立評估；COOLING_OFF 空 claims
+仍須通過可信 predicates，UNDELIVERED_ITEM 只採逐品項未交付 investigation。
+Assessment 與 Reviewer 分別以自己的 findings 計算 evaluation；Reviewer
+不得取得 Assessment 結論、Memory 或 risk。Memory retrieval 在 cosine 排序前
+以 exact Policy／registry／path 過濾，P01 使用 path scope；path 變更後清除舊
+hits 再查。Human EDIT 的新 evaluation 由 API 重算並保留歷史。
+
+UserRiskProvider 只供 v2 Reviewer APPROVE + FULL_REFUND 之後的 deterministic
+gate 使用。snapshot cutoff 必須等於 `case_opened_at`，統計排除 current case；
+首次 snapshot 與 content hash 保存後，後續 profile 變化或補入歷史事件不改寫
+同 snapshot facts。API／Agent 共用 `config/user-risk.json` Decimal evaluator：
+LOW／MEDIUM PASS，HIGH／UNKNOWN 人工授權；金額 gate 原因優先，dossier 保存兩個
+gate。Reviewer verdict 不因 gate 改變；revision exhaustion 與 snapshot 取回失敗
+可合法缺少 risk snapshot，後者必須明確 UNKNOWN，不可冒充低風險。
+
+Human dossier 的 snapshot 必須與 API persisted snapshot 逐欄完全一致，且
+case／owner／reason／cutoff binding、持久化 payload hash 均相符；相同 reference
+不能取代 facts 驗證。提交 dossier、人工結果與付款授權都核對該原件。
+自動付款以同一 persisted snapshot 與同 config 重算 PASS；人工可依合法 dossier
+授權，仍須符合其 Policy 的付款釋放條件。
+
+| POST route | 呼叫者與輸入約束 | 保存與結果 |
+| --- | --- | --- |
+| `/cases/{case_ref}/policy-confirmations` | owner buyer；request_ref、selection_version、accept、idempotency_key | 保存版本化 policy consent 與同 transaction typed resume outbox；過期或變更內容重送回409。 |
+| `/cases/{case_ref}/return-confirmations` | owner buyer；authorization_ref、return_requirement_hash、accept、idempotency_key | 接受轉 AWAITING_RETURN；拒絕交專責；不能更換退款 scope／金額。 |
+| `/internal/v2/return-events` | service token、allowlisted producer；event identity、authorization／品項 binding、內容 hash與事件順序 | immutable receipt；arrival 在前、inspection 引用已接受的 arrival；相同事件重送只回原 receipt。 |
+| `/demo/cases/{case_ref}/return-simulation` | operator；ARRIVED／PASS／DISPUTE／OVERDUE intent 與 idempotency_key | API 產生可信 synthetic event，仍走上述 receipt／順序驗證。 |
+| `/internal/v1/user-risk/snapshot` | service token；typed case_ref／reason_code／as_of | immutable snapshot，HTTP Provider 不暴露 DB／profile 寫入能力。 |
+
+核准後 required return 順序是 `AWAITING_RETURN_CONFIRMATION → AWAITING_RETURN
+→ AWAITING_RETURN_INSPECTION`；已有完全符合 return requirement hash 的政策同意
+可省略再次詢問。合法驗收或合法免退才進 `EXECUTING`，付款成功才 `RESOLVED`。
+NORMAL／WATCH 自動授權與 HIGH／UNKNOWN 人工授權均不能跳過退回條件。
+付款前再驗 scope、最新可退額、reservation、consent、evaluation 與 gate config；
+缺失／改變時停止自動付款並交專責，不重跑 Reviewer。付款結果未知維持 reservation，
+以原 execution key 與既有 worker lease recovery 恢復，不另造退款 key。
+
+API 在確認 `APPLIED` 的同一成功 transaction 保存 refund ledger、
+`REFUND_SUCCEEDED` 與 completion outbox。`case_ref + event_type` 去重並驗 immutable
+facts；等待退回、人工核准與付款結果未知都不寫成功事件。API migration 單鏈
+`0013 → 0014_user_risk_authorization → 0015_policy_v2_fulfillment`，User Risk 三張
+新表與 legacy risk_evaluations 分離；歷史非空時 online／offline downgrade 均阻擋。
+
+### Demo session 與角色投影
+
+`RETURN_AGENT_DEMO_IDENTITIES_FILE` 指向受限後端配置，包含每個 user_ref 的
+role、個別 credential_sha256 與 allowed_origins。`POST /auth/login` 僅接受
+user_ref／credential，由後端決定角色；回傳 opaque `return_agent_session`
+HttpOnly、SameSite=Strict cookie，HTTPS 時加 Secure。DB 只保存 token hash；
+`GET /auth/config` 表示是否啟用，`GET /auth/session` 讀登入身分，
+`POST /auth/logout` 撤銷 session。登入／登出與其他狀態變更皆核對允許的 Origin。
+
+buyer 只能建立、讀取與操作自己的 case；reviewer 才能取得 risk dossier／
+人工裁決，reviewer_id 必須等於 session user_ref；operator 才能模擬物流。
+角色不能由 browser header 或 body 自行宣告。Provider／return-event ingress
+保留內部 service token，瀏覽器 cookie 不能替代 producer 授權。
+
+API 對 Case JSON、events SSE、activities JSON／SSE、node inspector 輸入與
+narration 執行角色投影；buyer／operator 移除 risk snapshot／gate／facts、
+risk routing reason 與 human notes。SSE id／cursor／replay／heartbeat 語意保持
+不變，敏感內容不靠 Web 隱藏。權限與洩漏驗收須覆蓋匿名、cross-owner、角色冒充
+及兩條 stream；Demo 認證仍不代表已接入 production 身分平台。
+
+### User Risk snapshot envelope
+
+```json
+{"method":"UserRiskProvider.prepare_snapshot","params":{"case_ref":"CASE-PV2","reason_code":"ITEM_DAMAGED","as_of":"2026-09-12T00:00:00Z"}}
+```
+
+```json
+{"result":{"snapshot_ref":"user-risk-snapshot:example","case_ref":"CASE-PV2","user_ref":"USER-NORMAL","reason_code":"ITEM_DAMAGED","as_of":"2026-09-12T00:00:00Z","created_at":"2026-09-12T00:00:01Z","account_age_days":720,"orders_90d":15,"same_reason_claims_90d":1,"refunded_orders_90d":1}}
+```

@@ -18,6 +18,7 @@ export type Count = number | null;
  */
 export type FindingStatuses = string[];
 export type ClaimId =
+  | "ITEM_CONFIRMED_UNDELIVERED"
   | "DELIVERY_CONFIRMED"
   | "ORDER_WITHIN_RETURN_WINDOW"
   | "SHIPMENT_SEAL_INTACT"
@@ -80,6 +81,7 @@ export type RetrievalSummary = string;
 export type Categories = string[];
 export type ClaimIds = ClaimId[];
 export type Market = string;
+export type PolicyPathId = "COOLING_OFF" | "DAMAGED_ON_ARRIVAL" | "WRONG_ITEM" | "UNDELIVERED_ITEM";
 export type ReasonCodes1 = ReasonCode[];
 export type Status = "APPROVED";
 /**
@@ -203,6 +205,7 @@ export interface MemoryScope {
   categories?: Categories;
   claim_ids?: ClaimIds;
   market: Market;
+  policy_path_id?: PolicyPathId | null;
   reason_codes?: ReasonCodes1;
 }
 export interface ReviewGateResult {

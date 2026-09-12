@@ -1,0 +1,326 @@
+{
+  "$defs": {
+    "ArrivalPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "tracking_ref": {
+          "minLength": 1,
+          "title": "Tracking Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tracking_ref"
+      ],
+      "title": "ArrivalPayload",
+      "type": "object"
+    },
+    "InspectionDisputedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "authorization_ref": {
+          "minLength": 1,
+          "title": "Authorization Ref",
+          "type": "string"
+        },
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "event_id": {
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "event_type": {
+          "const": "INSPECTION_DISPUTED",
+          "title": "Event Type",
+          "type": "string"
+        },
+        "line_item_id": {
+          "minLength": 1,
+          "title": "Line Item Id",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/InspectionPayload"
+        },
+        "payload_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Payload Hash",
+          "type": "string"
+        },
+        "producer_id": {
+          "minLength": 1,
+          "title": "Producer Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "producer_id",
+        "case_ref",
+        "authorization_ref",
+        "line_item_id",
+        "occurred_at",
+        "payload_hash",
+        "event_type",
+        "payload"
+      ],
+      "title": "InspectionDisputedEvent",
+      "type": "object"
+    },
+    "InspectionPassedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "authorization_ref": {
+          "minLength": 1,
+          "title": "Authorization Ref",
+          "type": "string"
+        },
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "event_id": {
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "event_type": {
+          "const": "INSPECTION_PASSED",
+          "title": "Event Type",
+          "type": "string"
+        },
+        "line_item_id": {
+          "minLength": 1,
+          "title": "Line Item Id",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/InspectionPayload"
+        },
+        "payload_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Payload Hash",
+          "type": "string"
+        },
+        "producer_id": {
+          "minLength": 1,
+          "title": "Producer Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "producer_id",
+        "case_ref",
+        "authorization_ref",
+        "line_item_id",
+        "occurred_at",
+        "payload_hash",
+        "event_type",
+        "payload"
+      ],
+      "title": "InspectionPassedEvent",
+      "type": "object"
+    },
+    "InspectionPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "arrived_event_id": {
+          "minLength": 1,
+          "title": "Arrived Event Id",
+          "type": "string"
+        },
+        "inspection_ref": {
+          "minLength": 1,
+          "title": "Inspection Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "arrived_event_id",
+        "inspection_ref"
+      ],
+      "title": "InspectionPayload",
+      "type": "object"
+    },
+    "OverduePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "deadline_ref": {
+          "minLength": 1,
+          "title": "Deadline Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "deadline_ref"
+      ],
+      "title": "OverduePayload",
+      "type": "object"
+    },
+    "ReturnArrivedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "authorization_ref": {
+          "minLength": 1,
+          "title": "Authorization Ref",
+          "type": "string"
+        },
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "event_id": {
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "event_type": {
+          "const": "RETURN_ARRIVED",
+          "title": "Event Type",
+          "type": "string"
+        },
+        "line_item_id": {
+          "minLength": 1,
+          "title": "Line Item Id",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ArrivalPayload"
+        },
+        "payload_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Payload Hash",
+          "type": "string"
+        },
+        "producer_id": {
+          "minLength": 1,
+          "title": "Producer Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "producer_id",
+        "case_ref",
+        "authorization_ref",
+        "line_item_id",
+        "occurred_at",
+        "payload_hash",
+        "event_type",
+        "payload"
+      ],
+      "title": "ReturnArrivedEvent",
+      "type": "object"
+    },
+    "ReturnOverdueEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "authorization_ref": {
+          "minLength": 1,
+          "title": "Authorization Ref",
+          "type": "string"
+        },
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "event_id": {
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "event_type": {
+          "const": "RETURN_OVERDUE",
+          "title": "Event Type",
+          "type": "string"
+        },
+        "line_item_id": {
+          "minLength": 1,
+          "title": "Line Item Id",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/OverduePayload"
+        },
+        "payload_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Payload Hash",
+          "type": "string"
+        },
+        "producer_id": {
+          "minLength": 1,
+          "title": "Producer Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "producer_id",
+        "case_ref",
+        "authorization_ref",
+        "line_item_id",
+        "occurred_at",
+        "payload_hash",
+        "event_type",
+        "payload"
+      ],
+      "title": "ReturnOverdueEvent",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "INSPECTION_DISPUTED": "#/$defs/InspectionDisputedEvent",
+      "INSPECTION_PASSED": "#/$defs/InspectionPassedEvent",
+      "RETURN_ARRIVED": "#/$defs/ReturnArrivedEvent",
+      "RETURN_OVERDUE": "#/$defs/ReturnOverdueEvent"
+    },
+    "propertyName": "event_type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ReturnArrivedEvent"
+    },
+    {
+      "$ref": "#/$defs/InspectionPassedEvent"
+    },
+    {
+      "$ref": "#/$defs/InspectionDisputedEvent"
+    },
+    {
+      "$ref": "#/$defs/ReturnOverdueEvent"
+    }
+  ]
+}

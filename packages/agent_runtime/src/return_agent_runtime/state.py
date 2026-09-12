@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from return_agent_contracts.review_gates import ReviewGateResult, HumanReviewRoutingReason
+from return_agent_contracts.user_risk import UserRiskSnapshot, UserRiskGateResult
+from return_agent_contracts.policy_v2 import PolicyEvaluation, PolicySelection, PolicyConfirmation, PolicyConfirmationRequest
 
 from enum import StrEnum
 from typing import Literal, TypedDict
@@ -50,6 +52,7 @@ class AgentState(TypedDict, total=False):
     case_context: CaseContext
     order_snapshot: OrderSnapshot
     policy_bundle: PolicyBundle
+    policy_bundle_history: list[PolicyBundle]
     operational_memory: list[ApprovedMemory]
     memory_retrieval_status: MemoryRetrievalStatus
     memory_query_summary: str | None
@@ -63,6 +66,13 @@ class AgentState(TypedDict, total=False):
     review_history: list[ReviewResult]
     review_routing_reason: HumanReviewRoutingReason | None
     review_gate: ReviewGateResult | None
+    user_risk_snapshot: UserRiskSnapshot | None
+    user_risk_gate: UserRiskGateResult | None
+    policy_evaluation: PolicyEvaluation | None
+    policy_selection: PolicySelection | None
+    policy_confirmation: PolicyConfirmation | None
+    pending_policy_confirmation: PolicyConfirmationRequest | None
+    reviewer_evaluations: list[PolicyEvaluation]
     revision_events: list[DecisionRevisionEvent]
     pending_clarification_request: ClarificationRequest | None
     pending_evidence_request: EvidenceRequest | None

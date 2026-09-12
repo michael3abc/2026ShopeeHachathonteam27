@@ -1,0 +1,64 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "application_ref": {
+      "minLength": 1,
+      "title": "Application Ref",
+      "type": "string"
+    },
+    "applied_at": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+      "title": "Applied At",
+      "type": "string"
+    },
+    "authorization_ref": {
+      "minLength": 1,
+      "title": "Authorization Ref",
+      "type": "string"
+    },
+    "case_ref": {
+      "minLength": 1,
+      "title": "Case Ref",
+      "type": "string"
+    },
+    "execution_ref": {
+      "minLength": 1,
+      "title": "Execution Ref",
+      "type": "string"
+    },
+    "resolution_hash": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Resolution Hash",
+      "type": "string"
+    },
+    "resolution_ref": {
+      "minLength": 1,
+      "title": "Resolution Ref",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "v2",
+      "default": "v2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "const": "APPLIED",
+      "default": "APPLIED",
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "case_ref",
+    "resolution_ref",
+    "authorization_ref",
+    "resolution_hash",
+    "execution_ref",
+    "application_ref",
+    "applied_at"
+  ],
+  "title": "RefundAppliedEvent",
+  "type": "object"
+}

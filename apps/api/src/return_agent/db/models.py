@@ -7,6 +7,7 @@ from datetime import datetime
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     JSON,
+    Integer,
     Boolean,
     CheckConstraint,
     DateTime,
@@ -23,6 +24,109 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 class Base(DeclarativeBase):
     """Base metadata for tables maintained by this backend."""
+
+
+class UserRiskProfileRecord(Base):
+    __tablename__ = "user_risk_profiles"
+    user_ref: Mapped[str] = mapped_column(String(128), primary_key=True)
+    account_created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    orders_90d: Mapped[int] = mapped_column(Integer)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (CheckConstraint("orders_90d >= 0"),)
+
+
+class UserRiskEventRecord(Base):
+    __tablename__ = "user_risk_events"
+    event_ref: Mapped[str] = mapped_column(String(256), primary_key=True)
+    user_ref: Mapped[str] = mapped_column(String(128), index=True)
+    case_ref: Mapped[str] = mapped_column(String(128))
+    order_ref: Mapped[str] = mapped_column(String(128))
+    event_type: Mapped[str] = mapped_column(String(32))
+    reason_code: Mapped[str | None] = mapped_column(String(64))
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (UniqueConstraint("case_ref", "event_type"),
+        CheckConstraint("event_type IN ('CLAIM_REGISTERED', 'REFUND_SUCCEEDED')"),
+        CheckConstraint("event_type != 'CLAIM_REGISTERED' OR reason_code IS NOT NULL"))
+
+
+class UserRiskSnapshotRecord(Base):
+    __tablename__ = "user_risk_snapshots"
+    snapshot_ref: Mapped[str] = mapped_column(String(256), primary_key=True)
+    case_ref: Mapped[str] = mapped_column(String(128))
+    user_ref: Mapped[str] = mapped_column(String(128))
+    reason_code: Mapped[str] = mapped_column(String(64))
+    as_of: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    payload: Mapped[dict] = mapped_column(JSON)
+    payload_hash: Mapped[str] = mapped_column(String(64))
+    __table_args__ = (UniqueConstraint("case_ref", "reason_code", "as_of"),)
+
+
+class PolicyEvaluationRecord(Base):
+    __tablename__ = "policy_evaluations"
+    evaluation_ref: Mapped[str] = mapped_column(String(256),primary_key=True)
+    case_ref: Mapped[str] = mapped_column(String(128),index=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+
+
+class PolicySelectionRecord(Base):
+    __tablename__ = "policy_selections"
+    case_ref: Mapped[str] = mapped_column(String(128), primary_key=True)
+    selection_version: Mapped[int] = mapped_column(Integer, primary_key=True)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+
+class PolicyConfirmationRecord(Base):
+    __tablename__ = "policy_confirmations"
+    request_ref: Mapped[str] = mapped_column(String(256),primary_key=True)
+    case_ref: Mapped[str] = mapped_column(String(128),index=True)
+    request_payload: Mapped[dict] = mapped_column(JSON)
+    response_payload: Mapped[dict | None] = mapped_column(JSON,nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(256),nullable=True)
+
+
+class ReturnAuthorizationRecord(Base):
+    __tablename__ = "return_authorizations"
+    authorization_ref: Mapped[str] = mapped_column(String(256),primary_key=True)
+    case_ref: Mapped[str] = mapped_column(String(128),unique=True)
+    execution_ref: Mapped[str] = mapped_column(String(128),unique=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    payload_hash: Mapped[str] = mapped_column(String(64))
+    state: Mapped[str] = mapped_column(String(64))
+    confirmation_payload: Mapped[dict | None] = mapped_column(JSON,nullable=True)
+    arrived_event_id: Mapped[str | None] = mapped_column(String(256),nullable=True)
+    inspection_event_id: Mapped[str | None] = mapped_column(String(256),nullable=True)
+    execution_result: Mapped[dict | None] = mapped_column(JSON,nullable=True)
+    reason: Mapped[str | None] = mapped_column(String(128),nullable=True)
+    lease_owner: Mapped[str | None] = mapped_column(String(256),nullable=True)
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True),nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class ReturnReceiptRecord(Base):
+    __tablename__ = "return_event_receipts"
+    receipt_ref: Mapped[str] = mapped_column(String(256),primary_key=True)
+    producer_id: Mapped[str] = mapped_column(String(128))
+    event_id: Mapped[str] = mapped_column(String(256))
+    authorization_ref: Mapped[str] = mapped_column(String(256),index=True)
+    event_payload: Mapped[dict] = mapped_column(JSON)
+    receipt_payload: Mapped[dict] = mapped_column(JSON)
+    __table_args__ = (UniqueConstraint("producer_id","event_id"),)
+
+
+class RefundCompletionOutboxRecord(Base):
+    __tablename__ = "refund_completion_outbox"
+    resolution_ref: Mapped[str] = mapped_column(String(256),primary_key=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    published: Mapped[bool] = mapped_column(Boolean,default=False)
+
+
+class DemoSessionRecord(Base):
+    __tablename__ = "demo_sessions"
+    token_hash: Mapped[str] = mapped_column(String(64),primary_key=True)
+    user_ref: Mapped[str] = mapped_column(String(128))
+    role: Mapped[str] = mapped_column(String(32))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
 class EvidenceRecord(Base):
@@ -96,6 +200,7 @@ class PolicyDocumentRecord(Base):
     )
 
     document_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    path_payload: Mapped[list | None] = mapped_column(JSON, nullable=True)
     policy_family: Mapped[str] = mapped_column(String(128), nullable=False)
     version: Mapped[str] = mapped_column(String(128), nullable=False)
     source_ref: Mapped[str] = mapped_column(String(512), nullable=False)
@@ -107,6 +212,7 @@ class PolicyDocumentRecord(Base):
 
 
 class PolicyClauseRecord(Base):
+    path_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     """Structured, embedded clause data used for retrieval, never decisioning."""
 
     __tablename__ = "policy_clauses"
@@ -226,6 +332,7 @@ class OperationalMemoryRecord(Base):
     policy_version: Mapped[str] = mapped_column(String(256), nullable=False)
     claim_registry_version: Mapped[str] = mapped_column(String(128), nullable=False)
     scope_market: Mapped[str] = mapped_column(String(64), nullable=False)
+    scope_policy_path_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     scope_reason_codes: Mapped[list[str]] = mapped_column(
         _postgres_array(), nullable=False
     )

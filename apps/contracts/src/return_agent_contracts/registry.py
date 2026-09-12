@@ -135,7 +135,18 @@ CLAIM_REGISTRY_V1: Mapping[ClaimId, ClaimDefinition] = MappingProxyType(
 
 
 def get_claim_definition(claim_id: ClaimId) -> ClaimDefinition:
-    return CLAIM_REGISTRY_V1[claim_id]
+    return CLAIM_REGISTRY_V2[claim_id]
+
+
+CLAIM_REGISTRY_V2: Mapping[ClaimId, ClaimDefinition] = MappingProxyType({
+    **CLAIM_REGISTRY_V1,
+    ClaimId.ITEM_CONFIRMED_UNDELIVERED: _claim(
+        ClaimId.ITEM_CONFIRMED_UNDELIVERED,
+        "An independent ordered line item is confirmed undelivered.",
+        SubjectScope.LINE_ITEM, (SatisfiableBy.SYSTEM_FACTS,), (),
+        "Use the trusted item delivery investigation; never request an image of an absent item.",
+    ),
+})
 
 
 def validate_claim_registry(
@@ -143,7 +154,8 @@ def validate_claim_registry(
 ) -> None:
     """Raise ValueError if registry references are incomplete or asymmetric."""
 
-    if set(registry) != set(ClaimId):
+    expected = set(ClaimId) - {ClaimId.ITEM_CONFIRMED_UNDELIVERED} if registry is CLAIM_REGISTRY_V1 else set(ClaimId)
+    if set(registry) != expected:
         raise ValueError("registry must define every ClaimId exactly once")
     for claim_id, definition in registry.items():
         if definition.claim_id != claim_id:

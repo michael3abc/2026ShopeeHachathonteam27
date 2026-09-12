@@ -3,6 +3,9 @@
 from __future__ import annotations
 import os
 from return_agent_contracts.review_gates import load_reviewer_gate_config
+from return_agent_contracts.user_risk import load_user_risk_config
+from return_agent.capabilities.user_risk import SqlAlchemyUserRiskProvider
+from return_agent.capabilities.policy_v2_demo import DemoScenarios, initialize_v2_case, seed_user_risk
 
 import json
 from dataclasses import dataclass
@@ -70,6 +73,8 @@ class FixtureCaseContextProvider(CaseContextProvider):
         fixture_path: Path,
     ) -> None:
         self._session_factory = session_factory
+        scenario_path = fixture_path.parent / "policy-v2-cases.json.example"
+        self.v2_scenarios = DemoScenarios.model_validate_json(scenario_path.read_text()) if scenario_path.exists() else None
         try:
             raw = json.loads(fixture_path.read_text(encoding="utf-8"))
             if "orders" in raw:
@@ -111,6 +116,13 @@ class FixtureCaseContextProvider(CaseContextProvider):
             case = session.get(CaseRecord, case_ref)
         if case is None:
             raise LookupError(f"unknown case {case_ref}")
+        if case.policy_schema_version == "v2":
+            if case.v2_context_payload is None:
+                raise ValueError("v2 case is missing its pinned context")
+            result = CaseContextLoadResult.model_validate(case.v2_context_payload)
+            if result.case_context.case_ref != case_ref or result.case_context.order_ref != case.order_ref or result.case_context.policy_schema_version != "v2":
+                raise ValueError("pinned v2 context binding mismatch")
+            return result
         if self._templates is not None:
             template = self._templates.get(case.order_ref)
             if template is None:
@@ -158,6 +170,7 @@ class IntegratedProviderBundle:
     human_review_provider: HumanReviewProvider
     safety_providers: SafetyProviders
     refund_execution_provider: RefundExecutionProvider
+    user_risk_provider: SqlAlchemyUserRiskProvider | None = None
 
 
 def compose_integrated_demo_providers(
@@ -175,7 +188,9 @@ def compose_integrated_demo_providers(
     evidence_provider = SqlAlchemyEvidenceProvider(session_factory)
     memory_store = SqlAlchemyOperationalMemoryStore(session_factory, embedding_provider)
     reviewer_gate_config = load_reviewer_gate_config(os.environ.get("RETURN_AGENT_REVIEW_GATE_CONFIG"))
-    human_provider = SqlAlchemyHumanReviewProvider(session_factory, case_provider, reviewer_gate_config)
+    user_risk_config = load_user_risk_config(os.environ.get("RETURN_AGENT_USER_RISK_CONFIG"))
+    user_risk_provider = SqlAlchemyUserRiskProvider(session_factory,case_provider)
+    human_provider = SqlAlchemyHumanReviewProvider(session_factory, case_provider, reviewer_gate_config, user_risk_config)
 
     _seed_evidence(session_factory, data_dir / "evidence.json.example")
     _seed_policy(
@@ -183,6 +198,9 @@ def compose_integrated_demo_providers(
         data_dir / "policy.json.example",
         embedding_provider,
     )
+    if case_provider.v2_scenarios is not None:
+        _seed_policy(session_factory,data_dir / "policy-v2.json.example",embedding_provider)
+        seed_user_risk(session_factory,data_dir / "user-risk.json.example")
     _seed_approved_memory(
         memory_store,
         session_factory,
@@ -200,8 +218,11 @@ def compose_integrated_demo_providers(
         case_provider,
         DeterministicDemoRefundApplicationProvider(),
         reviewer_gate_config,
+        user_risk_config,
+        user_risk_provider,
     )
     return IntegratedProviderBundle(
+        user_risk_provider=user_risk_provider,
         case_context_provider=case_provider,
         policy_provider=policy_provider,
         evidence_provider=evidence_provider,

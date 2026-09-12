@@ -105,6 +105,7 @@
     },
     "ClaimId": {
       "enum": [
+        "ITEM_CONFIRMED_UNDELIVERED",
         "DELIVERY_CONFIRMED",
         "ORDER_WITHIN_RETURN_WINDOW",
         "SHIPMENT_SEAL_INTACT",
@@ -121,6 +122,8 @@
     },
     "GraphNodeName": {
       "enum": [
+        "evaluate_policy",
+        "confirm_policy_path",
         "parse_request",
         "request_clarification",
         "load_case_context",
@@ -263,6 +266,17 @@
           "minLength": 1,
           "title": "Market",
           "type": "string"
+        },
+        "policy_path_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyPathId"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "reason_codes": {
           "items": {
@@ -421,6 +435,16 @@
         "ERROR"
       ],
       "title": "NodeExecutionPhase",
+      "type": "string"
+    },
+    "PolicyPathId": {
+      "enum": [
+        "COOLING_OFF",
+        "DAMAGED_ON_ARRIVAL",
+        "WRONG_ITEM",
+        "UNDELIVERED_ITEM"
+      ],
+      "title": "PolicyPathId",
       "type": "string"
     },
     "ReasonCode": {

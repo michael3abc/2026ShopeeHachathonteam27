@@ -46,9 +46,12 @@ from return_agent_contracts.models import (
 from return_agent_contracts.registry import (
     CLAIM_REGISTRY_MAJOR,
     CLAIM_REGISTRY_V1,
+    CLAIM_REGISTRY_V2,
     CLAIM_REGISTRY_VERSION,
 )
 from return_agent_contracts.review_gates import evaluate_review_gate
+from return_agent_contracts.enums import ResolutionAction
+from return_agent_contracts.user_risk import UserRiskSnapshot, evaluate_user_risk, unavailable_user_risk_gate, not_applicable_user_risk_gate
 from return_agent_contracts.runtime import (
     AgentInterruptKind,
     ClarificationResume,
@@ -94,6 +97,12 @@ from .state import (
     AgentState,
     MemoryRetrievalStatus,
 )
+from return_agent_contracts.policy_v2 import active_clauses, PolicySelection, REASON_PATH, REGISTRY_V2_VERSION, content_hash
+from .policy import evaluate_policy_node, confirm_policy_path_node, evaluate_state, confirmation_request
+
+
+def _registry_version(state):
+    return REGISTRY_V2_VERSION if state["policy_bundle"].schema_version == "v2" else CLAIM_REGISTRY_VERSION
 
 INTAKE_SCHEMA = OutputSchema("IntakeResult", TypeAdapter(IntakeResult))
 ASSESSMENT_SCHEMA = OutputSchema("EvidenceAssessment", TypeAdapter(EvidenceAssessment))
@@ -223,16 +232,17 @@ def _order_facts_without_money(state: AgentState) -> dict[str, object]:
         "captured_at": json_value(snapshot.captured_at),
         "delivered_at": json_value(snapshot.delivered_at),
         "line_items": _line_item_prompt_view(state),
+        "policy_facts": json_value(snapshot.policy_facts),
     }
 
 
 def _relevant_registry(state: AgentState) -> list[dict[str, object]]:
     bundle = state["policy_bundle"]
     claim_ids = {
-        claim_id for clause in bundle.clauses for claim_id in clause.required_claim_ids
+        claim_id for clause in active_clauses(bundle) for claim_id in clause.required_claim_ids
     }
     return [
-        cast(dict[str, object], json_value(CLAIM_REGISTRY_V1[claim_id]))
+        cast(dict[str, object], json_value((CLAIM_REGISTRY_V2 if bundle.schema_version == "v2" else CLAIM_REGISTRY_V1)[claim_id]))
         for claim_id in sorted(claim_ids, key=lambda item: item.value)
     ]
 
@@ -442,13 +452,15 @@ def _retrieve_policy_node(dependencies: AgentDependencies):
         if intent is None or intent.reason_code is None:
             return _fail(EscalationReason.CONTRACT_VIOLATION)
         try:
+            retrieval_reason = intent.reason_code
             bundle = _validate_provider_result(
                 POLICY_BUNDLE_ADAPTER,
                 dependencies.policy_provider.retrieve_policy(
                     state["case_context"],
                     state["order_snapshot"],
-                    intent.reason_code,
+                    retrieval_reason,
                     state["claimed_line_item_ids"],
+                    **({"selected_path_id": state["policy_selection"].selected_path_id} if state.get("policy_selection") is not None else {}),
                 ),
             )
             if bundle.retrieval_status is RetrievalStatus.AMBIGUOUS:
@@ -460,9 +472,24 @@ def _retrieve_policy_node(dependencies: AgentDependencies):
                     EscalationReason.POLICY_NOT_FOUND
                 )
             validate_applicable_policy_bundle(state["case_context"], bundle)
+            selection = state.get("policy_selection")
+            if selection is not None and bundle.selected_path_id != selection.selected_path_id:
+                raise ContractInvariantError("policy provider changed the confirmed path")
+            for prior in state.get("policy_bundle_history", []):
+                if prior.policy_bundle_version == bundle.policy_bundle_version and (
+                    prior.model_dump(mode="json", exclude={"retrieved_at"})
+                    != bundle.model_dump(mode="json", exclude={"retrieved_at"})
+                ):
+                    raise ContractInvariantError("policy provider changed an immutable bundle")
         except Exception:  # noqa: BLE001 - provider boundary fails closed
             return _fail(EscalationReason.CONTRACT_VIOLATION)
-        return {"policy_bundle": bundle, "_route": "prepare_memory_query"}
+        update = {"policy_bundle": bundle, "_route": "prepare_memory_query"}
+        if bundle.schema_version == "v2":
+            history = state.get("policy_bundle_history",[])
+            update["policy_bundle_history"] = history if any(b.policy_bundle_version == bundle.policy_bundle_version for b in history) else [*history,bundle]
+            update["policy_selection"] = state.get("policy_selection") or PolicySelection(
+                selected_path_id=bundle.selected_path_id,selection_version=1,original_requested_action=intent.requested_action)
+        return update
 
     return node
 
@@ -475,12 +502,15 @@ def _memory_matches(
     required_claim_ids: set[ClaimId],
     categories: set[str],
     policy_versions: set[str],
+    registry_version: str = CLAIM_REGISTRY_VERSION,
+    policy_path_id=None,
 ) -> bool:
     scope = memory.scope
     return (
         memory.policy_version in policy_versions
-        and memory.claim_registry_version.split(":", 1)[-1].split(".", 1)[0]
-        == CLAIM_REGISTRY_VERSION.split(":", 1)[-1].split(".", 1)[0]
+        and (memory.claim_registry_version == registry_version if policy_path_id is not None else
+             memory.claim_registry_version.split(":", 1)[-1].split(".", 1)[0] == registry_version.split(":", 1)[-1].split(".", 1)[0])
+        and scope.policy_path_id == policy_path_id
         and scope.market == market
         and (not scope.reason_codes or reason_code in scope.reason_codes)
         and (not scope.claim_ids or bool(set(scope.claim_ids) & required_claim_ids))
@@ -565,7 +595,7 @@ def _retrieve_memory_node(dependencies: AgentDependencies):
         bundle = state["policy_bundle"]
         required_claim_ids = {
             claim_id
-            for clause in bundle.clauses
+            for clause in active_clauses(bundle)
             for claim_id in clause.required_claim_ids
         }
         categories = derive_memory_categories(
@@ -585,7 +615,8 @@ def _retrieve_memory_node(dependencies: AgentDependencies):
                         ),
                         categories=categories,
                         policy_versions=policy_versions,
-                        claim_registry_major=CLAIM_REGISTRY_MAJOR,
+                        claim_registry_major=2 if bundle.schema_version == "v2" else CLAIM_REGISTRY_MAJOR,
+                        **({"policy_path_id":bundle.selected_path_id} if bundle.schema_version == "v2" else {}),
                         top_k=3,
                     )
                 ),
@@ -602,6 +633,8 @@ def _retrieve_memory_node(dependencies: AgentDependencies):
                     required_claim_ids=required_claim_ids,
                     categories=set(categories),
                     policy_versions=set(policy_versions),
+                    registry_version=_registry_version(state),
+                    policy_path_id=bundle.selected_path_id,
                 )
             ][:3]
             observation = MemoryRetrievalObservation(
@@ -684,7 +717,9 @@ def _resolver_payload(state: AgentState) -> dict[str, object]:
         "case_context": json_value(state["case_context"]),
         "order_facts": _order_facts_without_money(state),
         "policy_bundle": json_value(state["policy_bundle"]),
-        "claim_registry_version": CLAIM_REGISTRY_VERSION,
+        "claim_registry_version": _registry_version(state),
+        "policy_evaluation": json_value(state.get("policy_evaluation")),
+        "policy_selection": json_value(state.get("policy_selection")),
         "claim_registry": _relevant_registry(state),
         "expected_claim_subject_pairs": _expected_claim_pair_prompt_view(state),
         "evidence_bundle": json_value(state.get("evidence_bundle", [])),
@@ -708,7 +743,7 @@ def _assess_case_node(dependencies: AgentDependencies):
                 output_schema=ASSESSMENT_SCHEMA,
             )
             assessment = assessment.model_copy(
-                update={"claim_registry_version": CLAIM_REGISTRY_VERSION}
+                update={"claim_registry_version": _registry_version(state)}
             )
             if assessment.evidence_status is EvidenceStatus.INSUFFICIENT:
                 request = _graph_evidence_request(
@@ -720,7 +755,7 @@ def _assess_case_node(dependencies: AgentDependencies):
                 assessment = assessment.model_copy(
                     update={"missing_evidence_request": request}
                 )
-            if assessment.claim_registry_version != CLAIM_REGISTRY_VERSION:
+            if assessment.claim_registry_version != _registry_version(state):
                 raise ContractInvariantError("assessment registry version mismatch")
             validate_evidence_assessment(
                 assessment,
@@ -735,6 +770,8 @@ def _assess_case_node(dependencies: AgentDependencies):
             "evidence_bundle": evidence,
             "evidence_assessment": assessment,
         }
+        if state["policy_bundle"].schema_version == "v2":
+            return update | {"_route":"evaluate_policy"}
         if assessment.evidence_status is EvidenceStatus.INSUFFICIENT:
             if state["evidence_round"] >= EVIDENCE_LIMIT:
                 return update | _fail(EscalationReason.EVIDENCE_BUDGET_EXCEEDED)
@@ -879,6 +916,12 @@ def _propose_decision_node(dependencies: AgentDependencies):
                 draft=output.draft,
                 dependencies=dependencies,
             )
+            if handoff.handoff_version == "2.0" and handoff.proposed_decision.action is ResolutionAction.FULL_REFUND:
+                requirement = handoff.proposed_decision.return_decision.requirement
+                confirmation = state.get("policy_confirmation")
+                if requirement.required and (confirmation is None or confirmation.request.return_requirement_hash != content_hash(requirement)):
+                    return {"pending_policy_confirmation":confirmation_request(state,state["policy_selection"].selected_path_id,True,content_hash(requirement)),
+                        "_route":"confirm_policy_path"}
         except Exception:  # noqa: BLE001 - model/contract boundary fails closed
             return {"propose_round": next_round} | _fail(
                 EscalationReason.CONTRACT_VIOLATION
@@ -937,10 +980,10 @@ def _reviewer_node(dependencies: AgentDependencies):
             "case_context": json_value(state["case_context"]),
             "order_snapshot": json_value(state["order_snapshot"]),
             "policy_bundle": json_value(state["policy_bundle"]),
-            "claim_registry_version": CLAIM_REGISTRY_VERSION,
+            "claim_registry_version": _registry_version(state),
             "claim_registry": _relevant_registry(state),
             "expected_claim_subject_pairs": _expected_claim_pair_prompt_view(state),
-            "proposed_decision_handoff": json_value(handoff),
+            "proposed_decision_handoff": handoff.model_dump(mode="json",exclude={"assessment_findings","policy_evaluation"}),
         }
         try:
             result = dependencies.model.generate(
@@ -962,6 +1005,12 @@ def _reviewer_node(dependencies: AgentDependencies):
                 state["order_snapshot"],
                 state["claimed_line_item_ids"],
             )
+            reviewer_evaluation = None
+            if handoff.handoff_version == "2.0":
+                reviewer_evaluation = evaluate_state(state,dependencies,result.reviewer_claim_findings)
+                selected = [x for x in reviewer_evaluation.item_evaluations if x.path_id is state["policy_selection"].selected_path_id]
+                if result.verdict is ReviewVerdict.APPROVE and handoff.proposed_decision.action is ResolutionAction.FULL_REFUND and any(x.status != "ELIGIBLE" for x in selected):
+                    raise ContractInvariantError("Reviewer findings do not establish the selected policy path")
         except Exception as error:  # noqa: BLE001 - boundary fails closed
             LOGGER.error(
                 "reviewer failed closed (%s): %s",
@@ -970,21 +1019,39 @@ def _reviewer_node(dependencies: AgentDependencies):
             )
             return _fail(EscalationReason.CONTRACT_VIOLATION)
         history = [*state.get("review_history", []), result]
+        evaluations = [*state.get("reviewer_evaluations", []), *([reviewer_evaluation] if reviewer_evaluation else [])]
         if result.verdict is ReviewVerdict.APPROVE:
             decision = handoff.proposed_decision
             gate = evaluate_review_gate(decision.action, decision.amount, decision.currency, dependencies.reviewer_gate_config)
-            if gate.status == "HUMAN_REQUIRED":
-                return {"review_history": history, "review_gate": gate,
-                    "review_routing_reason": gate.reason, "human_review_ref": None,
+            risk, snapshot = None, None
+            if state["case_context"].policy_schema_version == "v2":
+                if decision.action is ResolutionAction.DECLINE:
+                    risk = not_applicable_user_risk_gate(dependencies.user_risk_config)
+                else:
+                    try:
+                        snapshot = UserRiskSnapshot.model_validate(dependencies.user_risk_provider.prepare_snapshot(
+                            state["case_ref"], decision.reason_code, state["case_context"].case_opened_at))
+                        if snapshot.case_ref != state["case_ref"] or snapshot.reason_code != decision.reason_code or snapshot.as_of != state["case_context"].case_opened_at:
+                            raise ValueError("risk provider returned a mismatched snapshot")
+                        risk = evaluate_user_risk(decision.action,snapshot,dependencies.user_risk_config)
+                    except Exception:
+                        LOGGER.warning("user risk unavailable for case %s", state["case_ref"])
+                        snapshot = None
+                        risk = unavailable_user_risk_gate(dependencies.user_risk_config)
+            update = {"review_history":history, "review_gate":gate, "user_risk_snapshot":snapshot, "user_risk_gate":risk, "reviewer_evaluations":evaluations}
+            reason = gate.reason if gate.status == "HUMAN_REQUIRED" else risk.reason if risk and risk.status == "HUMAN_REQUIRED" else None
+            if reason:
+                return {**update,
+                    "review_routing_reason": reason, "human_review_ref": None,
                     "human_review_result": None, "_route": "await_human_review"}
             return {
-                "review_history": history,
-                "review_gate": gate,
+                **update,
                 "review_routing_reason": None,
                 "_route": "emit_resolution_handoff",
             }
         if state["revision_round"] >= REVISION_LIMIT:
             return {
+                "reviewer_evaluations":evaluations,
                 "review_history": history,
                 "review_gate": None,
                 "review_routing_reason": "REVISION_BUDGET_EXCEEDED",
@@ -994,6 +1061,7 @@ def _reviewer_node(dependencies: AgentDependencies):
             }
         return {
             "review_history": history,
+            "reviewer_evaluations":evaluations,
             "review_gate": None,
             "pending_review_result": result,
             "review_routing_reason": None,
@@ -1032,7 +1100,7 @@ def _await_human_review_node(dependencies: AgentDependencies):
         if handoff is None:
             return _fail(EscalationReason.CONTRACT_VIOLATION)
         try:
-            validate_human_review_entry(handoff, review, build_human_review_dossier(state), dependencies.reviewer_gate_config)
+            validate_human_review_entry(handoff, review, build_human_review_dossier(state), dependencies.reviewer_gate_config, dependencies.user_risk_config)
         except ValueError:
             return _fail(EscalationReason.CONTRACT_VIOLATION)
         review_ref = state.get("human_review_ref")
@@ -1157,6 +1225,8 @@ def build_graph(
     add_node("prepare_memory_query", _prepare_memory_query_node(dependencies))
     add_node("retrieve_memory", _retrieve_memory_node(dependencies))
     add_node("assess_case", _assess_case_node(dependencies))
+    add_node("evaluate_policy", evaluate_policy_node(dependencies))
+    add_node("confirm_policy_path", confirm_policy_path_node)
     add_node("request_evidence", _request_evidence_node(dependencies))
     add_node("propose_decision", _propose_decision_node(dependencies))
     add_node("external_verification", _external_verification_node(dependencies))
@@ -1174,6 +1244,8 @@ def build_graph(
 
     builder.add_edge(START, "parse_request")
     destinations = {
+        "evaluate_policy": "evaluate_policy",
+        "confirm_policy_path": "confirm_policy_path",
         "parse_request": "parse_request",
         "request_clarification": "request_clarification",
         "load_case_context": "load_case_context",
@@ -1193,6 +1265,8 @@ def build_graph(
         "__end__": END,
     }
     for source in (
+        "evaluate_policy",
+        "confirm_policy_path",
         "parse_request",
         "request_clarification",
         "load_case_context",

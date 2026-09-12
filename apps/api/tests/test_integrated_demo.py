@@ -140,15 +140,19 @@ def test_documented_policy_ingestion_then_integrated_startup_is_idempotent() -> 
         )
     assert result.inserted_documents == 1
     initial_calls = embeddings.calls
-    for _ in range(2):
+    for iteration in range(2):
         compose_integrated_demo_providers(
             session_factory=sessions,
             embedding_provider=embeddings,
             data_dir=data_dir,
         )
+        if iteration == 0:
+            first_startup_calls = embeddings.calls
+        else:
+            assert embeddings.calls == first_startup_calls
     assert (
-        embeddings.calls == initial_calls + 1
-    )  # Candidate embedded once, never on replay.
+        embeddings.calls == initial_calls + 5
+    )  # Four v2 paths plus candidate embedded once, never on replay.
 
 
 @pytest.mark.parametrize("status", ["CANDIDATE", "APPROVED", "RETIRED"])

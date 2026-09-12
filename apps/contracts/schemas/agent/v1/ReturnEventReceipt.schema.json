@@ -1,0 +1,46 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "accepted_at": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+      "title": "Accepted At",
+      "type": "string"
+    },
+    "authorization_ref": {
+      "minLength": 1,
+      "title": "Authorization Ref",
+      "type": "string"
+    },
+    "event_id": {
+      "minLength": 1,
+      "title": "Event Id",
+      "type": "string"
+    },
+    "producer_id": {
+      "minLength": 1,
+      "title": "Producer Id",
+      "type": "string"
+    },
+    "receipt_ref": {
+      "minLength": 1,
+      "title": "Receipt Ref",
+      "type": "string"
+    },
+    "state": {
+      "minLength": 1,
+      "title": "State",
+      "type": "string"
+    }
+  },
+  "required": [
+    "receipt_ref",
+    "event_id",
+    "producer_id",
+    "authorization_ref",
+    "accepted_at",
+    "state"
+  ],
+  "title": "ReturnEventReceipt",
+  "type": "object"
+}

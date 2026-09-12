@@ -20,6 +20,8 @@ from return_agent_contracts import (
 )
 from return_agent_contracts.activity_observer import ObservedProvider
 from return_agent_contracts.review_gates import load_reviewer_gate_config
+from return_agent_contracts.user_risk import load_user_risk_config
+from return_agent_contracts.http_adapters import HttpUserRiskProvider
 from return_agent_runtime import (
     AgentDependencies,
     MemoryDistiller,
@@ -40,6 +42,7 @@ from .broker import RedisStreamBroker
 from .journal import InMemoryCommandJournal, PostgresCommandJournal
 from .memory_enqueue_worker import MemoryEnqueueWorker
 from .memory_replay import SqlAlchemyMemoryReplayStore
+from .memory_completion import MemoryCompletionStore
 from .memory_supervision import MemoryRetryPolicy
 from .memory_worker import MemoryWorker
 from .settings import AgentServiceSettings
@@ -150,6 +153,8 @@ def compose_integrated_service(
                 }
                 dependencies = AgentDependencies(
                     learning_trace_limits=LearningTraceLimits(settings.learning_trace_max_events, settings.learning_trace_max_bytes),
+                    user_risk_config=load_user_risk_config(os.environ.get("RETURN_AGENT_USER_RISK_CONFIG")),
+                    user_risk_provider=HttpUserRiskProvider(**provider_args),
                     reviewer_gate_config=load_reviewer_gate_config(os.environ.get("RETURN_AGENT_REVIEW_GATE_CONFIG")),
                     model=model,
                     case_context_provider=HttpCaseContextProvider(**provider_args),
@@ -173,6 +178,7 @@ def compose_integrated_service(
                     reclaim_idle_ms=settings.reclaim_idle_ms,
                 )
                 memory_enqueue_worker = MemoryEnqueueWorker(
+                    completion_store=MemoryCompletionStore(replay_engine),
                     activity_sink=publisher.submit,
                     input_provider=runtime,
                     broker=broker,

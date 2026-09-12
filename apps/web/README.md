@@ -2,9 +2,11 @@
 
 重建規格與離線素材見 [M07 Web](../../docs/reconstruction/M07-web.md)。
 
-Next.js 16 demo UI for creating and following return cases. The app uses a
-fixed `demo_customer` and `demo_reviewer`; it does not implement authentication
-or mutate real orders.
+Next.js 16 Demo UI for creating and following synthetic return cases. With
+Demo authentication configured, each identity signs in using its own credential
+and an opaque HttpOnly session cookie. Backend owns the identity, case owner
+and role; the browser cannot choose a trusted role. Without that configuration,
+the existing v1 demo retains its fixed `demo_customer` / `demo_reviewer` flow.
 
 ## Run locally
 
@@ -18,6 +20,8 @@ npm run dev
 Next.js proxies `/backend/*` to the Case API at `http://127.0.0.1:8000` by
 default, so browser calls and SSE remain same-origin. Override `API_BASE_URL`
 when the API is hosted elsewhere.
+The production rewrite is fixed at build time: use the isolated launcher's
+`web-build` before `web` after changing API ports.
 
 ## Contract generation
 
@@ -38,6 +42,19 @@ payloads and multiple artifact references require the API. The human panel is
 distinct from the LLM `reviewer` node. Activity tracing uses a separate paginated
 API and SSE cursor from case events; late narration/background Memory can arrive
 after the case is terminal.
+
+Policy v2 shows deterministic policy evaluation and buyer path confirmation in
+graph playback. Buyers can confirm their own path/return requirement; operators
+can simulate scoped return arrival and inspection; reviewers alone can read the
+risk dossier and submit APPROVE (`採用原建議`), EDIT or REJECT. HIGH/UNKNOWN risk
+requires human authorization after Reviewer APPROVE and is displayed separately
+from exhausted revision objections. Buyer/operator API JSON and both SSE streams
+are projected by Backend to exclude risk facts, review notes and dossiers.
+
+Authorization does not mean payment: the UI distinguishes waiting for return
+consent, return arrival, inspection and payment. Required-return cases remain
+unpaid until the trusted inspection releases payment; human approval obeys the
+same fulfillment conditions.
 
 With the integrated demo profile, enter a unique `ORDER-DEMO-*` order reference.
 The context provider binds it to the versioned demo speaker, not a real order.
@@ -70,3 +87,6 @@ UI_E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e:live
 
 This is explicitly opt-in and is not run by CI. See
 [`scripts/README.md`](../../scripts/README.md) for prerequisites and artifacts.
+The existing live E2E launcher targets v1 and does not sign in to the authenticated
+v2 stack. Policy v2 browser regressions cover buyer confirmation, risk-authorized
+human approval, operator inspection and versioned graph playback alongside v1.

@@ -2,6 +2,7 @@
   "$defs": {
     "ClaimId": {
       "enum": [
+        "ITEM_CONFIRMED_UNDELIVERED",
         "DELIVERY_CONFIRMED",
         "ORDER_WITHIN_RETURN_WINDOW",
         "SHIPMENT_SEAL_INTACT",

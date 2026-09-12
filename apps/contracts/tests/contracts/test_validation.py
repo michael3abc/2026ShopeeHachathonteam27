@@ -456,3 +456,23 @@ def test_policy_dates_registry_context_and_memory_categories() -> None:
     assert derive_memory_categories(order_snapshot(), ["LI-002"]) == [
         "CAT-AUDIO-SPEAKERS"
     ]
+
+
+@pytest.mark.parametrize("private", [
+    "private@example.com", "0912-345-678", "4111 1111 1111 1111",
+    "收件人：王小明", "地址：台北市測試路123號",
+    "https://private.test/path?secret=yes", "artifact://bucket/private",
+    "sk-secret-abcdef", "Bearer abc.def-token",
+])
+def test_learning_dialogue_redacts_sensitive_spans(private):
+    from return_agent_contracts.validation import redact_learning_dialogue
+    text, redacted = redact_learning_dialogue(f"補拍的照片。 {private}\n請確認損壞範圍")
+    assert redacted and private not in text
+    assert "補拍的照片" in text and "請確認損壞範圍" in text
+
+
+def test_learning_dialogue_rejects_oversize_without_truncation():
+    from return_agent_contracts.validation import redact_learning_dialogue
+    assert redact_learning_dialogue("a" * 2000) == ("a" * 2000, False)
+    with pytest.raises(OverflowError):
+        redact_learning_dialogue("a" * 2001)

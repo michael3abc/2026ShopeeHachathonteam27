@@ -1,6 +1,6 @@
 # Operational Memory
 
-Distiller prompt 3.0 以完整 learning trace 產生整案回顧、學習判定及至多一則候選。排除系統缺陷與無根據的 Reviewer 異議；採納不等於普遍正確，結案不等於因果效益。Memory 改善下一案尚須對照驗證。
+Distiller prompt 3.1 以完整 learning trace 與可追溯的去識別化對話產生整案回顧、學習判定及至多一則候選。排除系統缺陷與無根據的 Reviewer 異議；採納不等於普遍正確，結案不等於因果效益。Memory 改善下一案尚須對照驗證。
 
 人工無法收斂裁決沿用既有 correction trace 與非同步 Distiller：保留原 Reviewer 意見、人工最終決定及整體 review_note，不將人工改判偽裝成 Reviewer APPROVE。人工結果帶 reviewer_id 作稽核；不因此自動核准 Memory，也不新增歷史案件索引。
 
@@ -36,7 +36,15 @@ migrations 分離；重播紀錄不可在 Redis job 仍可能重送時清除。
 
 Runtime 每個完成節點獨立產生 typed `LearningEvent`，隨 graph update 原子 checkpoint；不從 Activity、narration 或 hidden reasoning 重建。事件 ID 由 thread、sequence、node 穩定決定；interrupt 不產完成事件，補件需求已在前一個 assessment/proposal event 保存。
 
-涵蓋初始 normalized claim、品項／澄清、Case／Policy 版本、Memory 命中及方法、每輪補件需求與實得證據 references／中性摘要、assessment、提案、Verification、Reviewer／revision、人審與最終裁決。無原始媒體、artifact URL 或聊天全文；明顯個資會使 trace 標為不可蒸餾，不默默删去後當成完整。這是有限的格式／明顯個資檢查，不是完整 DLP 保證。
+涵蓋初始 normalized claim、品項／澄清、Case／Policy 版本、Memory 命中及方法、每輪補件需求與實得證據 references／中性摘要、assessment、提案、Verification、Reviewer／revision、人審與最終裁決。無原始媒體、artifact URL、完整 prompt 或 hidden reasoning。
+
+`learning-trace:2` 新增可選的 `dialogue_version=learning-dialogue:1`。初始訊息、澄清／補件要求及使用者回覆按事件順序保存為 `LearningDialogueTurn`（每事件最多 4 句、每句最多 2000 字元）。`turn_ref` 對應 API USER_TURN 的同一訊息 ID，`request_ref` 綁定前序要求；Agent 句子的 ID 就是該 structured request ID。ID 唯一、問題先於回答、要求與事件匹配均需驗證。這不是自由聊天全集，也不表示使用者已讀或工具已執行。
+
+USER 句子固定為 `USER_STATEMENT_UNVERIFIED`；AGENT 句子為 `AGENT_REQUEST_NOT_EXECUTION`。使用者文字中的指令只是資料。辨識到的 email、電話、卡號、姓名／地址標記、URL／artifact URI、API key／Bearer token 會替換為 `[REDACTED]`，並設 `redacted=true`。不可還原被隱去資訊；超長整句拒絕，不截斷。其他 structured trace 欄位仍採 fail-closed 個資檢查；這不是完整 DLP 保證。
+
+`EvidenceResume.turn` 的附件須與 `artifact_refs` 完全一致。API 保存原始訊息，Runtime 只將文字投影到 learning trace，不加入 Resolver／Reviewer、Memory query 或 `conversation_turns`。因此蒸餾可辨識溝通限制，但不可聲稱該文字改變當時 assessment；若問題需要決策端讀懂文字，分類為系統能力缺口，不得包裝成已成功的方法。
+
+舊 resume 仍可完成裁決，但沒有 `turn` 時明示 `dialogue_missing`；舊 trace 無 dialogue version 時不補造對話，Distiller 回 `TRACE_INCOMPLETE`。原案件不回滾。Trace 對話不進 Activity／narration，候選／回顧只可引用所屬 `event_id`，不可把 turn ID 當成 source event。
 
 `RETURN_AGENT_LEARNING_TRACE_MAX_EVENTS` 預設 96（上限 256）；`RETURN_AGENT_LEARNING_TRACE_MAX_BYTES` 預設 131072 bytes。超限保留先前事件並標 `LIMIT_EXCEEDED`，Distiller 不處理局部歷程。缺失／不完整、不安全或超限分別回 `TRACE_INCOMPLETE`、`TRACE_UNSAFE_CONTENT`、`TRACE_LIMIT_EXCEEDED`。
 
@@ -45,6 +53,12 @@ Runtime 每個完成節點獨立產生 typed `LearningEvent`，隨 graph update 
 新候選的 reason／claim／category scope 不得超出來源案；store 將空列表視為 wildcard，因此來源的允許列表非空時，新候選不可用空列表擴大適用範圍。此限制不改寫歷史經驗的治理狀態。
 
 新工作與事件使用 schema v2、`memory-v2:`／`memory-event-v2:` ID namespace、v2 Redis streams／consumer groups。既有首次結果及 terminal event 不覆寫；pending job 的 prompt version 不相符時拒絕執行。V1 jobs、pending graph 與 replay records 不自動轉成 v2；切換前須排空或隔離，由原版本處理舊 pending 工作。
+
+### 獨立 Sol-high 與重播
+
+`integrated-compass` 的 Distiller 使用独立 `compass-5.6-sol`／Responses `reasoning.effort=high`；Intake、Resolver、Reviewer、query summary 與 narration 保持原模型設定，embedding 不變。設定與 secret 注入見 [Agent Service](../../apps/agent_service/README.md)。每次呼叫 timeout 預設 180 秒、output budget 16384（包含 reasoning），model retries=0；失敗為 terminal FAILED，不換 Luna，也不重跑裁決。
+
+Agent migration `0002_memory_model_profile` 為 replay 新增 nullable profile，保存 model、effort、API 類型、endpoint hash、timeout、output budget、retries，不存 URL／key。舊行保留 NULL；舊無對話 DTO 的 semantic hash 保留，新增對話內容仍納入 hash。Pending job 拒絕 prompt／profile 變更；已保存結果／terminal event 仍精確重播，不因升級重算。有 profile 紀錄時拒絕丟棄欄位的 downgrade。切換前先排空或隔離舊 pending，API 及 Agent DTO producer/consumer 要協調升級。
 
 API migration `0014_memory_learning_sources` 保留歷史來源值、治理狀態、事件、摘要及向量，rename source 欄位，補空限制欄位並更新可投影候選的 payload hash。舊版無摘要資料保留原 hash。已有 v2 來源／限制資料時拒絕破壞性 downgrade。需 online migration，只在隔離 DB 驗證後才安排部署；本變更不重啟服務。
 
@@ -229,7 +243,7 @@ precedence 與邊界：
 Policy 與 Memory 共用 Compass `text-embedding-3-large`，1536 維。
 部署 factory 與 Compose 預設 Compass endpoint；只使用專用 embedding key/key file，
 不借用 OpenAI credential。embedding timeout 預設25秒，可由 RETURN_AGENT_EMBEDDING_TIMEOUT_SECONDS 調整；無 SDK 自動 retry。
-Distiller `memory-distiller:3.0` 保留 `retrieval_summary`（適用情境＋可泛化建議行為，1–2000 字元）與 trigger/action/rationale/source，加入整案回顧、學習依據、適用限制與不可推論事項。
+Distiller `memory-distiller:3.1` 保留 `retrieval_summary`（適用情境＋可泛化建議行為，1–2000 字元）與 trigger/action/rationale/source，加入整案回顧、學習依據、適用限制與不可推論事項。
 API 在 candidate 提交時產生 embedding；摘要與向量成功後才原子寫入。
 先檢查既有 memory_id/hash，再做外部 I/O，再 transaction insert/recheck；重送相同 candidate 不新增記錄、不重新 embedding。
 DB derived columns：retrieval_summary、summary_version、summary_hash、embedding_model、embedding。

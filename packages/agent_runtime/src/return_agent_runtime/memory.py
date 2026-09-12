@@ -19,8 +19,8 @@ from return_agent_contracts.validation import (
 )
 
 from .dependencies import IdFactory, StableIdFactory
-from .model import ModelTask, OutputSchema, StructuredOutputModel
 from .learning import LearningTraceLimits, validate_safe_learning_text
+from .model import ModelTask, OutputSchema, StructuredOutputModel
 from .prompts import MEMORY_DISTILLER_PROMPT_VERSION, MEMORY_DISTILLER_SYSTEM_PROMPT
 
 MEMORY_OUTPUT_SCHEMA = OutputSchema(
@@ -36,6 +36,7 @@ class MemoryDistiller:
     id_factory: IdFactory = field(default_factory=StableIdFactory)
     prompt_version: str = MEMORY_DISTILLER_PROMPT_VERSION
     trace_limits: LearningTraceLimits = field(default_factory=LearningTraceLimits)
+    model_profile: dict[str, object] | None = None
 
     def distill(self, input_: MemoryDistillationInput) -> MemoryDistillationOutput:
         latest = input_.proposal_history[-1]
@@ -60,6 +61,10 @@ class MemoryDistiller:
         if (trace.status == "LIMIT_EXCEEDED" or len(trace.events) > self.trace_limits.max_events
                 or len(trace.model_dump_json().encode()) > self.trace_limits.max_bytes):
             return MemorySkipOutput(result_type="SKIP", reason_code="TRACE_LIMIT_EXCEEDED")
+        if (trace.dialogue_version != "learning-dialogue:1"
+                or any(event.dialogue_missing for event in trace.events)
+                or not trace.events or not trace.events[0].dialogue):
+            return MemorySkipOutput(result_type="SKIP", reason_code="TRACE_INCOMPLETE")
         required_nodes = {"parse_request", "load_case_context", "retrieve_policy",
                           "assess_case", "propose_decision", "external_verification",
                           "reviewer", "emit_resolution_handoff"}
@@ -167,10 +172,10 @@ class MemoryDistiller:
         }
         allowed_categories = set(input_.claimed_categories)
         # Empty scope lists are wildcards in the store, not an empty subset.
-        for field, allowed in (("reason_codes", allowed_reasons),
+        for scope_field, allowed in (("reason_codes", allowed_reasons),
                                ("claim_ids", required_claims),
                                ("categories", allowed_categories)):
-            if allowed and not getattr(candidate.scope, field):
+            if allowed and not getattr(candidate.scope, scope_field):
                 raise ContractInvariantError("memory wildcard scope exceeds source case")
         if not set(candidate.scope.reason_codes).issubset(allowed_reasons):
             raise ContractInvariantError("memory reason scope exceeds source case")

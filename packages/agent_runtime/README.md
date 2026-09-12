@@ -6,6 +6,10 @@
 
 所有完成裁決的案件（含無修正與拒絕）可輸出整案回顧、學習判定及至多一則經驗候選；缺失、不安全或超限歷程明確 SKIP，不阻塞結案。Trace 存於 checkpoint，不依賴 Activity／narration。經驗不能改寫 Policy 或直接核准退款；整案回顧不進入向量索引。
 
+Trace 保存可追溯的去識別化初始／澄清／補件對話，標記使用者未驗證主張及 Agent 要求；每句 2000 字元、每事件 4 句，超限不截斷。`EvidenceResume.turn` 的文字僅供學習，不改 Resolver evidence／assessment 或 conversation_turns；附件須與 artifact_refs 相同。旧無對話 trace 會明示 SKIP。
+
+Distiller prompt 為 `memory-distiller:3.1`。Service 獨立注入 Sol/high model；adapter 的 `reasoning_effort` 只支援 Responses，`max_output_tokens` 轉為實際 output budget。模型錯誤不 fallback。配置、replay migration 與 rollout 邊界見 [Agent Service](../../apps/agent_service/README.md)。
+
 ## 安裝與測試
 
 從 repository root 執行：

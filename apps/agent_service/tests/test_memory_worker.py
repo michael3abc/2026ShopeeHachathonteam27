@@ -74,7 +74,7 @@ async def test_agent_migration_and_first_result_survive_reopen(replay_engine) ->
             connection.scalar(
                 text("SELECT version_num FROM agent_service_alembic_version")
             )
-            == "0001_memory_replay"
+            == "0002_memory_model_profile"
         )
         assert "alembic_version" not in inspect(connection).get_table_names()
 
@@ -98,13 +98,13 @@ async def test_concurrent_first_results_share_one_canonical_output(
 
 
 def memory_reflection():
-    return dict(
-        case_review=dict(key_issue="Evidence context matters.", actions_taken=["Assessed evidence."],
-            observations=["Observed damage."], judgment_changes=[], final_action="FULL_REFUND",
-            limitations=["Execution and causal benefit not verified."], source_event_refs=["EVENT-1"]),
-        learning=dict(category="OPERATIONAL_METHOD", explanation="A context-aware observation.",
-            source_event_refs=["EVENT-1"]),
-    )
+    return {
+        "case_review": {"key_issue": "Evidence context matters.", "actions_taken": ["Assessed evidence."],
+            "observations": ["Observed damage."], "judgment_changes": [], "final_action": "FULL_REFUND",
+            "limitations": ["Execution and causal benefit not verified."], "source_event_refs": ["EVENT-1"]},
+        "learning": {"category": "OPERATIONAL_METHOD", "explanation": "A context-aware observation.",
+            "source_event_refs": ["EVENT-1"]},
+    }
 
 
 class CandidateDistiller:
@@ -347,6 +347,87 @@ async def test_pending_replay_refuses_prompt_version_change(replay_engine):
     with pytest.raises(MemoryReplayConflictError, match="different prompt version"):
         await store.load(_job(), "memory-distiller:new")
     assert (await store.load(_job(), "memory-distiller:old")).result is None
+
+
+@pytest.mark.asyncio
+async def test_replay_pins_profile_but_replays_first_result_after_model_change(replay_engine):
+    from return_agent_service.memory_replay import MemoryReplayConflictError
+    store = SqlAlchemyMemoryReplayStore(replay_engine)
+    store.migrate()
+    job = _job()
+    profile = {"model": "compass-5.6-sol", "reasoning_effort": "high"}
+    different = profile | {"reasoning_effort": "low"}
+    assert (await store.load(job, "memory:3.1", profile)).model_profile == profile
+    with pytest.raises(MemoryReplayConflictError, match="different model profile"):
+        await store.load(job, "memory:3.1", different)
+    output = CandidateDistiller().distill(job.payload.input)
+    await store.save_result(job, output)
+    reopened = SqlAlchemyMemoryReplayStore(replay_engine)
+    replay = await reopened.load(job, "memory:future", different)
+    assert replay.result == output and replay.model_profile == profile
+
+
+@pytest.mark.asyncio
+async def test_upgrade_preserves_legacy_hash_results_and_pending_jobs(replay_engine):
+    import json
+    from hashlib import sha256
+
+    import return_agent_service.memory_replay as replay_module
+    from alembic import command
+    from alembic.config import Config
+    from return_agent_contracts.models import LearningTrace
+
+    config = Config()
+    config.set_main_option("script_location", str(Path(replay_module.__file__).with_name("migrations")))
+    job = _job()
+    job.payload.input.learning_trace = LearningTrace(
+        case_ref=job.case_ref, thread_id=job.thread_id, status="COMPLETE",
+        events=[{"event_id": "LEARNING-START", "sequence": 1, "node": "parse_request"},
+                {"event_id": "LEARNING-END", "sequence": 2, "node": "emit_resolution_handoff"}],
+    )
+    # Emulate the actual pre-dialogue serialized DTO and its old hash.
+    legacy = job.model_dump(mode="json", exclude={"issued_at"})
+    trace = legacy["payload"]["input"]["learning_trace"]
+    trace.pop("dialogue_version")
+    for event in trace["events"]:
+        event.pop("dialogue")
+        event.pop("dialogue_missing")
+    job = MemoryDistillationJob.model_validate(legacy | {"issued_at": TIME})
+    old_hash = sha256(json.dumps(legacy, sort_keys=True).encode()).hexdigest()
+    assert replay_module.SqlAlchemyMemoryReplayStore._hash(job) == old_hash
+    with replay_engine.begin() as connection:
+        config.attributes["connection"] = connection
+        command.upgrade(config, "0001_memory_replay")
+        connection.execute(text("INSERT INTO memory_job_results (job_id,input_hash,prompt_version) VALUES (:job,:hash,:prompt)"),
+                           {"job": job.job_id, "hash": old_hash, "prompt": "memory:3.0"})
+    store = SqlAlchemyMemoryReplayStore(replay_engine)
+    store.migrate()
+    assert (await store.load(job, "memory:3.0")).model_profile is None
+    with pytest.raises(replay_module.MemoryReplayConflictError, match="different prompt version"):
+        await store.load(job, "memory:3.1", {"model": "compass-5.6-sol"})
+    output = CandidateDistiller().distill(job.payload.input)
+    await store.save_result(job, output)
+    assert (await store.load(job, "memory:3.1", {"model": "compass-5.6-sol"})).result == output
+    job.payload.input.learning_trace.events[0].dialogue_missing = True
+    with pytest.raises(replay_module.MemoryReplayConflictError, match="conflicting input"):
+        await store.load(job, "memory:3.1")
+
+
+@pytest.mark.asyncio
+async def test_profile_migration_downgrade_cannot_erase_provenance(replay_engine):
+    import return_agent_service.memory_replay as replay_module
+    from alembic import command
+    from alembic.config import Config
+    store = SqlAlchemyMemoryReplayStore(replay_engine)
+    store.migrate()
+    await store.load(_job(), "memory:3.1", {"model": "compass-5.6-sol"})
+    config = Config()
+    config.set_main_option("script_location", str(Path(replay_module.__file__).with_name("migrations")))
+    with replay_engine.begin() as connection:
+        config.attributes["connection"] = connection
+        with pytest.raises(RuntimeError, match="provenance"):
+            command.downgrade(config, "0001_memory_replay")
+    assert (await store.load(_job(), "memory:3.1", {"model": "compass-5.6-sol"})).model_profile is not None
 
 
 @pytest.mark.asyncio

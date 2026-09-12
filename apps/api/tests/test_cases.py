@@ -126,6 +126,8 @@ def test_creating_a_case_records_the_opening_turn(
         events = session.query(CaseEventRecord).filter_by(case_ref=case_ref).all()
         assert [(event.seq, event.kind) for event in events] == [(1, USER_TURN)]
         assert events[0].payload["message"] == "喇叭到貨就破了，我要退款"
+        command = client.app.state.agent_command_outbox.commands[-1]
+        assert events[0].payload["turn_ref"] == command.payload.initial_turn.turn_id
 
 
 def test_creating_a_case_forwards_attached_artifacts(
@@ -463,3 +465,21 @@ def test_create_stages_start_command_in_the_request_transaction(client) -> None:
     assert command.case_ref == case_ref
     assert command.payload.order_ref == "ORDER-001"
     assert command.payload.initial_turn.text == "喇叭到貨就破了，我要退款"
+
+
+@pytest.mark.parametrize("status", [CaseStatus.AWAITING_CLARIFICATION, CaseStatus.AWAITING_EVIDENCE])
+def test_reply_transport_preserves_transcript_identity(client, session_factory, status):
+    case_ref = _create(client)
+    with session_factory.begin() as session:
+        CaseStore(session).transition(case_ref, status)
+    response = client.post(f"/cases/{case_ref}/messages",
+        json={"message": "這是補拍的照片", "attached_artifact_refs": ["artifact://EV-1"]})
+    assert response.status_code == 200
+    command = client.app.state.agent_command_outbox.commands[-1]
+    turn = command.payload.resume.turn
+    assert turn.text == "這是補拍的照片"
+    assert turn.attached_artifact_refs == ["artifact://EV-1"]
+    with session_factory() as session:
+        events = session.query(CaseEventRecord).filter_by(case_ref=case_ref, kind=USER_TURN).order_by(CaseEventRecord.seq).all()
+        assert events[-1].payload["turn_ref"] == turn.turn_id
+        assert events[0].payload["turn_ref"] != turn.turn_id

@@ -374,8 +374,8 @@ def create_case(
     store: Annotated[CaseStore, Depends(get_store)],
 ) -> CreateCaseResponse:
     outbox = get_command_outbox(http_request)
-    case = store.create(request)
     initial_turn = _user_turn(request.initial_message, request.attached_artifact_refs)
+    case = store.create(request, turn_ref=initial_turn.turn_id)
     outbox.enqueue(
         session,
         AgentStartCommand(
@@ -414,11 +414,12 @@ def send_message(
         case = store.lock(case_ref)
         outbox = get_command_outbox(http_request)
         current = CaseStatus(case.status)
+        reply_turn = _user_turn(request.message, request.attached_artifact_refs)
         if current is CaseStatus.AWAITING_CLARIFICATION:
             resume_node = GraphNodeName.REQUEST_CLARIFICATION
             payload = ClarificationResume(
                 kind="CLARIFICATION",
-                turn=_user_turn(request.message, request.attached_artifact_refs),
+                turn=reply_turn,
             )
         elif current is CaseStatus.AWAITING_EVIDENCE:
             resume_node = GraphNodeName.REQUEST_EVIDENCE
@@ -430,13 +431,14 @@ def send_message(
             payload = EvidenceResume(
                 kind="EVIDENCE_REQUEST",
                 artifact_refs=request.attached_artifact_refs,
+                turn=reply_turn,
             )
         else:
             raise IllegalTransitionError(
                 f"case {case_ref} cannot accept a message while {current.value}"
             )
 
-        store.append_turn(case_ref, request)
+        store.append_turn(case_ref, request, turn_ref=reply_turn.turn_id)
         case = store.transition(case_ref, CaseStatus.OBSERVING)
         append_agent_event(
             session,

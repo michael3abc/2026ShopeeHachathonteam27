@@ -77,6 +77,17 @@
           "const": "EVIDENCE_REQUEST",
           "title": "Kind",
           "type": "string"
+        },
+        "turn": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AgentUserTurn"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [

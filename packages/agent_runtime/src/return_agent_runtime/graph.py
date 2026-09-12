@@ -152,7 +152,7 @@ def initial_state(
         human_review_result=None,
         resolution_handoff=None,
         memory_distillation_input=None,
-        learning_trace=LearningTrace(case_ref=case_ref, thread_id=thread_id),
+        learning_trace=LearningTrace(case_ref=case_ref, thread_id=thread_id, dialogue_version="learning-dialogue:1"),
         verification_result=None,
         manual_escalation=None,
         escalation_reason=None,
@@ -782,7 +782,10 @@ def _request_evidence_node(dependencies: AgentDependencies):
             evidence = _merge_evidence(state.get("evidence_bundle", []), new_items)
         except Exception:  # noqa: BLE001 - provider boundary fails closed
             return _fail(EscalationReason.CONTRACT_VIOLATION)
-        return {"evidence_bundle": evidence, "_route": "prepare_memory_query"}
+        # The learning wrapper consumes this transient value before checkpointing
+        # or observation; Resolver inputs and conversation_turns stay unchanged.
+        return {"evidence_bundle": evidence, "_route": "prepare_memory_query",
+                "_learning_reply": resume.turn}
 
     return node
 

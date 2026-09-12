@@ -35,6 +35,10 @@ jobs:
         run: uv run --all-packages pytest apps/api/tests/test_memory_learning_migration.py
         env:
           MEMORY_TEST_POSTGRES_URL: postgresql+psycopg://return_agent:local-demo@127.0.0.1:5432/return_agent_test
+      - name: PostgreSQL memory replay model provenance
+        run: uv run --all-packages pytest apps/agent_service/tests/test_memory_worker.py
+        env:
+          AGENT_TEST_POSTGRES_URL: postgresql+psycopg://return_agent:local-demo@127.0.0.1:5432/return_agent_test
       - name: Real Redis Activity transport
         run: |
           ACTIVITY_TEST_REDIS_URL=redis://127.0.0.1:6379/14 uv run --all-packages pytest tests/test_activity_transport.py -k model_enabled

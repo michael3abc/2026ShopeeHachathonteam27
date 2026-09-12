@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-from .review_gates import ReviewerGateConfig, evaluate_review_gate
-from .models import REVIEW_REVISION_LIMIT
-
 import re
 from collections.abc import Iterable
 from decimal import Decimal
@@ -24,6 +21,7 @@ from .enums import (
     WaivedReturnReasonCode,
 )
 from .models import (
+    REVIEW_REVISION_LIMIT,
     CaseContext,
     CaseContextLoadResult,
     ClaimFinding,
@@ -41,6 +39,7 @@ from .models import (
     ReviewResult,
 )
 from .registry import get_claim_definition
+from .review_gates import ReviewerGateConfig, evaluate_review_gate
 
 
 class ContractInvariantError(ValueError):
@@ -64,6 +63,18 @@ def validate_memory_summary(summary: str) -> None:
         raise ContractInvariantError("memory summary must contain 1 to 2000 characters")
     if any(pattern.search(summary) for pattern in _CANDIDATE_PII_PATTERNS):
         raise ContractInvariantError("memory summary contains PII or a raw reference")
+
+
+def redact_learning_dialogue(text: str) -> tuple[str, bool]:
+    """Redact recognizable sensitive spans; not a complete DLP guarantee."""
+    if len(text) > 2000:
+        raise OverflowError("dialogue exceeds learning budget")
+    redacted = re.sub(r"(?:artifact|https?)://[^\s<>]+", "[REDACTED]", text, flags=re.IGNORECASE)
+    redacted = re.sub(r"(?:sk-[A-Za-z0-9_-]+|Bearer\s+[A-Za-z0-9._~-]+)", "[REDACTED]", redacted, flags=re.IGNORECASE)
+    for pattern in _CANDIDATE_PII_PATTERNS:
+        redacted = pattern.sub("[REDACTED]", redacted)
+    validate_memory_summary(redacted)
+    return redacted, redacted != text
 
 
 def validate_memory_candidate(candidate: MemoryCandidate) -> None:

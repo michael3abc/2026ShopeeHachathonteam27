@@ -28,6 +28,8 @@ class CaseRow(Base):
     evidence_request: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     human_review: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     human_review_result: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    final_resolution: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    refund_execution: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
 
 
 class CaseEventRow(Base):
@@ -173,6 +175,20 @@ class MockRefundReceiptRow(Base):
     execution_ref: Mapped[str] = mapped_column(Text, primary_key=True)
     payload_hash: Mapped[str] = mapped_column(String(64))
     result: Mapped[dict[str, Any]] = mapped_column(JSONB)
+
+
+class ResolutionJobRow(Base):
+    __tablename__ = "resolution_jobs"
+    __table_args__ = (CheckConstraint("status IN ('PENDING','COMPLETED','FAILED')", name="resolution_job_status_valid"),)
+    handoff_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    case_ref: Mapped[str] = mapped_column(ForeignKey("cases.case_ref"), index=True)
+    request: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(String(20))
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    next_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    claimed_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    lease_token: Mapped[str | None] = mapped_column(Text)
+    error_code: Mapped[str | None] = mapped_column(Text)
 
 
 def make_engine(settings: Settings, *, schema: str | None = None) -> Engine:

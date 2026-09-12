@@ -1167,6 +1167,14 @@ export type OrderRef3 = string;
 export type SnapshotVersion1 = number;
 export type CaseRef35 = string;
 export type CreatedAt2 = string;
+export type FinalResolution =
+  | (
+      | ReviewerApprovedResolutionHandoff
+      | HumanApproveResolutionHandoff
+      | HumanEditResolutionHandoff
+      | HumanRejectResolutionHandoff
+    )
+  | null;
 export type HumanReview = (FullRefundHumanReviewPayload | DeclineHumanReviewPayload) | null;
 export type HumanReviewResult =
   (ApprovedHumanReviewResult | RejectedHumanReviewResult | EditedHumanReviewResult) | null;
@@ -1188,7 +1196,26 @@ export type ReviewNote3 = string;
 export type ReviewedAt4 = string;
 export type ReviewerId3 = string;
 export type OrderRef4 = string;
-export type Status12 =
+export type RefundExecution = (SucceededRefundExecutionRecord | RejectedRefundExecutionRecord) | null;
+export type CaseRef36 = string;
+export type CreatedAt3 = string;
+export type ExecutionRef1 = string;
+export type HandoffId9 = string;
+export type Status12 = "SUCCEEDED";
+export type UpdatedAt = string;
+/**
+ * @minItems 1
+ */
+export type ReasonCodes3 = [string, ...string[]];
+export type RejectedAt = string;
+export type Status13 = "REJECTED";
+export type CaseRef37 = string;
+export type CreatedAt4 = string;
+export type ExecutionRef2 = string;
+export type HandoffId10 = string;
+export type Status14 = "REJECTED";
+export type UpdatedAt1 = string;
+export type Status15 =
   | "OBSERVING"
   | "AWAITING_CLARIFICATION"
   | "AWAITING_EVIDENCE"
@@ -1196,7 +1223,7 @@ export type Status12 =
   | "EXECUTING"
   | "RESOLVED"
   | "ESCALATED";
-export type UpdatedAt = string;
+export type UpdatedAt2 = string;
 export type UserRef = string;
 export type AcceptedEvidenceTypes2 = ("IMAGE" | "VIDEO" | "TEXT" | "DOCUMENT")[];
 export type ClaimId3 =
@@ -1231,7 +1258,7 @@ export type AttachedArtifactRefs1 = string[];
 export type InitialMessage = string;
 export type OrderRef5 = string;
 export type UserRef1 = string;
-export type CaseRef36 = string;
+export type CaseRef38 = string;
 /**
  * @minItems 1
  */
@@ -1252,7 +1279,7 @@ export type CorrectionReasonCode1 =
   "CLAIM_NOT_ESTABLISHED" | "POLICY_MISAPPLIED" | "SCOPE_INCORRECT" | "RETURN_REQUIREMENT_INCORRECT" | "OTHER";
 export type Decision4 = "EDIT";
 export type Generalizable4 = boolean | null;
-export type HandoffId9 = string | null;
+export type HandoffId11 = string | null;
 export type ReviewNote4 = string;
 export type ReviewerId4 = string;
 export type EvidenceAssessment =
@@ -1272,7 +1299,7 @@ export type ResolutionHandoff2 =
  * @minItems 1
  */
 export type Issues = [VerificationIssue, ...VerificationIssue[]];
-export type Status13 = "FAIL";
+export type Status16 = "FAIL";
 export type VerificationVersion = string;
 export type ReviewRef1 = string;
 export type Method = "HumanReviewProvider.fetch_result";
@@ -1302,7 +1329,7 @@ export type ReasonCode11 =
 export type ReasonSummary = string | null;
 export type RequestedAction = "REFUND" | "RETURN_AND_REFUND" | "EXCHANGE" | "UNSPECIFIED";
 export type InterruptPayload1 = ClarificationInterruptPayload | EvidenceInterruptPayload | HumanReviewInterruptPayload;
-export type CaseRef37 = string;
+export type CaseRef39 = string;
 export type Method1 = "CaseContextProvider.load_case_context";
 export type ClaimRegistryVersion6 = string;
 export type Confidence1 = number;
@@ -1319,7 +1346,7 @@ export type SourceCaseRefs = [string, ...string[]];
  * @minItems 1
  */
 export type SourceRevisionEventRefs = [string, ...string[]];
-export type Status14 = "CANDIDATE";
+export type Status17 = "CANDIDATE";
 /**
  * @minItems 1
  */
@@ -1327,7 +1354,7 @@ export type TriggerConditions1 = [string, ...string[]];
 export type DistillerPromptVersion = string;
 export type ResultType3 = "CREATE_CANDIDATE";
 export type SubmissionRef = string;
-export type CaseRef38 = string;
+export type CaseRef40 = string;
 export type EventId8 = string;
 export type EventType5 = "COMPLETED";
 export type JobId2 = string;
@@ -1348,7 +1375,7 @@ export type SubmissionRef1 = null;
 export type SchemaVersion9 = "v1";
 export type SourceCommandId = string;
 export type ThreadId10 = string;
-export type CaseRef39 = string;
+export type CaseRef41 = string;
 export type EventId9 = string;
 export type EventType6 = "FAILED";
 export type JobId3 = string;
@@ -1363,7 +1390,7 @@ export type ThreadId11 = string;
 export type ClaimedCategories = string[];
 export type EvidenceAssessment1 =
   ApprovalEvidenceAssessment | DeclineEvidenceAssessment | InsufficientEvidenceAssessment;
-export type FinalResolution =
+export type FinalResolution1 =
   | ReviewerApprovedResolutionHandoff
   | HumanApproveResolutionHandoff
   | HumanEditResolutionHandoff
@@ -1375,7 +1402,7 @@ export type HumanReviewResult2 =
  */
 export type ProposalHistory1 = [ProposedDecisionHandoff, ...ProposedDecisionHandoff[]];
 export type RevisionEvents1 = DecisionRevisionEvent[];
-export type CaseRef40 = string;
+export type CaseRef42 = string;
 export type IssuedAt2 = string;
 export type JobId4 = string;
 export type SchemaVersion11 = "v1";
@@ -1390,7 +1417,7 @@ export type Text4 = string;
  * @maxItems 0
  */
 export type Issues1 = [];
-export type Status15 = "PASS";
+export type Status18 = "PASS";
 export type VerificationVersion1 = string;
 export type ProposedDecision1 = FullRefundProposedDecision | DeclineProposedDecision;
 export type ProposedDecisionDraft = FullRefundProposedDecisionDraft | DeclineProposedDecisionDraft;
@@ -1436,25 +1463,7 @@ export type RequiredClaimIds2 = [
 export type TopK1 = number;
 export type Method2 = "OperationalMemoryStore.query_approved";
 export type RefundApplicationResult = AppliedRefundApplicationResult | RejectedRefundApplicationResult;
-/**
- * @minItems 1
- */
-export type ReasonCodes3 = [string, ...string[]];
-export type RejectedAt = string;
-export type Status16 = "REJECTED";
 export type RefundExecutionRecord = SucceededRefundExecutionRecord | RejectedRefundExecutionRecord;
-export type CaseRef41 = string;
-export type CreatedAt3 = string;
-export type ExecutionRef1 = string;
-export type HandoffId10 = string;
-export type Status17 = "SUCCEEDED";
-export type UpdatedAt1 = string;
-export type CaseRef42 = string;
-export type CreatedAt4 = string;
-export type ExecutionRef2 = string;
-export type HandoffId11 = string;
-export type Status18 = "REJECTED";
-export type UpdatedAt2 = string;
 export type Decision5 = "REJECT";
 export type Generalizable5 = boolean | null;
 export type HandoffId12 = string | null;
@@ -2323,11 +2332,13 @@ export interface CaseDetail {
   clarification_request?: ClarificationRequest | null;
   created_at: CreatedAt2;
   evidence_request?: EvidenceRequestView | null;
+  final_resolution?: FinalResolution;
   human_review?: HumanReview;
   human_review_result?: HumanReviewResult;
   order_ref: OrderRef4;
-  status: Status12;
-  updated_at: UpdatedAt;
+  refund_execution?: RefundExecution;
+  status: Status15;
+  updated_at: UpdatedAt2;
   user_ref: UserRef;
 }
 export interface RejectedHumanReviewResult {
@@ -2357,6 +2368,29 @@ export interface CorrectedDeclineDecision {
   action: Action9;
   refund_scope: EmptyRefundScope;
 }
+export interface SucceededRefundExecutionRecord {
+  application_result: AppliedRefundApplicationResult;
+  case_ref: CaseRef36;
+  created_at: CreatedAt3;
+  execution_ref: ExecutionRef1;
+  handoff_id: HandoffId9;
+  status: Status12;
+  updated_at: UpdatedAt;
+}
+export interface RejectedRefundExecutionRecord {
+  application_result: RejectedRefundApplicationResult;
+  case_ref: CaseRef37;
+  created_at: CreatedAt4;
+  execution_ref: ExecutionRef2;
+  handoff_id: HandoffId10;
+  status: Status14;
+  updated_at: UpdatedAt1;
+}
+export interface RejectedRefundApplicationResult {
+  reason_codes: ReasonCodes3;
+  rejected_at: RejectedAt;
+  status: Status13;
+}
 export interface ClaimDefinition {
   accepted_evidence_types?: AcceptedEvidenceTypes2;
   claim_id: ClaimId3;
@@ -2373,7 +2407,7 @@ export interface CreateCaseRequest {
   user_ref: UserRef1;
 }
 export interface CreateCaseResponse {
-  case_ref: CaseRef36;
+  case_ref: CaseRef38;
 }
 export interface DeclineEvidenceAssessment {
   claim_findings: ClaimFindings1;
@@ -2393,7 +2427,7 @@ export interface EditReviewDecision {
   correction_reason_code: CorrectionReasonCode1;
   decision: Decision4;
   generalizable?: Generalizable4;
-  handoff_id?: HandoffId9;
+  handoff_id?: HandoffId11;
   review_note: ReviewNote4;
   reviewer_id?: ReviewerId4;
 }
@@ -2408,7 +2442,7 @@ export interface ExecuteRefundRequest {
 }
 export interface FailedVerificationResult {
   issues: Issues;
-  status: Status13;
+  status: Status16;
   verification_version: VerificationVersion;
 }
 export interface FetchHumanReviewParams {
@@ -2442,7 +2476,7 @@ export interface IntakeResult {
   requested_action: RequestedAction;
 }
 export interface LoadCaseContextParams {
-  case_ref: CaseRef37;
+  case_ref: CaseRef39;
 }
 export interface LoadCaseContextRequest {
   method: Method1;
@@ -2459,7 +2493,7 @@ export interface MemoryCandidate {
   scope: MemoryScope;
   source_case_refs: SourceCaseRefs;
   source_revision_event_refs: SourceRevisionEventRefs;
-  status: Status14;
+  status: Status17;
   trigger_conditions: TriggerConditions1;
 }
 export interface MemoryCandidateCompletedPayload {
@@ -2472,7 +2506,7 @@ export interface MemoryCandidateOutput {
   result_type: ResultType3;
 }
 export interface MemoryDistillationCompletedEvent {
-  case_ref: CaseRef38;
+  case_ref: CaseRef40;
   event_id: EventId8;
   event_type: EventType5;
   job_id: JobId2;
@@ -2492,7 +2526,7 @@ export interface MemorySkipOutput {
   result_type: ResultType4;
 }
 export interface MemoryDistillationFailedEvent {
-  case_ref: CaseRef39;
+  case_ref: CaseRef41;
   event_id: EventId9;
   event_type: EventType6;
   job_id: JobId3;
@@ -2512,14 +2546,14 @@ export interface MemoryDistillationInput {
   case_context: CaseContext;
   claimed_categories?: ClaimedCategories;
   evidence_assessment: EvidenceAssessment1;
-  final_resolution: FinalResolution;
+  final_resolution: FinalResolution1;
   human_review_result?: HumanReviewResult2;
   policy_bundle: PolicyBundle;
   proposal_history: ProposalHistory1;
   revision_events?: RevisionEvents1;
 }
 export interface MemoryDistillationJob {
-  case_ref: CaseRef40;
+  case_ref: CaseRef42;
   issued_at: IssuedAt2;
   job_id: JobId4;
   payload: MemoryDistillationJobPayload;
@@ -2542,7 +2576,7 @@ export interface NarrationText {
 }
 export interface PassedVerificationResult {
   issues?: Issues1;
-  status: Status15;
+  status: Status18;
   verification_version: VerificationVersion1;
 }
 export interface QueryApprovedMemoryParams {
@@ -2558,29 +2592,6 @@ export interface QueryApprovedMemoryParams {
 export interface QueryApprovedMemoryRequest {
   method: Method2;
   params: QueryApprovedMemoryParams;
-}
-export interface RejectedRefundApplicationResult {
-  reason_codes: ReasonCodes3;
-  rejected_at: RejectedAt;
-  status: Status16;
-}
-export interface SucceededRefundExecutionRecord {
-  application_result: AppliedRefundApplicationResult;
-  case_ref: CaseRef41;
-  created_at: CreatedAt3;
-  execution_ref: ExecutionRef1;
-  handoff_id: HandoffId10;
-  status: Status17;
-  updated_at: UpdatedAt1;
-}
-export interface RejectedRefundExecutionRecord {
-  application_result: RejectedRefundApplicationResult;
-  case_ref: CaseRef42;
-  created_at: CreatedAt4;
-  execution_ref: ExecutionRef2;
-  handoff_id: HandoffId11;
-  status: Status18;
-  updated_at: UpdatedAt2;
 }
 export interface RejectReviewDecision {
   decision: Decision5;

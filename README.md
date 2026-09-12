@@ -2,7 +2,7 @@
 
 內部退貨案件 Demo，整合證據審核、人工裁決與經驗學習。使用合成資料與模擬退款，不接真實金流。
 
-T01 骨架與 T02 契約層已驗證；T03 已提供案件建立、查詢、補件及事件 replay，Agent workers 尚未接通。進度與實際驗證見 [進度紀錄](docs/progress.md)，技術選擇見 [決策紀錄](docs/decisions.md)。
+T01–T05 核心驗證通過；T06 已跑通 HTTP／Redis／PostgreSQL 的人工裁決與模擬退款整合測試，常駐服務啟動組合接線中。進度與實際驗證見 [進度紀錄](docs/progress.md)，技術選擇見 [決策紀錄](docs/decisions.md)。
 
 ## 開發環境
 
@@ -66,6 +66,14 @@ PostgreSQL 整合測試必須明確指定本機測試 DB：
 
 ```bash
 TEST_API_DATABASE_URL=postgresql+psycopg://return_agent:local-demo@127.0.0.1:5432/return_agent uv run pytest apps/api/tests -q
+```
+
+完整跨服務測試另指定 Agent DB 與空白的測試 Redis database：
+
+```bash
+TEST_API_DATABASE_URL=postgresql+psycopg://return_agent:local-demo@127.0.0.1:5432/return_agent \
+TEST_AGENT_DATABASE_URL=postgresql://return_agent:local-demo@127.0.0.1:5433/return_agent \
+TEST_REDIS_URL=redis://127.0.0.1:6379/15 uv run pytest -q
 ```
 
 每個測試建立自己的 `team27_test_*` schema、跑 migration，結束後僅清理該 schema。未指定測試 DB 時會明確 SKIP；CI 提供獨立 PostgreSQL service，不依賴真模型。

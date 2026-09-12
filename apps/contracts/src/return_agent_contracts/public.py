@@ -4,7 +4,8 @@ from typing import Annotated, Literal
 from pydantic import Field
 
 from .domain import AgentReturnDecision, EmptyRefundScope, EvidenceRequest, EvidenceType, HumanReviewDossier, NonEmptyRefundScope, ReviewGateResult, ReviewResult
-from .human import HumanReviewResult
+from .human import HumanReviewResult, ResolutionHandoff
+from .providers import RefundExecutionRecord
 from .memory import MemoryRetrievalObservation
 from .messages import ClarificationRequest
 from .primitives import Amount, ContractModel, Currency, Ref, UTCDateTime
@@ -96,6 +97,8 @@ class CaseDetail(ContractModel):
     evidence_request: EvidenceRequestView | None = None
     human_review: HumanReviewPayload | None = None
     human_review_result: HumanReviewResult | None = None
+    final_resolution: ResolutionHandoff | None = None
+    refund_execution: RefundExecutionRecord | None = None
 
 
 class UiClarificationInterruptPayload(ContractModel):

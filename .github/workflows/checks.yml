@@ -14,8 +14,24 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U return_agent -d return_agent_test"
           --health-interval 3s --health-timeout 3s --health-retries 20
+      agent-postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: return_agent
+          POSTGRES_PASSWORD: local-demo
+          POSTGRES_DB: return_agent_test
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U return_agent -d return_agent_test"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7.4-alpine
+        ports: ["6379:6379"]
+        options: --health-cmd "redis-cli ping" --health-interval 3s --health-timeout 3s --health-retries 20
     env:
       TEST_API_DATABASE_URL: postgresql+psycopg://return_agent:local-demo@127.0.0.1:5432/return_agent_test
+      TEST_AGENT_DATABASE_URL: postgresql://return_agent:local-demo@127.0.0.1:5433/return_agent_test
+      TEST_REDIS_URL: redis://127.0.0.1:6379/15
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6

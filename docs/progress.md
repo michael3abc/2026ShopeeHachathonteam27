@@ -9,7 +9,7 @@
 | T03 API／DB | 核心持久化通過 | 0001 migration、case create/get/messages/events、atomic outbox；9 項 PostgreSQL 測試與全套 105 項通過，含主庫已有 migration 的隔離回歸。service event 投影接線續於 T06。 |
 | T04 能力／退款 | 核心持久化與模擬退款通過 | API 33 項 PostgreSQL 測試；獨立授權、原子人審／RESUME、品項 reservation、APPLIED ledger、未知結果同 key 恢復；跨服務接線待 T06。 |
 | T05 Graph | 核心 deterministic 測試通過 | 16 節點、14 項 graph 測試、6 份 prompts、typed fake 與真模型 adapter；durable PostgreSQL checkpoint／跨服務待 T06。 |
-| T06 跨服務 | 未開始 | 待 T04、T05。 |
+| T06 跨服務 | 核心整合通過，啟動組合接線中 | 6 項真 HTTP／Redis／PostgreSQL 整合測試；durable checkpoint／journal／outbox／事件投影／退款 job。 |
 | T07 VDB／Memory | 未開始 | 待 T06。 |
 | T08 Activity | 未開始 | 待 T06。 |
 | T09 Web | 未開始 | 待 T06–T08。 |
@@ -103,3 +103,11 @@ C01–C06、C10–C11 的上述**契約子案例**通過；C12–C13 僅已驗�
 - 6 份 prompts 對應 7 種任務；Resolver 輸入排除金額，Reviewer 排除 Memory／Assessment。Memory distill 與 narration 背景 worker 尚未接線。
 - 模型 adapter 8 項測試通過；整組 runtime＋adapter 22 passed，exit 0，1.72s。支援明確 Qwen Chat／Compass Responses profile、timeout 180／max retries 0、union envelope、schema 與本地型別驗證；錯誤不切 fake，也不輸出遠端敏感 response。
 - 已確認使用者本機 profile 為 integrated-compass；模型與 secret file 依 RETURN_AGENT_* 設定讀取，尚未宣稱真模型通過。
+
+### T06 跨服務核心
+
+- API 0004 migration 保存 final_resolution／refund_execution 與 durable resolution jobs。使用者已確認新增兩個公開欄位，同步更新生成 Schema／TS。
+- Agent 0001 migration 保存 thread／command journal／event outbox；PostgreSQL saver 使用 JSON state、禁止 pickle，僅允許 LangGraph Interrupt／Send 型別。
+- 6 項跨服務測試 passed，exit 0，9.02s：真 HTTP Provider、Redis Streams、獨立 API／Agent PostgreSQL schema；人工 EDIT 後重新建立 worker／saver，退款 APPLIED，Reviewer 不重跑。
+- C15–C18 相關情境：journal terminal 前 crash 後恢復、XADD 後斷線以同 command 重送、terminal replay 不重跑模型、事件 ID/hash 衝突、亂序留 pending、投影失敗 rollback、前序新事件不被 pending queue 餓死。
+- 目前 Memory HTTP 尚未接線，跨服務案例明確 Memory UNAVAILABLE；不把此案例稱為 B→C 學習通過。常駐 composition／容器與完整 A/B/C 待完成。

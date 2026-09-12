@@ -1,5 +1,70 @@
 {
   "$defs": {
+    "AgentFullRefundFinalDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "FULL_REFUND",
+          "title": "Action",
+          "type": "string"
+        },
+        "amount": {
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+          "title": "Amount",
+          "type": "string"
+        },
+        "currency": {
+          "maxLength": 3,
+          "minLength": 3,
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "reason_code": {
+          "enum": [
+            "ITEM_DAMAGED",
+            "ITEM_NOT_AS_DESCRIBED",
+            "MISSING_ITEM",
+            "WRONG_ITEM",
+            "QUALITY_ISSUE",
+            "CHANGED_MIND"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "refund_scope": {
+          "$ref": "#/$defs/NonEmptyRefundScope"
+        },
+        "return_decision": {
+          "discriminator": {
+            "mapping": {
+              "MODEL_JUDGMENT": "#/$defs/ModelJudgmentReturnDecision",
+              "POLICY": "#/$defs/PolicyReturnDecision"
+            },
+            "propertyName": "source"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/PolicyReturnDecision"
+            },
+            {
+              "$ref": "#/$defs/ModelJudgmentReturnDecision"
+            }
+          ],
+          "title": "Return Decision"
+        }
+      },
+      "required": [
+        "amount",
+        "currency",
+        "reason_code",
+        "action",
+        "refund_scope",
+        "return_decision"
+      ],
+      "title": "AgentFullRefundFinalDecision",
+      "type": "object"
+    },
     "ApplicableConditions": {
       "additionalProperties": false,
       "properties": {
@@ -36,6 +101,34 @@
         }
       },
       "title": "ApplicableConditions",
+      "type": "object"
+    },
+    "AppliedRefundApplicationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "application_ref": {
+          "minLength": 1,
+          "title": "Application Ref",
+          "type": "string"
+        },
+        "applied_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Applied At",
+          "type": "string"
+        },
+        "status": {
+          "const": "APPLIED",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "application_ref",
+        "applied_at"
+      ],
+      "title": "AppliedRefundApplicationResult",
       "type": "object"
     },
     "ApprovedHumanReviewResult": {
@@ -327,6 +420,52 @@
         "created_at"
       ],
       "title": "DecisionRevisionEvent",
+      "type": "object"
+    },
+    "DeclineFinalDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "DECLINE",
+          "title": "Action",
+          "type": "string"
+        },
+        "amount": {
+          "pattern": "^0(?:\\.0+)?$",
+          "title": "Amount",
+          "type": "string"
+        },
+        "currency": {
+          "maxLength": 3,
+          "minLength": 3,
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "reason_code": {
+          "enum": [
+            "ITEM_DAMAGED",
+            "ITEM_NOT_AS_DESCRIBED",
+            "MISSING_ITEM",
+            "WRONG_ITEM",
+            "QUALITY_ISSUE",
+            "CHANGED_MIND"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "refund_scope": {
+          "$ref": "#/$defs/EmptyRefundScope"
+        }
+      },
+      "required": [
+        "amount",
+        "currency",
+        "reason_code",
+        "action",
+        "refund_scope"
+      ],
+      "title": "DeclineFinalDecision",
       "type": "object"
     },
     "DeclineHumanReviewPayload": {
@@ -988,6 +1127,308 @@
         "return_decision"
       ],
       "title": "FullRefundProposedDecision",
+      "type": "object"
+    },
+    "HumanApproveResolutionHandoff": {
+      "additionalProperties": false,
+      "properties": {
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "emitted_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Emitted At",
+          "type": "string"
+        },
+        "execution_blocked": {
+          "const": false,
+          "title": "Execution Blocked",
+          "type": "boolean"
+        },
+        "final_decision": {
+          "discriminator": {
+            "mapping": {
+              "DECLINE": "#/$defs/DeclineFinalDecision",
+              "FULL_REFUND": "#/$defs/AgentFullRefundFinalDecision"
+            },
+            "propertyName": "action"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/AgentFullRefundFinalDecision"
+            },
+            {
+              "$ref": "#/$defs/DeclineFinalDecision"
+            }
+          ],
+          "title": "Final Decision"
+        },
+        "handoff_id": {
+          "minLength": 1,
+          "title": "Handoff Id",
+          "type": "string"
+        },
+        "outcome_source": {
+          "const": "HUMAN_APPROVE",
+          "title": "Outcome Source",
+          "type": "string"
+        },
+        "review_gate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReviewGateResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "review_result": {
+          "discriminator": {
+            "mapping": {
+              "APPROVE": "#/$defs/ApprovedReviewResult",
+              "REVISE": "#/$defs/RevisedReviewResult"
+            },
+            "propertyName": "verdict"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ApprovedReviewResult"
+            },
+            {
+              "$ref": "#/$defs/RevisedReviewResult"
+            }
+          ],
+          "title": "Review Result"
+        }
+      },
+      "required": [
+        "handoff_id",
+        "case_ref",
+        "emitted_at",
+        "execution_blocked",
+        "outcome_source",
+        "final_decision",
+        "review_result"
+      ],
+      "title": "HumanApproveResolutionHandoff",
+      "type": "object"
+    },
+    "HumanEditResolutionHandoff": {
+      "additionalProperties": false,
+      "properties": {
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "emitted_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Emitted At",
+          "type": "string"
+        },
+        "execution_blocked": {
+          "const": false,
+          "title": "Execution Blocked",
+          "type": "boolean"
+        },
+        "final_decision": {
+          "discriminator": {
+            "mapping": {
+              "DECLINE": "#/$defs/DeclineFinalDecision",
+              "FULL_REFUND": "#/$defs/HumanEditedFullRefundFinalDecision"
+            },
+            "propertyName": "action"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/HumanEditedFullRefundFinalDecision"
+            },
+            {
+              "$ref": "#/$defs/DeclineFinalDecision"
+            }
+          ],
+          "title": "Final Decision"
+        },
+        "handoff_id": {
+          "minLength": 1,
+          "title": "Handoff Id",
+          "type": "string"
+        },
+        "outcome_source": {
+          "const": "HUMAN_EDIT",
+          "title": "Outcome Source",
+          "type": "string"
+        },
+        "review_gate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReviewGateResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "review_result": {
+          "discriminator": {
+            "mapping": {
+              "APPROVE": "#/$defs/ApprovedReviewResult",
+              "REVISE": "#/$defs/RevisedReviewResult"
+            },
+            "propertyName": "verdict"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ApprovedReviewResult"
+            },
+            {
+              "$ref": "#/$defs/RevisedReviewResult"
+            }
+          ],
+          "title": "Review Result"
+        }
+      },
+      "required": [
+        "handoff_id",
+        "case_ref",
+        "emitted_at",
+        "execution_blocked",
+        "outcome_source",
+        "final_decision",
+        "review_result"
+      ],
+      "title": "HumanEditResolutionHandoff",
+      "type": "object"
+    },
+    "HumanEditedFullRefundFinalDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "FULL_REFUND",
+          "title": "Action",
+          "type": "string"
+        },
+        "amount": {
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+          "title": "Amount",
+          "type": "string"
+        },
+        "currency": {
+          "maxLength": 3,
+          "minLength": 3,
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "reason_code": {
+          "enum": [
+            "ITEM_DAMAGED",
+            "ITEM_NOT_AS_DESCRIBED",
+            "MISSING_ITEM",
+            "WRONG_ITEM",
+            "QUALITY_ISSUE",
+            "CHANGED_MIND"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "refund_scope": {
+          "$ref": "#/$defs/NonEmptyRefundScope"
+        },
+        "return_decision": {
+          "$ref": "#/$defs/HumanReviewReturnDecision"
+        }
+      },
+      "required": [
+        "amount",
+        "currency",
+        "reason_code",
+        "action",
+        "refund_scope",
+        "return_decision"
+      ],
+      "title": "HumanEditedFullRefundFinalDecision",
+      "type": "object"
+    },
+    "HumanRejectResolutionHandoff": {
+      "additionalProperties": false,
+      "properties": {
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "emitted_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Emitted At",
+          "type": "string"
+        },
+        "execution_blocked": {
+          "const": false,
+          "title": "Execution Blocked",
+          "type": "boolean"
+        },
+        "final_decision": {
+          "$ref": "#/$defs/DeclineFinalDecision"
+        },
+        "handoff_id": {
+          "minLength": 1,
+          "title": "Handoff Id",
+          "type": "string"
+        },
+        "outcome_source": {
+          "const": "HUMAN_REJECT",
+          "title": "Outcome Source",
+          "type": "string"
+        },
+        "review_gate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReviewGateResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "review_result": {
+          "discriminator": {
+            "mapping": {
+              "APPROVE": "#/$defs/ApprovedReviewResult",
+              "REVISE": "#/$defs/RevisedReviewResult"
+            },
+            "propertyName": "verdict"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ApprovedReviewResult"
+            },
+            {
+              "$ref": "#/$defs/RevisedReviewResult"
+            }
+          ],
+          "title": "Review Result"
+        }
+      },
+      "required": [
+        "handoff_id",
+        "case_ref",
+        "emitted_at",
+        "execution_blocked",
+        "outcome_source",
+        "final_decision",
+        "review_result"
+      ],
+      "title": "HumanRejectResolutionHandoff",
       "type": "object"
     },
     "HumanReviewDossier": {
@@ -1691,6 +2132,89 @@
       "title": "RejectedHumanReviewResult",
       "type": "object"
     },
+    "RejectedRefundApplicationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "reason_codes": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "rejected_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Rejected At",
+          "type": "string"
+        },
+        "status": {
+          "const": "REJECTED",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason_codes",
+        "rejected_at"
+      ],
+      "title": "RejectedRefundApplicationResult",
+      "type": "object"
+    },
+    "RejectedRefundExecutionRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "application_result": {
+          "$ref": "#/$defs/RejectedRefundApplicationResult"
+        },
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Created At",
+          "type": "string"
+        },
+        "execution_ref": {
+          "minLength": 1,
+          "title": "Execution Ref",
+          "type": "string"
+        },
+        "handoff_id": {
+          "minLength": 1,
+          "title": "Handoff Id",
+          "type": "string"
+        },
+        "status": {
+          "const": "REJECTED",
+          "title": "Status",
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Updated At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "execution_ref",
+        "case_ref",
+        "handoff_id",
+        "created_at",
+        "updated_at",
+        "status",
+        "application_result"
+      ],
+      "title": "RejectedRefundExecutionRecord",
+      "type": "object"
+    },
     "RequiredReturnRequirement": {
       "additionalProperties": false,
       "properties": {
@@ -1787,6 +2311,80 @@
         "threshold"
       ],
       "title": "ReviewGateResult",
+      "type": "object"
+    },
+    "ReviewerApprovedResolutionHandoff": {
+      "additionalProperties": false,
+      "properties": {
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "emitted_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Emitted At",
+          "type": "string"
+        },
+        "execution_blocked": {
+          "const": false,
+          "title": "Execution Blocked",
+          "type": "boolean"
+        },
+        "final_decision": {
+          "discriminator": {
+            "mapping": {
+              "DECLINE": "#/$defs/DeclineFinalDecision",
+              "FULL_REFUND": "#/$defs/AgentFullRefundFinalDecision"
+            },
+            "propertyName": "action"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/AgentFullRefundFinalDecision"
+            },
+            {
+              "$ref": "#/$defs/DeclineFinalDecision"
+            }
+          ],
+          "title": "Final Decision"
+        },
+        "handoff_id": {
+          "minLength": 1,
+          "title": "Handoff Id",
+          "type": "string"
+        },
+        "outcome_source": {
+          "const": "REVIEWER_APPROVE",
+          "title": "Outcome Source",
+          "type": "string"
+        },
+        "review_gate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReviewGateResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "review_result": {
+          "$ref": "#/$defs/ApprovedReviewResult"
+        }
+      },
+      "required": [
+        "handoff_id",
+        "case_ref",
+        "emitted_at",
+        "execution_blocked",
+        "outcome_source",
+        "final_decision",
+        "review_result"
+      ],
+      "title": "ReviewerApprovedResolutionHandoff",
       "type": "object"
     },
     "RevisedReviewResult": {
@@ -1893,6 +2491,57 @@
       "title": "RevisionReason",
       "type": "object"
     },
+    "SucceededRefundExecutionRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "application_result": {
+          "$ref": "#/$defs/AppliedRefundApplicationResult"
+        },
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Created At",
+          "type": "string"
+        },
+        "execution_ref": {
+          "minLength": 1,
+          "title": "Execution Ref",
+          "type": "string"
+        },
+        "handoff_id": {
+          "minLength": 1,
+          "title": "Handoff Id",
+          "type": "string"
+        },
+        "status": {
+          "const": "SUCCEEDED",
+          "title": "Status",
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Updated At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "execution_ref",
+        "case_ref",
+        "handoff_id",
+        "created_at",
+        "updated_at",
+        "status",
+        "application_result"
+      ],
+      "title": "SucceededRefundExecutionRecord",
+      "type": "object"
+    },
     "WaivedReturnRequirement": {
       "additionalProperties": false,
       "properties": {
@@ -1956,6 +2605,40 @@
       ],
       "default": null
     },
+    "final_resolution": {
+      "anyOf": [
+        {
+          "discriminator": {
+            "mapping": {
+              "HUMAN_APPROVE": "#/$defs/HumanApproveResolutionHandoff",
+              "HUMAN_EDIT": "#/$defs/HumanEditResolutionHandoff",
+              "HUMAN_REJECT": "#/$defs/HumanRejectResolutionHandoff",
+              "REVIEWER_APPROVE": "#/$defs/ReviewerApprovedResolutionHandoff"
+            },
+            "propertyName": "outcome_source"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ReviewerApprovedResolutionHandoff"
+            },
+            {
+              "$ref": "#/$defs/HumanApproveResolutionHandoff"
+            },
+            {
+              "$ref": "#/$defs/HumanEditResolutionHandoff"
+            },
+            {
+              "$ref": "#/$defs/HumanRejectResolutionHandoff"
+            }
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Final Resolution"
+    },
     "human_review": {
       "anyOf": [
         {
@@ -2016,6 +2699,32 @@
       "minLength": 1,
       "title": "Order Ref",
       "type": "string"
+    },
+    "refund_execution": {
+      "anyOf": [
+        {
+          "discriminator": {
+            "mapping": {
+              "REJECTED": "#/$defs/RejectedRefundExecutionRecord",
+              "SUCCEEDED": "#/$defs/SucceededRefundExecutionRecord"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/SucceededRefundExecutionRecord"
+            },
+            {
+              "$ref": "#/$defs/RejectedRefundExecutionRecord"
+            }
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Refund Execution"
     },
     "status": {
       "enum": [

@@ -74,3 +74,47 @@ def trusted(store):
     review = ApprovedReviewResult(verdict="APPROVE", reviewed_at=store.clock(), reviewer_prompt_version="reviewer:1", reviewer_claim_findings=[ClaimFinding(claim_id="DELIVERY_CONFIRMED", subject=order.order_ref, status="SUPPORTED", explanation="訂單含送達日期"), *[ClaimFinding(claim_id="ITEM_PHYSICALLY_DAMAGED", subject=item.subject, status="SUPPORTED", explanation="表面有裂痕", supporting_evidence_refs=[item.evidence_id]) for item in evidence]])
     dossier = HumanReviewDossier(claim_registry_version=REGISTRY_VERSION, claimed_line_item_ids=params.claimed_line_item_ids, order_snapshot=order, policy_bundle=policy, proposal_history=[handoff], review_history=[review], review_gate=evaluate_gate("FULL_REFUND", Decimal("6200"), "TWD", capabilities.gates), routing_reason="HIGH_VALUE_ITEM")
     return capabilities, params, handoff, review, dossier
+
+
+@pytest.fixture
+def agent_database():
+    from return_agent_service.db import make_engine as agent_engine
+    from return_agent_service.checkpoint import checkpoint_saver
+    url = os.getenv("TEST_AGENT_DATABASE_URL")
+    if not url:
+        pytest.skip("Set TEST_AGENT_DATABASE_URL for durable Agent integration")
+    schema = f"team27_agent_test_{uuid4().hex}"
+    admin = agent_engine(url)
+    with admin.begin() as connection:
+        connection.execute(text(f'CREATE SCHEMA "{schema}"'))
+    engine = agent_engine(url, schema=schema)
+    config = Config(str(Path(__file__).parents[2] / "agent_service" / "alembic.ini"))
+    try:
+        with engine.begin() as connection:
+            config.attributes["connection"] = connection
+            command.upgrade(config, "head")
+        with checkpoint_saver(url, schema=schema, setup=True):
+            pass
+        yield engine, url, schema
+    finally:
+        engine.dispose()
+        with admin.begin() as connection:
+            connection.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
+        admin.dispose()
+
+
+@pytest.fixture
+def test_redis():
+    from redis import Redis
+    from return_agent_contracts.messages import COMMAND_STREAM, EVENT_STREAM, COMMAND_DLQ
+    url = os.getenv("TEST_REDIS_URL")
+    if not url:
+        pytest.skip("Set TEST_REDIS_URL to an empty, test-only Redis database")
+    client = Redis.from_url(url, decode_responses=True, socket_timeout=3, socket_connect_timeout=3)
+    assert client.dbsize() == 0, "Test Redis database must be empty; no data was removed"
+    try:
+        yield client
+    finally:
+        # Delete only the three streams these integration tests own.
+        client.delete(COMMAND_STREAM, EVENT_STREAM, COMMAND_DLQ)
+        client.close()

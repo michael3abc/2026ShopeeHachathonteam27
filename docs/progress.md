@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | T01 骨架與依賴 | 骨架驗證通過 | 四個 packages 可安裝；Python 3.12.0、uv.lock、npm lock；3 項架構／health 測試通過，Next build 通過，Compose config 通過。Docker daemon／映像建置未驗證。 |
 | T02 Contracts | 契約層驗證通過 | 192 份生成 schemas、TS、93 項契約測試；Domain／Provider／Runtime／Service events／UI／Activity／Memory。持久化與執行端驗證續於 T03–T08。 |
-| T03 API／DB | 核心持久化通過 | 0001 migration、case create/get/messages/events、atomic outbox；9 項 PostgreSQL 測試通過。service event 投影接線續於 T06。 |
+| T03 API／DB | 核心持久化通過 | 0001 migration、case create/get/messages/events、atomic outbox；9 項 PostgreSQL 測試與全套 105 項通過，含主庫已有 migration 的隔離回歸。service event 投影接線續於 T06。 |
 | T04 能力／退款 | 未開始 | 待 T03。 |
 | T05 Graph | 未開始 | 待 T02。 |
 | T06 跨服務 | 未開始 | 待 T04、T05。 |
@@ -83,3 +83,6 @@ C01–C06、C10–C11 的上述**契約子案例**通過；C12–C13 僅已驗�
 - 本機 API DB 已執行 `uv run alembic -c apps/api/alembic.ini upgrade head`，exit 0。
 - `.env` 已由使用者提供並授權用於真模型，檔案 mode 0600 且已忽略；僅檢查設定名稱與是否存在，不將秘密值加入輸出。
 - 尚未接通 command dispatcher／Agent worker；沒有退款 APPLIED、Memory Candidate 或真模型 A/B/C 證據。
+- 主庫 migration 後執行全套：103 passed、2 failed，exit 1，3.65s。失敗原因為測試 schema 透過 search_path 看見 public.alembic_version，誤以為已遷移；已改成明確 version_table_schema，加入每個測試必須持有自身資料表的回歸檢查，等待重跑結果。
+- 隔離修正後中途 104 passed、1 failed（metadata 比較誤含 Alembic 版本表）；調整比較使用連線預設 schema 後，API 9 passed／1.72s，全套 105 passed／4.52s，exit 0。每個測試仍檢查自身 schema 的版本表與應用資料表確實存在。
+- 已逐筆確認並清除隔離問題產生的 8 筆本機合成測試案件；沒有發布 command，保留資料表與 migration。

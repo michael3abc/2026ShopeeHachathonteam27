@@ -27,6 +27,7 @@ def awaiting(store, case_ref, status="AWAITING_EVIDENCE"):
 def test_empty_database_migration_matches_models(database):
     engine, config = database
     with engine.begin() as connection:
+        # Metadata uses the connection's default schema; Alembic's own table is not application metadata.
         context = MigrationContext.configure(connection)
         assert compare_metadata(context, Base.metadata) == []
         config.attributes["connection"] = connection

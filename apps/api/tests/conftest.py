@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 
 from return_agent.cases import CaseStore
 from return_agent.db import make_engine, make_sessions
@@ -29,6 +29,9 @@ def database():
         with engine.begin() as connection:
             config.attributes["connection"] = connection
             command.upgrade(config, "head")
+            # Public may already be at head; that must never skip this schema's migration.
+            assert connection.exec_driver_sql("SELECT current_schema()").scalar_one() == schema
+            assert {"cases", "case_events", "agent_command_outbox", "alembic_version"} <= set(inspect(connection).get_table_names(schema=schema))
         yield engine, config
     finally:
         engine.dispose()

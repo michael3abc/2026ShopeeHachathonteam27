@@ -9,7 +9,8 @@ target_metadata = Base.metadata
 
 
 def run(connection):
-    context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
+    schema = connection.exec_driver_sql("SELECT current_schema()").scalar_one()
+    context.configure(connection=connection, target_metadata=target_metadata, compare_type=True, version_table_schema=schema)
     with context.begin_transaction():
         context.run_migrations()
 
@@ -28,5 +29,5 @@ else:
         if not settings.database_url:
             raise ValueError("API_DATABASE_URL is required for migrations")
         engine = create_engine(settings.database_url, poolclass=pool.NullPool, connect_args={"connect_timeout": 5})
-        with engine.connect() as connection:
+        with engine.begin() as connection:
             run(connection)

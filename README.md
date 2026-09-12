@@ -1,5 +1,6 @@
 # Shopee Hackathon 2026 Agent Infrastructure
 
+[互動式 System Architecture Explorer](presentation/README.md)：以固定 commit 的實作為準，導覽作品流程、真實 LangGraph、LLM calls、DB 與前後端交互；可離線閱讀。
 
 本 worktree 從 `main@c70351e` 實作 Policy v2 與 User Risk。API 依可信 Demo
 scenario 選用並保存政策版本；v1 保留既有語意，v2 新案使用四條獨立政策路徑、

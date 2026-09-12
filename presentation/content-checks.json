@@ -1,0 +1,19 @@
+{
+  "sourceCommit": "c70351e4a8f711698def4e5fd9cec28fdae215a9",
+  "entities": 90,
+  "graphNodes": 16,
+  "graphEdges": 42,
+  "sources": 129,
+  "scenarios": 5,
+  "checks": [
+    "fixed-commit source references",
+    "unique entity IDs",
+    "reviewed routes match AST inventory",
+    "state fields exist",
+    "high-level groups partition real nodes",
+    "trace node transitions exist",
+    "scenario references and statuses resolve",
+    "illustrative patches belong to their node"
+  ],
+  "limits": "Source catalogue checks; not a runtime reachability proof or a business E2E test."
+}

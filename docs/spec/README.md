@@ -2,6 +2,8 @@
 
 本目錄是退貨 Agent 團隊的唯一規格來源，定義 Agent workflow、reasoning、decision、Operational Memory 與 prompts。可執行的 LangGraph library 位於 [`packages/agent_runtime`](../../packages/agent_runtime/README.md)；外部元件只在此描述 Agent 所依賴的最小介面，不規範其內部實作。
 
+互動式工程導覽見 [System Architecture Explorer](../../presentation/README.md)：提供固定 commit 的 Service / LangGraph / DB / 前後端與 LLM call mapping、示意回放及離線 build。網站的版本以其 `baseline.json` 為準，不取代本規格或宣稱代表未合併功能。
+
 需要從空專案重建 API／DB／Agent Service／Web／部署及 A/B/C，請用 [完整重建規格包](../reconstruction/README.md)。該包是 commit `485048c` 的固定版本快照，附離線資產與驗證；本目錄繼續維護 Agent 細部設計，不把歷史快照當最新 runtime 規格。
 
 ## 目標

@@ -1,0 +1,13 @@
+{
+  "name": "team27-architecture-explorer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "python3 build.py",
+    "check": "node --check src/app.js && python3 build.py && node verify-content.mjs",
+    "test:browser": "node verify-browser.mjs"
+  },
+  "engines": { "node": ">=20" },
+  "devDependencies": { "playwright": "1.63.0" }
+}

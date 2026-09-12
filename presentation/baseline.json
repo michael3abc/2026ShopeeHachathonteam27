@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/michael3abc/2026ShopeeHachathonteam27",
+  "commit": "c70351e4a8f711698def4e5fd9cec28fdae215a9",
+  "branch": "main",
+  "analyzedAt": "2026-09-12",
+  "profiles": { "api": "integrated-demo", "agent": "integrated-qwen" },
+  "conditions": [
+    "API-backed HTTP Providers；Agent 使用 AsyncPostgresSaver 與 durable command journal。",
+    "LLM 與 embedding endpoint 必須另外配置；網站不會呼叫它們。",
+    "Order / Evidence 為 fixture provider；refund application 為 deterministic demo，無真實金流。",
+    "API 與 Agent 共用 reviewer-gates.json；正式 Human Review authentication 尚待整合。"
+  ]
+}

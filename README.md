@@ -1,9 +1,5 @@
 # Shopee Hackathon 2026 Agent Infrastructure
 
-此 working tree 已依使用者要求匯入既有實作，不再是 clean-room 重建成果。
-不沿用原專案測試結果作為本機驗收；reference/ 保持原樣。
-重建程式與未提交修改已另行保留備份；本分支提交的是既有實作整合。
-來源為 ShopeeHackthon2026 的 809a2b0，整合基底為本 repo 的 e568ce3。
 
 目前改動：Intake 區分買家主張與證據、Reviewer 明確排除 DECLINE 的
 return_decision 並區分證據 ID；Distiller 拒絕把系統缺陷或迎合 Reviewer

@@ -30,8 +30,9 @@ def read_env(path: Path) -> dict[str, str]:
     return values
 
 
-def environment() -> dict[str, str]:
-    values = {**read_env(ROOT / ".env"), **os.environ}
+def environment(env_file: Path | None = None, overrides: dict[str,str] | None = None) -> dict[str, str]:
+    env_file = env_file or ROOT / ".env"
+    values = {**(read_env(env_file) if env_file.exists() else {}), **os.environ, **(overrides or {})}
     for name in (
         "RETURN_AGENT_MODEL_BASE_URL", "RETURN_AGENT_MODEL_NAME",
         "RETURN_AGENT_MODEL_API_KEY_FILE", "RETURN_AGENT_EMBEDDING_BASE_URL",
@@ -42,28 +43,40 @@ def environment() -> dict[str, str]:
         if name.endswith("_FILE"):
             path = Path(values[name])
             if not path.is_absolute():
-                path = ROOT / path
+                path = env_file.parent / path
             if not path.is_file():
                 raise ValueError(f"{name} does not reference a local file")
             values[name] = str(path)
     if values.get("RETURN_AGENT_SERVICE_PROFILE") not in {"integrated-compass", "integrated-qwen"}:
         raise ValueError("An explicit live model profile is required; no demo fallback")
-    token = ROOT / "secrets/internal-service-token"
+    token = Path(values.get("RETURN_AGENT_INTERNAL_SERVICE_TOKEN_FILE",str(ROOT / "secrets/internal-service-token")))
+    if not token.is_absolute():
+        token = env_file.parent / token
     if not token.is_file():
         raise ValueError("Existing internal service token is required")
-    # Never inherit the rebuild's database URLs, port overrides, or Redis DB.
+    # Derive URLs only from this invocation's isolated ports, never inherited DB URLs.
+    defaults = dict(API_POSTGRES_PORT="58432",AGENT_POSTGRES_PORT="58433",REDIS_PORT="58379",
+        API_PORT="8200",AGENT_SERVICE_PORT="8290",WEB_PORT="3200",COMPOSE_PROJECT_NAME="team27-policy-v2-user-risk")
+    for key,value in defaults.items():
+        values.setdefault(key,value)
+    for key in defaults:
+        if key.endswith("PORT") and not 1 <= int(values[key]) <= 65535:
+            raise ValueError(f"{key} must be a valid port")
+    if not re.fullmatch(r"[a-z0-9][a-z0-9_-]*",values["COMPOSE_PROJECT_NAME"]):
+        raise ValueError("invalid Compose project name")
     values.update(
-        DATABASE_URL="postgresql+psycopg://return_agent_api:return_agent_api@127.0.0.1:55432/return_agent_api",
-        RETURN_AGENT_DATABASE_URL="postgresql://return_agent_graph:return_agent_graph@127.0.0.1:55433/return_agent_graph",
-        RETURN_AGENT_REDIS_URL="redis://127.0.0.1:56379/0",
-        API_POSTGRES_PORT="55432", AGENT_POSTGRES_PORT="55433", REDIS_PORT="56379",
+        DATABASE_URL=f"postgresql+psycopg://return_agent_api:return_agent_api@127.0.0.1:{values['API_POSTGRES_PORT']}/return_agent_api",
+        RETURN_AGENT_DATABASE_URL=f"postgresql://return_agent_graph:return_agent_graph@127.0.0.1:{values['AGENT_POSTGRES_PORT']}/return_agent_graph",
+        RETURN_AGENT_REDIS_URL=f"redis://127.0.0.1:{values['REDIS_PORT']}/0",
         RETURN_AGENT_API_PROFILE="integrated-demo",
-        RETURN_AGENT_API_BASE_URL="http://127.0.0.1:8000",
+        RETURN_AGENT_API_BASE_URL=f"http://127.0.0.1:{values['API_PORT']}",
         RETURN_AGENT_DEMO_DATA_DIR=str(ROOT / "data"),
         RETURN_AGENT_INTERNAL_SERVICE_TOKEN_FILE=str(token),
         RETURN_AGENT_REVIEW_GATE_CONFIG=str(ROOT / "config/reviewer-gates.json"),
-        RETURN_AGENT_SERVICE_HOST="127.0.0.1", RETURN_AGENT_SERVICE_PORT="8090",
-        API_BASE_URL="http://127.0.0.1:8000", LANGGRAPH_STRICT_MSGPACK="true",
+        RETURN_AGENT_USER_RISK_CONFIG=str(ROOT / "config/user-risk.json"),
+        RETURN_AGENT_SERVICE_HOST="127.0.0.1",
+        RETURN_AGENT_SERVICE_PORT=values["AGENT_SERVICE_PORT"],
+        API_BASE_URL=f"http://127.0.0.1:{values['API_PORT']}", LANGGRAPH_STRICT_MSGPACK="true",
     )
     values.pop("RETURN_AGENT_INTERNAL_SERVICE_TOKEN", None)
     return values
@@ -71,9 +84,16 @@ def environment() -> dict[str, str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("component", choices=("check-config", "infra", "migrate", "api", "agent", "web", "smoke"))
+    parser.add_argument("component", choices=("check-config", "infra", "migrate", "api", "agent", "web-build", "web", "smoke"))
+    parser.add_argument("--env-file",type=Path,default=ROOT/".env")
+    parser.add_argument("--project")
+    for port in ("api-postgres","agent-postgres","redis","api","agent-service","web"):
+        parser.add_argument("--"+port+"-port",type=int)
     args = parser.parse_args()
-    values = environment()
+    overrides = {key.upper():str(value) for key,value in vars(args).items() if key.endswith("_port") and value is not None}
+    if args.project:
+        overrides["COMPOSE_PROJECT_NAME"] = args.project
+    values = environment(args.env_file,overrides)
     os.chdir(ROOT)
     if args.component == "check-config":
         print("Configuration valid; local key files present (no network probe).")
@@ -89,10 +109,11 @@ def main() -> None:
         command.upgrade(config, "head")
         return
     commands = {
-        "infra": ["docker", "compose", "-p", "team27-imported", "-f", "docker-compose.yml", "up", "-d", "--wait", "--wait-timeout", "90", "api-db", "agent-db", "redis"],
-        "api": [sys.executable, "-m", "uvicorn", "return_agent.app:app", "--host", "127.0.0.1", "--port", "8000"],
+        "infra": ["docker", "compose", "-p", values["COMPOSE_PROJECT_NAME"], "-f", "docker-compose.yml", "up", "-d", "--wait", "--wait-timeout", "90", "api-db", "agent-db", "redis"],
+        "api": [sys.executable, "-m", "uvicorn", "return_agent.app:app", "--host", "127.0.0.1", "--port", values["API_PORT"]],
         "agent": [sys.executable, "-m", "return_agent_service.main"],
-        "web": ["npm", "--prefix", "apps/web", "run", "start", "--", "--hostname", "127.0.0.1"],
+        "web-build": ["npm", "--prefix", "apps/web", "run", "build"],
+        "web": ["npm", "--prefix", "apps/web", "run", "start", "--", "--hostname", "127.0.0.1", "--port", values["WEB_PORT"]],
         "smoke": [sys.executable, "scripts/run_no_ui_e2e.py", "--timeout", "300"],
     }
     command_args = commands[args.component]

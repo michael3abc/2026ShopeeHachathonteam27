@@ -3,12 +3,33 @@
 
 # 開發進度
 
-## Policy v2＋User Risk（2026-09-12，進行中）
+## Policy v2＋User Risk（2026-09-12，PR 交付）
 
 - 獨立分支 `feat/policy-v2-user-risk`，基底 `main@c70351e`，worktree `2026ShopeeHachathonteam27-policy-v2-user-risk`；保留來源 SPEC 與現有服務。
-- Contracts：固定四路徑 evaluator、registry v2、版本／scope／findings／consent binding、Decimal risk config／snapshot／gate、履約與 APPLIED event DTO。`make contracts` 與 96 個 contracts 測試通過。
-- API／Runtime／Web 尚在整合；目前新增 9 個履約測試通過，涵蓋核准未驗收零付款、合法免退、事件 binding／倒序／重送、config 改变與原 execution key 恢復。這不代表全部 PV2-AT 驗收完成。
-- 尚需補齊真模型 A–F／risk persona、瀏覽器、隔離 PostgreSQL／Redis migration 與多 worker 恢復證據。最終結果於本節續記；不更新固定 reconstruction 快照。
+- 已實作：四路徑 deterministic evaluator／registry v2、版本與 scope／findings／consent binding、雙 gates、完整 Policy 取回、exact Memory scope、獨立 Reviewer、人工 findings 重算、不可變 risk snapshots、退回履約／APPLIED、Agent durable join、角色登入與雙 SSE 投影。v1 保留；固定 reconstruction 快照未修改。
+- 額外修正：同意 request hash 綁 Policy／registry／完整規則內容；人審 dossier 比對 persisted snapshot 的 facts；PostgreSQL journal 初次並行 claim 改原子插入；Agent migration 支援 offline SQL；Web 正確區分 risk 授權與 revision exhaustion，支援原建議 APPROVE。
+- `make contracts`、Web contract generation 通過。`make check`：**579 passed、6 skipped**（contracts 119、API 249、runtime 111、Agent Service 73、跨服務 27）；skipped 的外部 DB／Redis cases 另跑下列隔離驗證。最後 launcher／Compose 9 tests 亦通過。
+- `make check-web`：23 unit tests、lint、production build 全通過；另 **12 Playwright browser tests** 通過。真瀏覽器確認 reviewer 可見 B2／HIGH2 risk dossier，buyer／operator 的 JSON、雙 SSE、narration 未洩漏，保留 cursor／source IDs。
+- 隔離實測：API PostgreSQL migration／多 worker 16、Agent PostgreSQL completion／replay 24、真 Redis／PG journal 3，全部通過。驗證 upgrade、offline SQL、非空 downgrade 保護、4 workers、事件重送、UNKNOWN reservation／原 key 恢復、ACK loss。scratch DB／schema 已清理，API head `0015`、Agent head `0002`。
+
+真模型使用 `compass-5.6-luna`；訂單、物流、Evidence metadata、退款 application 仍為 **synthetic Demo**。以下均走真 HTTP／PostgreSQL／Redis，已確認 ledger `APPLIED`；需退回的案例在驗收前皆未付款。
+
+| 案例 | case_ref | 結果與授權 | 開案至完成秒數 |
+| --- | --- | --- | --- |
+| A | CASE-3668FF05 | 拒絕 P01 替代後補件，P02＋LOW 0；退回驗收後 APPLIED | 729.1 |
+| B2 | CASE-6B8A3F1C | P02＋LOW 0，6000 TWD 金額 gate 先進人審；APPROVE、退回驗收後 APPLIED | 425.1 |
+| D | CASE-6772BC5B | P01、無損壞 claims；拒絕先驗收倒序事件，正常退回驗收後 APPLIED | 608.4 |
+| E | CASE-0E8F99AC | P03 比對成交 SKU，退回驗收後 APPLIED | 552.2 |
+| F | CASE-6DFA174B | P04 可信未交付、免退；APPLIED | 31.7 |
+| NORMAL | CASE-7A5CDA4A | LOW 0、自動授權，退回驗收後 APPLIED | 551.1 |
+| WATCH2 | CASE-5DDC3978 | MEDIUM 40、自動授權，退回驗收後 APPLIED | 336.9 |
+| HIGH2 | CASE-A0DE0D6B | HIGH 65、人審 APPROVE，仍須退回驗收後 APPLIED | 426.2 |
+
+耗時包含人工等待與多案排程，不是模型 latency benchmark。原 B `CASE-7271D023`、WATCH `CASE-B797EC18` 因舊合成證據的時間矛盾而 ESCALATED；HIGH `CASE-6CB903FA` 在模型提案邊界失敗（未保存例外細節，無法判定 transport／schema）。保留原案，另以新的、時間對齊的 synthetic artifacts 跑 B2／WATCH2／HIGH2，沒有改寫 terminal checkpoint 或舊證據。
+
+**未完成驗收**：C 真模型案例；B→C 學習未達成（B2 原提案可採用，未強造 EDIT，Memory IDs 為空）；最後 consent 規則包 hash 補強後的完整真模型重跑；本分支全部 Docker images 建置。這些是 PR 的剩餘驗收，不能宣稱全部 PV2-AT 與展示已完成。模型／embedding credentials 可用，本次沒有憑證阻塞。
+
+去敏 findings、evaluation、gates、履約、APPLIED、Memory join 與耗時保存於本 worktree 的 ignored `artifacts/policy-v2/`：`acceptance-summary.json`、各案 `*-audit.json`、`migration-recovery.{json,md}`、`runtime-audit.md`、`consent-binding-audit.md`、`web-privacy-*` 與測試 logs。Secrets 與 artifacts 不納入 Git；此進度表保留可分享的驗收摘要。
 
 此文件追蹤功能里程碑、測試結果與未完成項目。
 

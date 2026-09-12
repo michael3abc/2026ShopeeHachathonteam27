@@ -5,6 +5,8 @@
 
 此文件追蹤功能里程碑、測試結果與未完成項目。
 
+PostgreSQL CI 回滾驗證修正：當 `0013` 因既有 Activity 稽核歷程拒絕 downgrade 時，PostgreSQL 會將整筆交易還原至呼叫前 revision（含已升級的 `0014`），SQLite 則可能已完成前段 migration。測試依資料庫交易語意檢查 revision，並確認稽核事件筆數未減少；不放寬 migration 的保護条件。
+
 ## 2026-09-12 全流程 Memory 蒸餾驗證
 
 以下為獨立 `feat/enhance-memory-distill` worktree 的驗證，不變更下方重建里程碑歷史，也未部署或重啟既有服務。

@@ -95,13 +95,18 @@ def test_activity_migration_and_concurrent_sequences(tmp_path, monkeypatch):
             assert {event.seq for event in events} == set(range(1, 21))
         else:
             append(1)
+        with engine.connect() as connection:
+            version_before = connection.scalar(text("SELECT version_num FROM alembic_version"))
         with pytest.raises(RuntimeError, match="audit history"):
             command.downgrade(cfg, "0012_human_review_dossier")
         with engine.connect() as connection:
+            # PostgreSQL rolls back the entire downgrade transaction, including
+            # later migrations. SQLite may already have applied those migrations.
             assert (
                 connection.scalar(text("SELECT version_num FROM alembic_version"))
-                == "0013_activity_tracing"
+                == (version_before if engine.dialect.name == "postgresql" else "0013_activity_tracing")
             )
+            assert connection.scalar(text("SELECT count(*) FROM case_activities")) == (20 if admin else 1)
     finally:
         engine.dispose()
         if admin:

@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | T01 骨架與依賴 | 骨架驗證通過 | 四個 packages 可安裝；Python 3.12.0、uv.lock、npm lock；3 項架構／health 測試通過，Next build 通過，Compose config 通過。Docker daemon／映像建置未驗證。 |
 | T02 Contracts | 契約層驗證通過 | 192 份生成 schemas、TS、93 項契約測試；Domain／Provider／Runtime／Service events／UI／Activity／Memory。持久化與執行端驗證續於 T03–T08。 |
-| T03 API／DB | 未開始 | 待 T02。 |
+| T03 API／DB | 核心持久化通過 | 0001 migration、case create/get/messages/events、atomic outbox；9 項 PostgreSQL 測試通過。service event 投影接線續於 T06。 |
 | T04 能力／退款 | 未開始 | 待 T03。 |
 | T05 Graph | 未開始 | 待 T02。 |
 | T06 跨服務 | 未開始 | 待 T04、T05。 |
@@ -73,5 +73,13 @@ C01–C06、C10–C11 的上述**契約子案例**通過；C12–C13 僅已驗�
 
 - 新增 service events、Runtime result／interrupt、公開 case/events、Memory job/result、Activity 與 narration DTO。
 - Activity 排除 Memory 文字、raw object 與額外欄位；Narration 僅接受 facts summary，離線結果要求 text=null；event 必須綁定同 case/thread。
-- `uv run pytest -q`：96 項測試通過（93 contracts＋3 architecture）；完整命令 exit 0，執行時間見交接輸出。生成 192 份 schemas；Python schema check、TS drift check、typecheck、lint 均 exit 0。
+- `uv run pytest -q`：96 項測試通過（93 contracts＋3 architecture）；exit 0，2.73s。生成 192 份 schemas；Python schema check、TS drift check、typecheck、lint 均 exit 0。
 - 這些是契約與安全條件測試；C30–C36 的 Redis／SSE／背景工作時序仍待整合驗證。
+
+## T03 案件與交易
+
+- `TEST_API_DATABASE_URL=<local test DB> uv run pytest apps/api/tests -q`：exit 0，9 passed，1.83s。每項使用獨立測試 schema。
+- 驗證 empty migration／metadata parity、重跑 upgrade、create 與 resume 回滾無孤兒資料、兩個並行補件只有一次接受、409／422／404、公開回應不含 thread_id、case seq 的 user-turn 洞與終態 SSE replay。
+- 本機 API DB 已執行 `uv run alembic -c apps/api/alembic.ini upgrade head`，exit 0。
+- `.env` 已由使用者提供並授權用於真模型，檔案 mode 0600 且已忽略；僅檢查設定名稱與是否存在，不將秘密值加入輸出。
+- 尚未接通 command dispatcher／Agent worker；沒有退款 APPLIED、Memory Candidate 或真模型 A/B/C 證據。

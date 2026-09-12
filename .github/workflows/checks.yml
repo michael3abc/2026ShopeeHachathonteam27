@@ -3,6 +3,19 @@ on: [push, pull_request]
 jobs:
   deterministic:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: return_agent
+          POSTGRES_PASSWORD: local-demo
+          POSTGRES_DB: return_agent_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U return_agent -d return_agent_test"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      TEST_API_DATABASE_URL: postgresql+psycopg://return_agent:local-demo@127.0.0.1:5432/return_agent_test
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6

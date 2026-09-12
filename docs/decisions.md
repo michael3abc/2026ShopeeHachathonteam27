@@ -9,6 +9,6 @@
 | D05 | 首先交付 T01–T02，再按依賴前進 | 分別記錄骨架、契約、跨服務與真模型驗證，不把 health 或 mock 當作完整功能通過。 |
 | D06 | 不新增 LICENSE、不部署公開服務 | 公開可見性不代表選定授權條款；此次授權限 repo 與實作。 |
 | D07 | Python 為跨服務契約單一來源 | 從 Pydantic 產生 JSON Schema 與 TypeScript；CI 檢查 drift。 |
-| D08 | CaseDetail 文字與 schema 差異待確認 | 文字要求最新 Memory／final，公開 schema 沒有對應欄位。已提出保持 schema、由持久化 events replay 還原的解讀；目前尚未實作该 API。 |
+| D08 | CaseDetail 維持案件與待辦快照，Memory／結果由 events replay 還原 | 採已提出的預設解讀；保留既有 HTTP 欄位與獨立 cursor，不添加隱含的公開欄位。 |
 
 版本差異、外部限制與後續確認均在此記錄。

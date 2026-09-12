@@ -2,7 +2,7 @@
 
 內部退貨案件 Demo，整合證據審核、人工裁決與經驗學習。使用合成資料與模擬退款，不接真實金流。
 
-T01 骨架已驗證，T02 契約正在實作，案件互動尚未完成；進度與實際驗證見 [進度紀錄](docs/progress.md)，資產使用與差異見 [決策紀錄](docs/decisions.md)。
+T01 骨架與 T02 契約層已驗證；T03 已提供案件建立、查詢、補件及事件 replay，Agent workers 尚未接通。進度與實際驗證見 [進度紀錄](docs/progress.md)，技術選擇見 [決策紀錄](docs/decisions.md)。
 
 ## 開發環境
 
@@ -39,7 +39,17 @@ docker compose up -d api-db agent-db redis
 docker compose --profile app up --build
 ```
 
-Compose 的資料庫密碼是明示的本機示範值；連接埠只綁 loopback。尚未實作 migration、fixture seed 或 A/B/C driver，容器啟動僅代表基礎服務可用。
+Compose 的資料庫密碼是明示的本機示範值；連接埠只綁 loopback。容器啟動僅代表基礎服務可用。
+
+啟用目前的持久化案件 API：
+
+```bash
+export API_DATABASE_URL=postgresql+psycopg://return_agent:local-demo@127.0.0.1:5432/return_agent
+uv run alembic -c apps/api/alembic.ini upgrade head
+API_PROFILE=integrated-demo uv run return-agent-api
+```
+
+`POST /cases` 建立案件與 START outbox；`GET /cases/{case_ref}` 查詢 canonical 狀態；`POST /cases/{case_ref}/messages` 只在等待澄清／證據時接受。`GET /cases/{case_ref}/events` 支援 Last-Event-ID replay，終態 drain 後關閉。workers 尚未接通，因此新案目前會保持 OBSERVING，不會自動退款。
 
 ## 驗證
 
@@ -51,6 +61,14 @@ npm --prefix apps/web run lint
 npm --prefix apps/web run typecheck
 npm --prefix apps/web run build
 ```
+
+PostgreSQL 整合測試必須明確指定本機測試 DB：
+
+```bash
+TEST_API_DATABASE_URL=postgresql+psycopg://return_agent:local-demo@127.0.0.1:5432/return_agent uv run pytest apps/api/tests -q
+```
+
+每個測試建立自己的 `team27_test_*` schema、跑 migration，結束後僅清理該 schema。未指定測試 DB 時會明確 SKIP；CI 提供獨立 PostgreSQL service，不依賴真模型。
 
 測試使用合成資料，安裝、建置與測試所需檔案均包含在專案中。真模型驗收獨立啟用，不列入 CI 必要條件。
 
@@ -70,4 +88,4 @@ API 不執行 Runtime；API 與 Agent 以 Redis Streams 交換案件命令／事
 
 ## 設定與秘密值
 
-複製 `.env.example` 作為本機設定參考；目前骨架僅讀取 host/port，完整 composition 尚未接線。模型、embedding 與 internal token 使用後續 `_FILE` 設定，檔案放忽略的 `secrets/`。勿將真實 token、個資、DB dump 或原始模型 payload 提交到 Git。
+`.env.example` 列出本機設定。API 目前讀取程序環境中的 profile、DB、host/port；模型、embedding 與 internal token 的 `_FILE` 設定將隨完整 composition 接線。秘密檔案放忽略的 `secrets/`，勿將真實 token、個資、DB dump 或原始模型 payload 提交到 Git。

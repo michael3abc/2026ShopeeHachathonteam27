@@ -1,4 +1,4 @@
-"""New synthetic examples; no imported reference fixtures or source data."""
+"""Synthetic order, evidence and review scenarios for deterministic tests."""
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -33,10 +33,10 @@ def scenario():
     findings += [ClaimFinding(claim_id="ITEM_PHYSICALLY_DAMAGED", subject=item, status="SUPPORTED", explanation="外殼裂痕", supporting_evidence_refs=[f"evidence-{item}"]) for item in ("LI-001", "LI-002")]
     handoff = ProposedDecisionHandoff(
         handoff_id="proposal-test-0", handoff_version="1.0", case_ref=context.case_ref,
-        agent_prompt_version="reconstruction-resolver:1", claim_registry_version=REGISTRY_VERSION,
+        agent_prompt_version="resolver:1", claim_registry_version=REGISTRY_VERSION,
         order_snapshot_ref=order.order_snapshot_ref, policy_bundle_version=policy.policy_bundle_version,
         policy_refs=["clause-test"], evidence_bundle=evidence, rationale_summary="依品項判斷全額退款", revision_round=0,
         proposed_decision=FullRefundProposedDecision(action="FULL_REFUND", amount=Decimal("1200"), currency="TWD", reason_code="ITEM_DAMAGED", policy_refs=["clause-test"], evidence_refs=["evidence-LI-002"], refund_scope=NonEmptyRefundScope(line_item_ids=["LI-002"]), return_decision=ModelJudgmentReturnDecision(source="MODEL_JUDGMENT", requirement=RequiredReturnRequirement(required=True, reason_code="RETURN_REQUIRED_FOR_INSPECTION"))),
     )
-    review = ApprovedReviewResult(verdict="APPROVE", reviewed_at=now, reviewer_prompt_version="reconstruction-reviewer:1", reviewer_claim_findings=findings)
+    review = ApprovedReviewResult(verdict="APPROVE", reviewed_at=now, reviewer_prompt_version="reviewer:1", reviewer_claim_findings=findings)
     return {"now": now, "context": context, "order": order, "policy": policy, "evidence": evidence, "findings": findings, "claimed": ["LI-001", "LI-002"], "handoff": handoff, "review": review}

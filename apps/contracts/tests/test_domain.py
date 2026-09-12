@@ -25,7 +25,7 @@ from return_agent_contracts.validation import (
 
 
 def revised(s):
-    return RevisedReviewResult(verdict="REVISE", reviewer_prompt_version="reconstruction-reviewer:1", reviewed_at=s["now"], reviewer_claim_findings=s["findings"], revision_reasons=[RevisionReason(code="RETURN_REQUIREMENT_INCONSISTENT", subject="LI-002", message="應重新評估實體退回的必要性", required_change="依退回成本修正退回要求", policy_refs=["clause-test"])])
+    return RevisedReviewResult(verdict="REVISE", reviewer_prompt_version="reviewer:1", reviewed_at=s["now"], reviewer_claim_findings=s["findings"], revision_reasons=[RevisionReason(code="RETURN_REQUIREMENT_INCONSISTENT", subject="LI-002", message="應重新評估實體退回的必要性", required_change="依退回成本修正退回要求", policy_refs=["clause-test"])])
 
 
 def dossier(s, *, budget=False):

@@ -1,4 +1,4 @@
-"""Domain contracts authored for this reconstruction. No persistence or I/O."""
+"""Typed return-case domain contracts, without persistence or I/O."""
 from typing import Annotated, Literal, Self
 
 from pydantic import Field, WithJsonSchema, model_validator

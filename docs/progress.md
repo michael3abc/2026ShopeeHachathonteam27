@@ -1,6 +1,6 @@
-# 重建進度
+# 開發進度
 
-這是本專案的執行紀錄，不沿用規格包的驗證結論。
+此文件追蹤功能里程碑、測試結果與未完成項目。
 
 | 任務 | 狀態 | 證據／未完成 |
 | --- | --- | --- |
@@ -21,7 +21,7 @@ C01–C36 及 SYS/M01–M08 所有 R 規則目前均尚未驗證。實作時逐�
 
 ## 執行前置檢查
 
-- 目錄原本不是 Git repository；只有本機規格、AGENTS.md 與忽略規則。
+- Git 使用 main 分支，依通過測試的邏輯里程碑提交。
 - 系統：Ubuntu 24.04；Git 2.43.0；Python 3.12.3。
 - PATH 未找到 gh、uv、Node/npm、Docker；sudo 無免密碼權限。
 - gh 2.100.0、uv 0.12.13、Python 3.12.0、Node 24.21.0、npm 11.19.0 已安裝於使用者目錄。
@@ -46,8 +46,6 @@ C01–C36 及 SYS/M01–M08 所有 R 規則目前均尚未驗證。實作時逐�
 C01–C36、Docker build、DB／Redis／SSE 與 A/B/C 均未驗證。
 
 ## T02 核心契約里程碑
-
-輸入規格 manifest 的 SHA256：`e24534c773ff8abd4818568aad4076c8dc1105b47fdeaa8277777b8e8a0ab1c5`。只用於識別本機唯讀規格；測試資料是本次撰寫。
 
 - `uv run pytest -q`：exit 0；**77 passed**（74 contracts＋3 architecture），1.66s；第三方 deprecation warning 1 筆。
 - `uv run return-agent-export-schemas --check`：exit 0；112 schemas 無 drift。

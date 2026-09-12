@@ -1,0 +1,43 @@
+sequenceDiagram
+  participant U as 使用者／Web
+  participant A as Case API／API DB
+  participant Q as Redis Streams
+  participant S as Agent Service／checkpoint
+  participant P as API Providers／LLM
+  participant B as 背景 Memory／narration
+  U->>A: POST case
+  A->>A: 同 transaction：case + START outbox
+  A->>Q: publish START（可重送）
+  Q->>S: journal claim / run
+  S->>Q: node / model / tool STARTED
+  Q->>A: activity append + per-case seq
+  A-->>U: Activity SSE（操作完成前可見 start）
+  S->>P: parse / context / policy / summary / memory / assess
+  P-->>S: typed output + validation
+  S->>S: evidence interrupt + checkpoint
+  S->>Q: PAUSED / INTERRUPTED
+  Q->>A: project AWAITING_EVIDENCE / ACK
+  A-->>U: case event SSE
+  U->>A: POST artifacts
+  A->>Q: RESUME outbox
+  Q->>S: resume same thread
+  S->>P: resolve / new summary / replace memory / assess / propose / verify / review
+  alt 金額 gate 或 revision budget 需人工
+    S->>A: persist dossier + review_ref
+    S->>S: HUMAN_REVIEW interrupt
+    U->>A: 綁 pending handoff 的 APPROVE / EDIT / REJECT
+    A->>A: validate + persist decision + RESUME outbox
+    A->>Q: RESUME
+    Q->>S: fetch stored human result（不再 Reviewer）
+  end
+  S->>Q: ResolutionHandoff / completed node summaries
+  Q->>A: validate resolution authorization
+  A->>A: reserve items / apply idempotently / persist result
+  A-->>U: RESOLVED 或 ESCALATED；case SSE 結束
+  Q->>B: Memory job / narration outbox jobs
+  B->>P: 蒸餾或僅 source facts 解說
+  B->>A: candidate + embedding atomic submission
+  B->>Q: background result / late narration
+  Q->>A: persist activity / dedup / ACK
+  A-->>U: Activity SSE 仍持續
+  Note over A,B: Candidate 必須另經人工核准才供 C 查詢；terminal 不表示背景全完成

@@ -1,0 +1,182 @@
+[
+  {
+    "description": "Graph node: load_case_context. Read-only and safe to retry.",
+    "operation": "load_case_context",
+    "parameters": [
+      {
+        "name": "case_ref",
+        "type": "OpaqueRef"
+      }
+    ],
+    "provider": "CaseContextProvider",
+    "returns": "CaseContextLoadResult"
+  },
+  {
+    "description": "Graph node: retrieve_policy. Read-only and safe to retry.",
+    "operation": "retrieve_policy",
+    "parameters": [
+      {
+        "name": "case_context",
+        "type": "CaseContext"
+      },
+      {
+        "name": "order_snapshot",
+        "type": "OrderSnapshot"
+      },
+      {
+        "name": "reason_code",
+        "type": "ReasonCode"
+      },
+      {
+        "name": "claimed_line_item_ids",
+        "type": "Sequence[OpaqueRef]"
+      }
+    ],
+    "provider": "PolicyProvider",
+    "returns": "PolicyBundle"
+  },
+  {
+    "description": "Graph node: external_verification. Safe to retry for the same handoff.",
+    "operation": "verify",
+    "parameters": [
+      {
+        "name": "handoff",
+        "type": "ProposedDecisionHandoff"
+      }
+    ],
+    "provider": "VerificationProvider",
+    "returns": "VerificationResult"
+  },
+  {
+    "description": "Graph interrupt boundary for submitting and polling human review.",
+    "operation": "submit_for_review",
+    "parameters": [
+      {
+        "name": "handoff",
+        "type": "ProposedDecisionHandoff"
+      },
+      {
+        "name": "review",
+        "type": "ReviewResult"
+      },
+      {
+        "name": "dossier",
+        "type": "HumanReviewDossier | None"
+      }
+    ],
+    "provider": "HumanReviewProvider",
+    "returns": "OpaqueRef"
+  },
+  {
+    "description": "Graph interrupt boundary for submitting and polling human review.",
+    "operation": "fetch_result",
+    "parameters": [
+      {
+        "name": "review_ref",
+        "type": "OpaqueRef"
+      }
+    ],
+    "provider": "HumanReviewProvider",
+    "returns": "HumanReviewResult | None"
+  },
+  {
+    "description": "External approved-memory store and candidate submission boundary.",
+    "operation": "query_approved",
+    "parameters": [
+      {
+        "name": "query_summary",
+        "type": "NonEmptyText"
+      },
+      {
+        "name": "market",
+        "type": "NonEmptyText"
+      },
+      {
+        "name": "reason_code",
+        "type": "ReasonCode"
+      },
+      {
+        "name": "required_claim_ids",
+        "type": "Sequence[ClaimId]"
+      },
+      {
+        "name": "categories",
+        "type": "Sequence[OpaqueRef]"
+      },
+      {
+        "name": "policy_versions",
+        "type": "Sequence[OpaqueRef]"
+      },
+      {
+        "name": "claim_registry_major",
+        "type": "PositiveInt"
+      },
+      {
+        "name": "top_k",
+        "type": "PositiveInt"
+      }
+    ],
+    "provider": "OperationalMemoryStore",
+    "returns": "Sequence[MemorySearchHit]"
+  },
+  {
+    "description": "External approved-memory store and candidate submission boundary.",
+    "operation": "submit_candidate",
+    "parameters": [
+      {
+        "name": "candidate",
+        "type": "MemoryCandidate"
+      }
+    ],
+    "provider": "OperationalMemoryStore",
+    "returns": "OpaqueRef"
+  },
+  {
+    "description": "Resolve an uploaded artifact reference into neutral evidence metadata.",
+    "operation": "resolve",
+    "parameters": [
+      {
+        "name": "artifact_ref",
+        "type": "OpaqueRef"
+      }
+    ],
+    "provider": "EvidenceProvider",
+    "returns": "EvidenceItem"
+  },
+  {
+    "description": "Trusted Backend boundary; not a graph tool or public frontend API.",
+    "operation": "execute",
+    "parameters": [
+      {
+        "name": "request",
+        "type": "ExecuteRefundRequest"
+      }
+    ],
+    "provider": "RefundExecutionProvider",
+    "returns": "RefundExecutionRecord"
+  },
+  {
+    "description": "Trusted Backend boundary; not a graph tool or public frontend API.",
+    "operation": "get_status",
+    "parameters": [
+      {
+        "name": "execution_ref",
+        "type": "OpaqueRef"
+      }
+    ],
+    "provider": "RefundExecutionProvider",
+    "returns": "RefundExecutionRecord | None"
+  },
+  {
+    "description": "Allen-owned idempotent mutation of canonical order/case state.",
+    "operation": "apply",
+    "parameters": [
+      {
+        "name": "request",
+        "type": "ApplyRefundRequest"
+      }
+    ],
+    "provider": "RefundApplicationProvider",
+    "returns": "RefundApplicationResult"
+  }
+]

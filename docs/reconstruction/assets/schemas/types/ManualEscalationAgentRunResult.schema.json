@@ -1,0 +1,167 @@
+{
+  "$defs": {
+    "AccumulatedEscalationContext": {
+      "additionalProperties": false,
+      "properties": {
+        "clarification_round": {
+          "minimum": 0,
+          "title": "Clarification Round",
+          "type": "integer"
+        },
+        "evidence_round": {
+          "minimum": 0,
+          "title": "Evidence Round",
+          "type": "integer"
+        },
+        "review_history_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Review History Refs",
+          "type": "array"
+        },
+        "revision_round": {
+          "minimum": 0,
+          "title": "Revision Round",
+          "type": "integer"
+        },
+        "verification_issues": {
+          "items": {
+            "$ref": "#/$defs/VerificationIssue"
+          },
+          "title": "Verification Issues",
+          "type": "array"
+        },
+        "verification_round": {
+          "minimum": 0,
+          "title": "Verification Round",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "clarification_round",
+        "evidence_round",
+        "verification_round",
+        "revision_round"
+      ],
+      "title": "AccumulatedEscalationContext",
+      "type": "object"
+    },
+    "EscalationReason": {
+      "enum": [
+        "CLARIFICATION_BUDGET_EXCEEDED",
+        "EVIDENCE_BUDGET_EXCEEDED",
+        "VERIFICATION_BUDGET_EXCEEDED",
+        "REVISION_BUDGET_EXCEEDED",
+        "PROPOSE_BUDGET_EXCEEDED",
+        "VERIFICATION_UNAVAILABLE",
+        "POLICY_AMBIGUOUS",
+        "POLICY_NOT_FOUND",
+        "CONFLICTING_REVISIONS",
+        "CONTRACT_VIOLATION"
+      ],
+      "title": "EscalationReason",
+      "type": "string"
+    },
+    "ManualEscalationHandoff": {
+      "additionalProperties": false,
+      "properties": {
+        "accumulated_context": {
+          "$ref": "#/$defs/AccumulatedEscalationContext"
+        },
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Created At",
+          "type": "string"
+        },
+        "escalation_reason": {
+          "$ref": "#/$defs/EscalationReason"
+        },
+        "last_known_handoff_ref": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Known Handoff Ref"
+        },
+        "thread_id": {
+          "minLength": 1,
+          "title": "Thread Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "case_ref",
+        "thread_id",
+        "escalation_reason",
+        "accumulated_context",
+        "created_at"
+      ],
+      "title": "ManualEscalationHandoff",
+      "type": "object"
+    },
+    "VerificationIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "field_path": {
+          "minLength": 1,
+          "title": "Field Path",
+          "type": "string"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "field_path"
+      ],
+      "title": "VerificationIssue",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "manual_escalation": {
+      "$ref": "#/$defs/ManualEscalationHandoff"
+    },
+    "result_type": {
+      "const": "MANUAL_ESCALATION",
+      "title": "Result Type",
+      "type": "string"
+    },
+    "status": {
+      "const": "COMPLETED",
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "result_type",
+    "status",
+    "manual_escalation"
+  ],
+  "title": "ManualEscalationAgentRunResult",
+  "type": "object"
+}

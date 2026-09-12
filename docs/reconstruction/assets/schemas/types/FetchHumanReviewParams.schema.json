@@ -1,0 +1,15 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "review_ref": {
+      "minLength": 1,
+      "title": "Review Ref",
+      "type": "string"
+    }
+  },
+  "required": [
+    "review_ref"
+  ],
+  "title": "FetchHumanReviewParams",
+  "type": "object"
+}

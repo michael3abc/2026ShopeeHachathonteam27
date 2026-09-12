@@ -1,0 +1,39 @@
+[
+  {
+    "policy_family": "RETURNS-TW",
+    "version": "v1",
+    "source_ref": "repo://policy/returns-tw/v1",
+    "active": true,
+    "clauses": [
+      {
+        "clause_id": "RETURNS-TW:v1#damaged-audio-electronics",
+        "effective_from": "2026-01-01T00:00:00Z",
+        "effective_to": null,
+        "applicable_conditions": {
+          "markets": [
+            "TW"
+          ],
+          "reason_codes": [
+            "ITEM_DAMAGED"
+          ],
+          "categories": [
+            "CAT-AUDIO-SPEAKERS",
+            "CAT-AUDIO-HEADPHONES"
+          ]
+        },
+        "required_claim_ids": [
+          "DELIVERY_CONFIRMED",
+          "ORDER_WITHIN_RETURN_WINDOW",
+          "ITEM_PHYSICALLY_DAMAGED",
+          "DAMAGE_PRESENT_ON_ARRIVAL"
+        ],
+        "allowed_actions": [
+          "FULL_REFUND",
+          "DECLINE"
+        ],
+        "return_policy": "MODEL_JUDGMENT",
+        "text": "適用於台灣市場之音訊電子商品。買家應於商品送達後七日退貨申請期間內提出申請。若案件資料與有效證據足以建立商品確實存在實體損壞，且該損壞於商品送達買家時已存在，得核准該申請商品之全額退款；如申請已逾退貨期間、無法確認商品確實受損、無法確認損壞於到貨時已存在，或存在足以反駁上述事實之證據，則得拒絕退款。商品是否需要退回，應依商品損壞程度、可回收性、物流可行性及案件證據綜合判斷；不得僅因核准全額退款即推定商品必須退回或無須退回。"
+      }
+    ]
+  }
+]

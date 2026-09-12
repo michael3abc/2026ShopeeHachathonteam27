@@ -1,0 +1,27 @@
+FROM node:22-alpine AS dependencies
+
+WORKDIR /workspace/apps/web
+COPY apps/web/package.json apps/web/package-lock.json ./
+RUN npm ci
+
+FROM node:22-alpine AS builder
+
+ARG API_BASE_URL=http://api:8000
+ENV API_BASE_URL=$API_BASE_URL
+WORKDIR /workspace
+COPY --from=dependencies /workspace/apps/web/node_modules apps/web/node_modules
+COPY apps/contracts/schemas/ui/v1 apps/contracts/schemas/ui/v1
+COPY apps/web apps/web
+RUN cd apps/web && npm run build
+
+FROM node:22-alpine AS runner
+
+ENV NODE_ENV=production
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
+WORKDIR /app
+COPY --from=builder --chown=node:node /workspace/apps/web/.next/standalone ./
+COPY --from=builder --chown=node:node /workspace/apps/web/.next/static ./.next/static
+USER node
+EXPOSE 3000
+CMD ["node", "server.js"]

@@ -1,0 +1,15 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "result": {
+      "minLength": 1,
+      "title": "Result",
+      "type": "string"
+    }
+  },
+  "required": [
+    "result"
+  ],
+  "title": "SubmitMemoryCandidateResponse",
+  "type": "object"
+}

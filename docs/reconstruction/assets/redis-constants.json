@@ -1,0 +1,15 @@
+{
+  "ACTIVITY_GROUP": "activity-api-v1",
+  "ACTIVITY_STREAM": "return-agent.activities.v1",
+  "AGENT_COMMAND_DLQ_STREAM": "return-agent.commands.dlq.v1",
+  "AGENT_COMMAND_STREAM": "return-agent.commands.v1",
+  "AGENT_EVENT_STREAM": "return-agent.events.v1",
+  "AGENT_WORKER_CONSUMER_GROUP": "return-agent-workers-v1",
+  "MEMORY_ENQUEUE_CONSUMER_GROUP": "return-agent-memory-enqueuers-v1",
+  "MEMORY_EVENT_STREAM": "return-agent.memory-events.v1",
+  "MEMORY_JOB_DLQ_STREAM": "return-agent.memory-jobs.dlq.v1",
+  "MEMORY_JOB_STREAM": "return-agent.memory-jobs.v1",
+  "MEMORY_WORKER_CONSUMER_GROUP": "return-agent-memory-workers-v1",
+  "NARRATION_GROUP": "activity-narrator-v1",
+  "NARRATION_STREAM": "return-agent.narrations.v1"
+}

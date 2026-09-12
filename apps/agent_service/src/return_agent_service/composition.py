@@ -1,73 +1,193 @@
-import logging
-import threading
-from contextlib import contextmanager
-from dataclasses import replace
-from datetime import datetime, timezone
-from uuid import uuid4
+"""Agent service composition root."""
 
-from redis import Redis
+from __future__ import annotations
 
-from return_agent_contracts.domain import ReviewerGateConfig
-from return_agent_runtime.graph import ReturnRuntime
-from return_agent_runtime.ports import RuntimeDependencies
+import asyncio
+import os
+from contextlib import asynccontextmanager
 
-from .checkpoint import checkpoint_saver
-from .db import make_engine, make_sessions
-from .fake_model import TypedFakeModel
-from .journal import CommandJournal
-from .model import ModelSettings, StructuredModel
-from .providers import HttpProviders
-from .settings import Settings
-from .workers import CommandWorker, EventPublisher
+import httpx
+from fastapi import FastAPI
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from return_agent_contracts import (
+    HttpCaseContextProvider,
+    HttpEvidenceProvider,
+    HttpHumanReviewProvider,
+    HttpOperationalMemoryStore,
+    HttpPolicyProvider,
+    HttpVerificationProvider,
+)
+from return_agent_contracts.activity_observer import ObservedProvider
+from return_agent_contracts.review_gates import load_reviewer_gate_config
+from return_agent_runtime import (
+    AgentDependencies,
+    MemoryDistiller,
+    ReturnAgentRuntime,
+    create_checkpoint_serializer,
+)
+from return_agent_runtime.model import StructuredOutputModel
+from sqlalchemy import create_engine
+from sqlalchemy.engine import make_url
+
+from .activity_workers import ActivityPublisher, NarrationWorker
+from .app import ServiceResources, create_health_app
+from .broker import RedisStreamBroker
+from .journal import InMemoryCommandJournal, PostgresCommandJournal
+from .memory_enqueue_worker import MemoryEnqueueWorker
+from .memory_replay import SqlAlchemyMemoryReplayStore
+from .memory_supervision import MemoryRetryPolicy
+from .memory_worker import MemoryWorker
+from .settings import AgentServiceSettings
+from .worker import AgentWorker, ObservableAgentRuntime
 
 
-class AgentComposition:
-    def __init__(self, settings: Settings):
-        self.settings = settings
-        self.engine = make_engine(settings.database_url)
-        self.redis = Redis.from_url(settings.redis_url, decode_responses=True, socket_timeout=5, socket_connect_timeout=5)
-        self.providers = HttpProviders(settings.api_base_url, settings.internal_service_token.get_secret_value())
-        self.model = TypedFakeModel() if settings.profile == "integrated-demo" else StructuredModel(ModelSettings.from_env(host=settings.host_secrets))
-        self.journal = CommandJournal(make_sessions(self.engine))
-        self.stop = threading.Event()
-        self.threads, self.failures = [], {}
-        self.dependencies = RuntimeDependencies(model=self.model, context=self.providers, policy=self.providers, evidence=self.providers, verification=self.providers, human=self.providers, memory=self.providers, clock=lambda: datetime.now(timezone.utc), gates=ReviewerGateConfig())
+def activity_workers(
+    broker: RedisStreamBroker, model: StructuredOutputModel | None
+) -> tuple[ActivityPublisher, NarrationWorker]:
+    return (
+        ActivityPublisher(
+            broker.transport_client,
+            capacity=int(os.getenv("RETURN_AGENT_ACTIVITY_QUEUE_SIZE", "1024")),
+        ),
+        NarrationWorker(
+            broker.transport_client,
+            model,
+            timeout=float(os.getenv("RETURN_AGENT_NARRATION_TIMEOUT_SECONDS", "20")),
+            concurrency=int(os.getenv("RETURN_AGENT_NARRATION_CONCURRENCY", "2")),
+        ),
+    )
 
-    @contextmanager
-    def runtime(self, observer):
-        with checkpoint_saver(self.settings.database_url) as saver:
-            yield ReturnRuntime(replace(self.dependencies, observer=observer), saver)
 
-    def start(self):
-        with checkpoint_saver(self.settings.database_url) as saver:
-            saver.get_tuple({"configurable": {"thread_id": "readiness-probe"}})
-        def run(name, tick):
-            while not self.stop.is_set():
-                try:
-                    tick()
-                    self.failures[name] = False
-                except Exception:
-                    self.failures[name] = True
-                    logging.getLogger(__name__).warning("Worker %s unavailable; retrying in 2 seconds", name)
-                    self.stop.wait(2)
-                self.stop.wait(0.1)
-        tasks = {"event-publisher": EventPublisher(self.journal, self.redis).tick}
-        for index in range(self.settings.concurrency):
-            worker = CommandWorker(self.engine, self.journal, self.redis, self.runtime, consumer=f"agent-{uuid4().hex}-{index}")
-            tasks[f"command-{index}"] = worker.tick
-        for name, tick in tasks.items():
-            self.failures[name] = True
-            thread = threading.Thread(target=run, args=(name, tick), name=name, daemon=True)
-            self.threads.append(thread)
-            thread.start()
+def compose_service(
+    *,
+    settings: AgentServiceSettings,
+    runtime: ObservableAgentRuntime,
+) -> FastAPI:
+    """Compose transport around an injected runtime.
 
-    def ready(self):
-        return bool(self.threads) and all(thread.is_alive() for thread in self.threads) and not any(self.failures.values())
+    The in-memory journal is deliberately restricted to the demo profile.
+    Production composition must inject durable checkpoint/journal/provider
+    implementations in a later integration owned by their respective teams.
+    """
 
-    def close(self):
-        self.stop.set()
-        for thread in self.threads:
-            thread.join(5)
-        self.providers.close()
-        self.redis.close()
-        self.engine.dispose()
+    if settings.profile not in {"demo", "demo-qwen"}:
+        raise RuntimeError(
+            "production Agent service composition requires durable adapters"
+        )
+    broker = RedisStreamBroker.from_url(settings.redis_url)
+    narration_model = None if settings.profile == "demo" else runtime.dependencies.model
+    publisher, narrator = activity_workers(broker, narration_model)
+    worker = AgentWorker(
+        activity_sink=publisher.submit,
+        runtime=runtime,
+        broker=broker,
+        journal=InMemoryCommandJournal(),
+        consumer_name=settings.consumer_name,
+        block_ms=settings.block_ms,
+        reclaim_idle_ms=settings.reclaim_idle_ms,
+    )
+    return create_health_app(worker=worker, broker=broker, activity_publisher=publisher, narration_worker=narrator)
+
+
+def compose_integrated_service(
+    *,
+    settings: AgentServiceSettings,
+    model: object,
+) -> FastAPI:
+    """Compose Qwen with API-backed Providers and Agent-owned persistence."""
+
+    token = settings.internal_service_token
+    if not token or not token.strip():
+        raise RuntimeError("integrated service requires an internal service token")
+    if not settings.agent_database_url.strip() or not settings.api_base_url.strip():
+        raise RuntimeError("integrated service requires Agent DB and API URLs")
+    memory_retry = MemoryRetryPolicy(
+        settings.memory_retry_initial_seconds, settings.memory_retry_max_seconds
+    )
+
+    @asynccontextmanager
+    async def resources():
+        client = httpx.Client(timeout=settings.provider_timeout_seconds)
+        broker = RedisStreamBroker.from_url(settings.redis_url)
+        journal = PostgresCommandJournal(
+            settings.agent_database_url,
+            owner=settings.consumer_name,
+            lease_seconds=settings.command_lease_seconds,
+        )
+        replay_engine = create_engine(
+            make_url(settings.agent_database_url).set(drivername="postgresql+psycopg"),
+            pool_pre_ping=True,
+        )
+        replay_store = SqlAlchemyMemoryReplayStore(replay_engine)
+        try:
+            await asyncio.to_thread(replay_store.migrate)
+            await journal.setup()
+            async with AsyncPostgresSaver.from_conn_string(
+                settings.agent_database_url,
+                serde=create_checkpoint_serializer(),
+            ) as checkpointer:
+                await checkpointer.setup()
+                provider_args = {
+                    "base_url": settings.api_base_url,
+                    "service_token": token,
+                    "timeout_seconds": settings.provider_timeout_seconds,
+                    "client": client,
+                }
+                dependencies = AgentDependencies(
+                    reviewer_gate_config=load_reviewer_gate_config(os.environ.get("RETURN_AGENT_REVIEW_GATE_CONFIG")),
+                    model=model,
+                    case_context_provider=HttpCaseContextProvider(**provider_args),
+                    policy_provider=HttpPolicyProvider(**provider_args),
+                    verification_provider=HttpVerificationProvider(**provider_args),
+                    human_review_provider=HttpHumanReviewProvider(**provider_args),
+                    operational_memory_store=HttpOperationalMemoryStore(
+                        **provider_args
+                    ),
+                    evidence_provider=HttpEvidenceProvider(**provider_args),
+                )
+                runtime = ReturnAgentRuntime(dependencies, checkpointer)
+                publisher, narrator = activity_workers(broker, model)
+                worker = AgentWorker(
+                    activity_sink=publisher.submit,
+                    runtime=runtime,
+                    broker=broker,
+                    journal=journal,
+                    consumer_name=settings.consumer_name,
+                    block_ms=settings.block_ms,
+                    reclaim_idle_ms=settings.reclaim_idle_ms,
+                )
+                memory_enqueue_worker = MemoryEnqueueWorker(
+                    activity_sink=publisher.submit,
+                    input_provider=runtime,
+                    broker=broker,
+                    consumer_name=f"{settings.consumer_name}-memory-enqueue",
+                    block_ms=settings.block_ms,
+                    reclaim_idle_ms=settings.reclaim_idle_ms,
+                    retry_policy=memory_retry,
+                )
+                memory_worker = MemoryWorker(
+                    activity_sink=publisher.submit,
+                    distiller=MemoryDistiller(model=ObservedProvider(model, "model", "model")),
+                    store=ObservedProvider(dependencies.operational_memory_store, "operational_memory_store"),
+                    broker=broker,
+                    journal=journal,
+                    replay_store=replay_store,
+                    consumer_name=f"{settings.consumer_name}-memory",
+                    block_ms=settings.block_ms,
+                    reclaim_idle_ms=settings.reclaim_idle_ms,
+                    retry_policy=memory_retry,
+                )
+                yield ServiceResources(
+                    activity_publisher=publisher, narration_worker=narrator,
+                    worker=worker,
+                    broker=broker,
+                    memory_enqueue_worker=memory_enqueue_worker,
+                    memory_worker=memory_worker,
+                    ready=journal.ping,
+                )
+        finally:
+            client.close()
+            await journal.close()
+            await asyncio.to_thread(replay_engine.dispose)
+
+    return create_health_app(resource_factory=resources)

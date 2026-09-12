@@ -1,1 +1,1 @@
-"""Canonical case API and persistence boundary."""
+"""FastAPI backend and Provider implementation package."""

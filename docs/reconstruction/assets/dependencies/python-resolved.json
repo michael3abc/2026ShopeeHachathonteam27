@@ -1,0 +1,322 @@
+[
+  {
+    "name": "alembic",
+    "version": "1.19.2"
+  },
+  {
+    "name": "annotated-doc",
+    "version": "0.0.5"
+  },
+  {
+    "name": "annotated-types",
+    "version": "0.8.0"
+  },
+  {
+    "name": "anyio",
+    "version": "4.15.1"
+  },
+  {
+    "name": "attrs",
+    "version": "26.1.0"
+  },
+  {
+    "name": "certifi",
+    "version": "2026.7.22"
+  },
+  {
+    "name": "charset-normalizer",
+    "version": "3.5.1"
+  },
+  {
+    "name": "click",
+    "version": "8.5.0"
+  },
+  {
+    "name": "colorama",
+    "version": "0.4.6"
+  },
+  {
+    "name": "distro",
+    "version": "1.9.0"
+  },
+  {
+    "name": "fakeredis",
+    "version": "2.37.1"
+  },
+  {
+    "name": "fastapi",
+    "version": "0.141.1"
+  },
+  {
+    "name": "greenlet",
+    "version": "3.5.5"
+  },
+  {
+    "name": "h11",
+    "version": "0.16.0"
+  },
+  {
+    "name": "httpcore",
+    "version": "1.0.9"
+  },
+  {
+    "name": "httpcore2",
+    "version": "2.12.0"
+  },
+  {
+    "name": "httpx",
+    "version": "0.28.1"
+  },
+  {
+    "name": "httpx2",
+    "version": "2.12.0"
+  },
+  {
+    "name": "httpx2-jsfetch",
+    "version": "1.0"
+  },
+  {
+    "name": "idna",
+    "version": "3.19"
+  },
+  {
+    "name": "iniconfig",
+    "version": "2.3.0"
+  },
+  {
+    "name": "jiter",
+    "version": "0.16.0"
+  },
+  {
+    "name": "jsonpatch",
+    "version": "1.33"
+  },
+  {
+    "name": "jsonpointer",
+    "version": "3.1.1"
+  },
+  {
+    "name": "jsonschema",
+    "version": "4.26.0"
+  },
+  {
+    "name": "jsonschema-specifications",
+    "version": "2025.9.1"
+  },
+  {
+    "name": "langchain-core",
+    "version": "1.6.2"
+  },
+  {
+    "name": "langchain-openai",
+    "version": "1.6.0"
+  },
+  {
+    "name": "langchain-protocol",
+    "version": "0.0.19"
+  },
+  {
+    "name": "langgraph",
+    "version": "1.2.11"
+  },
+  {
+    "name": "langgraph-checkpoint",
+    "version": "4.2.0"
+  },
+  {
+    "name": "langgraph-checkpoint-postgres",
+    "version": "3.1.2"
+  },
+  {
+    "name": "langgraph-prebuilt",
+    "version": "1.1.0"
+  },
+  {
+    "name": "langgraph-sdk",
+    "version": "0.4.4"
+  },
+  {
+    "name": "langsmith",
+    "version": "0.12.2"
+  },
+  {
+    "name": "mako",
+    "version": "1.4.1"
+  },
+  {
+    "name": "markupsafe",
+    "version": "3.0.3"
+  },
+  {
+    "name": "openai",
+    "version": "2.54.0"
+  },
+  {
+    "name": "orjson",
+    "version": "3.12.0"
+  },
+  {
+    "name": "ormsgpack",
+    "version": "1.12.2"
+  },
+  {
+    "name": "packaging",
+    "version": "26.3"
+  },
+  {
+    "name": "pgvector",
+    "version": "0.5.0"
+  },
+  {
+    "name": "pluggy",
+    "version": "1.6.0"
+  },
+  {
+    "name": "psycopg",
+    "version": "3.3.5"
+  },
+  {
+    "name": "psycopg-binary",
+    "version": "3.3.5"
+  },
+  {
+    "name": "psycopg-pool",
+    "version": "3.3.1"
+  },
+  {
+    "name": "pydantic",
+    "version": "2.13.5"
+  },
+  {
+    "name": "pydantic-core",
+    "version": "2.46.5"
+  },
+  {
+    "name": "pygments",
+    "version": "2.21.0"
+  },
+  {
+    "name": "pytest",
+    "version": "8.4.2"
+  },
+  {
+    "name": "pytest-asyncio",
+    "version": "0.26.0"
+  },
+  {
+    "name": "pyyaml",
+    "version": "6.0.3"
+  },
+  {
+    "name": "redis",
+    "version": "6.4.0"
+  },
+  {
+    "name": "referencing",
+    "version": "0.37.0"
+  },
+  {
+    "name": "regex",
+    "version": "2026.9.3"
+  },
+  {
+    "name": "requests",
+    "version": "2.34.2"
+  },
+  {
+    "name": "requests-toolbelt",
+    "version": "1.0.0"
+  },
+  {
+    "name": "respx",
+    "version": "0.23.1"
+  },
+  {
+    "name": "return-agent-api",
+    "version": "0.1.0"
+  },
+  {
+    "name": "return-agent-contracts",
+    "version": "0.1.0"
+  },
+  {
+    "name": "return-agent-runtime",
+    "version": "0.1.0"
+  },
+  {
+    "name": "return-agent-service",
+    "version": "0.1.0"
+  },
+  {
+    "name": "rpds-py",
+    "version": "2026.6.3"
+  },
+  {
+    "name": "sniffio",
+    "version": "1.3.1"
+  },
+  {
+    "name": "sortedcontainers",
+    "version": "2.4.0"
+  },
+  {
+    "name": "sqlalchemy",
+    "version": "2.0.52"
+  },
+  {
+    "name": "starlette",
+    "version": "1.6.0"
+  },
+  {
+    "name": "tenacity",
+    "version": "9.1.4"
+  },
+  {
+    "name": "tiktoken",
+    "version": "0.14.0"
+  },
+  {
+    "name": "tqdm",
+    "version": "4.70.0"
+  },
+  {
+    "name": "truststore",
+    "version": "0.10.4"
+  },
+  {
+    "name": "typing-extensions",
+    "version": "4.16.0"
+  },
+  {
+    "name": "typing-inspection",
+    "version": "0.4.4"
+  },
+  {
+    "name": "tzdata",
+    "version": "2026.3"
+  },
+  {
+    "name": "urllib3",
+    "version": "2.7.0"
+  },
+  {
+    "name": "uuid-utils",
+    "version": "0.17.0"
+  },
+  {
+    "name": "uvicorn",
+    "version": "0.52.4"
+  },
+  {
+    "name": "websockets",
+    "version": "16.1.1"
+  },
+  {
+    "name": "xxhash",
+    "version": "4.0.1"
+  },
+  {
+    "name": "zstandard",
+    "version": "0.25.0"
+  }
+]

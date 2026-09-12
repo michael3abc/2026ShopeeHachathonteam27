@@ -1,0 +1,200 @@
+{
+  "$defs": {
+    "CaseContext": {
+      "additionalProperties": false,
+      "properties": {
+        "case_opened_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Case Opened At",
+          "type": "string"
+        },
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "market": {
+          "minLength": 1,
+          "title": "Market",
+          "type": "string"
+        },
+        "order_ref": {
+          "minLength": 1,
+          "title": "Order Ref",
+          "type": "string"
+        },
+        "snapshot_version": {
+          "minimum": 1,
+          "title": "Snapshot Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "case_ref",
+        "order_ref",
+        "market",
+        "case_opened_at",
+        "snapshot_version"
+      ],
+      "title": "CaseContext",
+      "type": "object"
+    },
+    "OrderLineItem": {
+      "additionalProperties": false,
+      "properties": {
+        "category_ref": {
+          "minLength": 1,
+          "title": "Category Ref",
+          "type": "string"
+        },
+        "line_item_id": {
+          "minLength": 1,
+          "title": "Line Item Id",
+          "type": "string"
+        },
+        "quantity": {
+          "minimum": 1,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "refundable_amount": {
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+          "title": "Refundable Amount",
+          "type": "string"
+        },
+        "sku_ref": {
+          "minLength": 1,
+          "title": "Sku Ref",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "line_item_id",
+        "sku_ref",
+        "category_ref",
+        "title",
+        "quantity",
+        "refundable_amount"
+      ],
+      "title": "OrderLineItem",
+      "type": "object"
+    },
+    "OrderSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "already_refunded_amount": {
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+          "title": "Already Refunded Amount",
+          "type": "string"
+        },
+        "captured_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Captured At",
+          "type": "string"
+        },
+        "currency": {
+          "maxLength": 3,
+          "minLength": 3,
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "delivered_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Delivered At",
+          "type": "string"
+        },
+        "line_items": {
+          "items": {
+            "$ref": "#/$defs/OrderLineItem"
+          },
+          "minItems": 1,
+          "title": "Line Items",
+          "type": "array"
+        },
+        "order_ref": {
+          "minLength": 1,
+          "title": "Order Ref",
+          "type": "string"
+        },
+        "order_snapshot_ref": {
+          "minLength": 1,
+          "title": "Order Snapshot Ref",
+          "type": "string"
+        },
+        "refundable_amount_max": {
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+          "title": "Refundable Amount Max",
+          "type": "string"
+        },
+        "snapshot_version": {
+          "minimum": 1,
+          "title": "Snapshot Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "order_snapshot_ref",
+        "order_ref",
+        "snapshot_version",
+        "captured_at",
+        "currency",
+        "delivered_at",
+        "line_items",
+        "refundable_amount_max",
+        "already_refunded_amount"
+      ],
+      "title": "OrderSnapshot",
+      "type": "object"
+    },
+    "ReasonCode": {
+      "enum": [
+        "ITEM_DAMAGED",
+        "ITEM_NOT_AS_DESCRIBED",
+        "MISSING_ITEM",
+        "WRONG_ITEM",
+        "QUALITY_ISSUE",
+        "CHANGED_MIND"
+      ],
+      "title": "ReasonCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "case_context": {
+      "$ref": "#/$defs/CaseContext"
+    },
+    "claimed_line_item_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Claimed Line Item Ids",
+      "type": "array"
+    },
+    "order_snapshot": {
+      "$ref": "#/$defs/OrderSnapshot"
+    },
+    "reason_code": {
+      "$ref": "#/$defs/ReasonCode"
+    }
+  },
+  "required": [
+    "case_context",
+    "order_snapshot",
+    "reason_code",
+    "claimed_line_item_ids"
+  ],
+  "title": "RetrievePolicyParams",
+  "type": "object"
+}

@@ -1,0 +1,52 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "decision": {
+      "const": "REJECT",
+      "title": "Decision",
+      "type": "string"
+    },
+    "generalizable": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Generalizable"
+    },
+    "handoff_id": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Handoff Id"
+    },
+    "review_note": {
+      "minLength": 1,
+      "title": "Review Note",
+      "type": "string"
+    },
+    "reviewer_id": {
+      "default": "demo_reviewer",
+      "minLength": 1,
+      "title": "Reviewer Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "review_note",
+    "decision"
+  ],
+  "title": "RejectReviewDecision",
+  "type": "object"
+}

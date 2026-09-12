@@ -1,0 +1,27 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "minLength": 1,
+      "title": "Code",
+      "type": "string"
+    },
+    "field_path": {
+      "minLength": 1,
+      "title": "Field Path",
+      "type": "string"
+    },
+    "message": {
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    }
+  },
+  "required": [
+    "code",
+    "message",
+    "field_path"
+  ],
+  "title": "VerificationIssue",
+  "type": "object"
+}

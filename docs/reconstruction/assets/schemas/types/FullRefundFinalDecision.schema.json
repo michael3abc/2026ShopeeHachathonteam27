@@ -1,0 +1,251 @@
+{
+  "$defs": {
+    "HumanReviewReturnDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "requirement": {
+          "discriminator": {
+            "mapping": {
+              "False": "#/$defs/WaivedReturnRequirement",
+              "True": "#/$defs/RequiredReturnRequirement"
+            },
+            "propertyName": "required"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/RequiredReturnRequirement"
+            },
+            {
+              "$ref": "#/$defs/WaivedReturnRequirement"
+            }
+          ],
+          "title": "Requirement"
+        },
+        "source": {
+          "const": "HUMAN_REVIEW",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "requirement"
+      ],
+      "title": "HumanReviewReturnDecision",
+      "type": "object"
+    },
+    "ModelJudgmentReturnDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "requirement": {
+          "discriminator": {
+            "mapping": {
+              "False": "#/$defs/WaivedReturnRequirement",
+              "True": "#/$defs/RequiredReturnRequirement"
+            },
+            "propertyName": "required"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/RequiredReturnRequirement"
+            },
+            {
+              "$ref": "#/$defs/WaivedReturnRequirement"
+            }
+          ],
+          "title": "Requirement"
+        },
+        "source": {
+          "const": "MODEL_JUDGMENT",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "requirement"
+      ],
+      "title": "ModelJudgmentReturnDecision",
+      "type": "object"
+    },
+    "NonEmptyRefundScope": {
+      "additionalProperties": false,
+      "properties": {
+        "line_item_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Line Item Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "line_item_ids"
+      ],
+      "title": "NonEmptyRefundScope",
+      "type": "object"
+    },
+    "PolicyReturnDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "requirement": {
+          "discriminator": {
+            "mapping": {
+              "False": "#/$defs/WaivedReturnRequirement",
+              "True": "#/$defs/RequiredReturnRequirement"
+            },
+            "propertyName": "required"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/RequiredReturnRequirement"
+            },
+            {
+              "$ref": "#/$defs/WaivedReturnRequirement"
+            }
+          ],
+          "title": "Requirement"
+        },
+        "source": {
+          "const": "POLICY",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "requirement"
+      ],
+      "title": "PolicyReturnDecision",
+      "type": "object"
+    },
+    "ReasonCode": {
+      "enum": [
+        "ITEM_DAMAGED",
+        "ITEM_NOT_AS_DESCRIBED",
+        "MISSING_ITEM",
+        "WRONG_ITEM",
+        "QUALITY_ISSUE",
+        "CHANGED_MIND"
+      ],
+      "title": "ReasonCode",
+      "type": "string"
+    },
+    "RequiredReturnReasonCode": {
+      "enum": [
+        "RESALE_VALUE_RETAINED",
+        "RETURN_REQUIRED_FOR_INSPECTION"
+      ],
+      "title": "RequiredReturnReasonCode",
+      "type": "string"
+    },
+    "RequiredReturnRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "reason_code": {
+          "$ref": "#/$defs/RequiredReturnReasonCode"
+        },
+        "required": {
+          "const": true,
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "required",
+        "reason_code"
+      ],
+      "title": "RequiredReturnRequirement",
+      "type": "object"
+    },
+    "WaivedReturnReasonCode": {
+      "enum": [
+        "ITEM_UNSALVAGEABLE",
+        "HYGIENE_RISK",
+        "RETURN_UNECONOMICAL",
+        "EVIDENCE_SUFFICIENT_WITHOUT_RETURN"
+      ],
+      "title": "WaivedReturnReasonCode",
+      "type": "string"
+    },
+    "WaivedReturnRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "reason_code": {
+          "$ref": "#/$defs/WaivedReturnReasonCode"
+        },
+        "required": {
+          "const": false,
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "required",
+        "reason_code"
+      ],
+      "title": "WaivedReturnRequirement",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "const": "FULL_REFUND",
+      "title": "Action",
+      "type": "string"
+    },
+    "amount": {
+      "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+      "title": "Amount",
+      "type": "string"
+    },
+    "currency": {
+      "maxLength": 3,
+      "minLength": 3,
+      "pattern": "^[A-Z]{3}$",
+      "title": "Currency",
+      "type": "string"
+    },
+    "reason_code": {
+      "$ref": "#/$defs/ReasonCode"
+    },
+    "refund_scope": {
+      "$ref": "#/$defs/NonEmptyRefundScope"
+    },
+    "return_decision": {
+      "discriminator": {
+        "mapping": {
+          "HUMAN_REVIEW": "#/$defs/HumanReviewReturnDecision",
+          "MODEL_JUDGMENT": "#/$defs/ModelJudgmentReturnDecision",
+          "POLICY": "#/$defs/PolicyReturnDecision"
+        },
+        "propertyName": "source"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/PolicyReturnDecision"
+        },
+        {
+          "$ref": "#/$defs/ModelJudgmentReturnDecision"
+        },
+        {
+          "$ref": "#/$defs/HumanReviewReturnDecision"
+        }
+      ],
+      "title": "Return Decision"
+    }
+  },
+  "required": [
+    "action",
+    "refund_scope",
+    "amount",
+    "currency",
+    "return_decision",
+    "reason_code"
+  ],
+  "title": "FullRefundFinalDecision",
+  "type": "object"
+}

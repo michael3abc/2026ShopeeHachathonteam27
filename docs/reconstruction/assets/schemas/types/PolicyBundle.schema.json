@@ -1,0 +1,193 @@
+{
+  "$defs": {
+    "ApplicableConditions": {
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Categories",
+          "type": "array"
+        },
+        "markets": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Markets",
+          "type": "array"
+        },
+        "reason_codes": {
+          "items": {
+            "$ref": "#/$defs/ReasonCode"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        }
+      },
+      "title": "ApplicableConditions",
+      "type": "object"
+    },
+    "ClaimId": {
+      "enum": [
+        "DELIVERY_CONFIRMED",
+        "ORDER_WITHIN_RETURN_WINDOW",
+        "SHIPMENT_SEAL_INTACT",
+        "ITEM_PHYSICALLY_DAMAGED",
+        "DAMAGE_PRESENT_ON_ARRIVAL",
+        "ITEM_FUNCTIONALLY_IMPAIRED",
+        "ITEM_DIFFERS_FROM_LISTING",
+        "WRONG_ITEM_RECEIVED",
+        "ITEM_NOT_IN_SHIPMENT",
+        "ITEM_UNUSED"
+      ],
+      "title": "ClaimId",
+      "type": "string"
+    },
+    "PolicyClause": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_actions": {
+          "items": {
+            "$ref": "#/$defs/ResolutionAction"
+          },
+          "minItems": 1,
+          "title": "Allowed Actions",
+          "type": "array"
+        },
+        "applicable_conditions": {
+          "$ref": "#/$defs/ApplicableConditions"
+        },
+        "clause_id": {
+          "minLength": 1,
+          "title": "Clause Id",
+          "type": "string"
+        },
+        "effective_from": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Effective From",
+          "type": "string"
+        },
+        "effective_to": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effective To"
+        },
+        "policy_version": {
+          "minLength": 1,
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "required_claim_ids": {
+          "items": {
+            "$ref": "#/$defs/ClaimId"
+          },
+          "minItems": 1,
+          "title": "Required Claim Ids",
+          "type": "array"
+        },
+        "return_policy": {
+          "$ref": "#/$defs/ReturnPolicy"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "clause_id",
+        "policy_version",
+        "effective_from",
+        "applicable_conditions",
+        "required_claim_ids",
+        "allowed_actions",
+        "return_policy",
+        "text"
+      ],
+      "title": "PolicyClause",
+      "type": "object"
+    },
+    "ReasonCode": {
+      "enum": [
+        "ITEM_DAMAGED",
+        "ITEM_NOT_AS_DESCRIBED",
+        "MISSING_ITEM",
+        "WRONG_ITEM",
+        "QUALITY_ISSUE",
+        "CHANGED_MIND"
+      ],
+      "title": "ReasonCode",
+      "type": "string"
+    },
+    "ResolutionAction": {
+      "enum": [
+        "DECLINE",
+        "FULL_REFUND"
+      ],
+      "title": "ResolutionAction",
+      "type": "string"
+    },
+    "RetrievalStatus": {
+      "enum": [
+        "OK",
+        "AMBIGUOUS",
+        "NOT_FOUND"
+      ],
+      "title": "RetrievalStatus",
+      "type": "string"
+    },
+    "ReturnPolicy": {
+      "enum": [
+        "REQUIRED",
+        "NOT_REQUIRED",
+        "MODEL_JUDGMENT"
+      ],
+      "title": "ReturnPolicy",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "clauses": {
+      "items": {
+        "$ref": "#/$defs/PolicyClause"
+      },
+      "title": "Clauses",
+      "type": "array"
+    },
+    "policy_bundle_version": {
+      "minLength": 1,
+      "title": "Policy Bundle Version",
+      "type": "string"
+    },
+    "retrieval_status": {
+      "$ref": "#/$defs/RetrievalStatus"
+    },
+    "retrieved_at": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+      "title": "Retrieved At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "policy_bundle_version",
+    "retrieval_status",
+    "retrieved_at"
+  ],
+  "title": "PolicyBundle",
+  "type": "object"
+}

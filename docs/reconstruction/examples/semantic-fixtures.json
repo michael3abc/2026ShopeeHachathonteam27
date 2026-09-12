@@ -1,0 +1,1248 @@
+{
+  "activities": [
+    {
+      "attempt_id": "attempt-demo",
+      "case_ref": "CASE-001",
+      "event_id": "evt-start",
+      "job_id": null,
+      "node": "reviewer",
+      "occurred_at": "2026-09-01T10:00:00Z",
+      "operation_id": "op-review-node",
+      "parent_operation_id": null,
+      "payload": {
+        "duration_ms": null,
+        "error_code": null,
+        "facts": {
+          "action": null,
+          "count": null,
+          "finding_statuses": [],
+          "findings": [],
+          "next_node": null,
+          "outcome": null,
+          "reason_codes": [],
+          "references": [],
+          "revision_round": null,
+          "verdict": null
+        },
+        "inputs": null,
+        "model": null,
+        "name": "reviewer",
+        "phase": "STARTED",
+        "type": "node"
+      },
+      "run_id": "run-demo",
+      "schema_version": "1.0",
+      "scope": "CASE",
+      "seq": 1
+    },
+    {
+      "attempt_id": "attempt-demo",
+      "case_ref": "CASE-001",
+      "event_id": "evt-complete",
+      "job_id": null,
+      "node": "reviewer",
+      "occurred_at": "2026-09-01T10:00:00Z",
+      "operation_id": "op-review-node",
+      "parent_operation_id": null,
+      "payload": {
+        "duration_ms": 140,
+        "error_code": null,
+        "facts": {
+          "action": null,
+          "count": null,
+          "finding_statuses": [],
+          "findings": [],
+          "next_node": null,
+          "outcome": null,
+          "reason_codes": [],
+          "references": [],
+          "revision_round": null,
+          "verdict": null
+        },
+        "inputs": null,
+        "model": null,
+        "name": "reviewer",
+        "phase": "COMPLETED",
+        "type": "node"
+      },
+      "run_id": "run-demo",
+      "schema_version": "1.0",
+      "scope": "CASE",
+      "seq": 2
+    },
+    {
+      "attempt_id": "attempt-demo",
+      "case_ref": "CASE-001",
+      "event_id": "evt-summary",
+      "job_id": null,
+      "node": "reviewer",
+      "occurred_at": "2026-09-01T10:00:00Z",
+      "operation_id": "op-review-node",
+      "parent_operation_id": null,
+      "payload": {
+        "facts": {
+          "action": null,
+          "count": null,
+          "finding_statuses": [],
+          "findings": [],
+          "next_node": "emit_resolution_handoff",
+          "outcome": null,
+          "reason_codes": [],
+          "references": [],
+          "revision_round": null,
+          "verdict": "APPROVE"
+        },
+        "memory_retrieval": null,
+        "review_gate": null,
+        "type": "node_summary"
+      },
+      "run_id": "run-demo",
+      "schema_version": "1.0",
+      "scope": "CASE",
+      "seq": 3
+    },
+    {
+      "attempt_id": "attempt-demo",
+      "case_ref": "CASE-001",
+      "event_id": "evt-disabled",
+      "job_id": null,
+      "node": "reviewer",
+      "occurred_at": "2026-09-01T10:00:00Z",
+      "operation_id": "op-review-node",
+      "parent_operation_id": null,
+      "payload": {
+        "error_code": "NARRATION_DISABLED_OFFLINE_DEMO",
+        "source_event_id": "evt-summary",
+        "status": "UNAVAILABLE",
+        "text": null,
+        "type": "narration"
+      },
+      "run_id": "run-demo",
+      "schema_version": "1.0",
+      "scope": "CASE",
+      "seq": 4
+    }
+  ],
+  "amount_dossier": {
+    "claim_registry_version": "claim-registry:1.0",
+    "claimed_line_item_ids": [
+      "LI-002"
+    ],
+    "order_snapshot": {
+      "already_refunded_amount": "0",
+      "captured_at": "2026-09-01T10:00:00Z",
+      "currency": "TWD",
+      "delivered_at": "2026-08-25T09:00:00Z",
+      "line_items": [
+        {
+          "category_ref": "CAT-AUDIO-HEADPHONES",
+          "line_item_id": "LI-001",
+          "quantity": 1,
+          "refundable_amount": "700",
+          "sku_ref": "SKU-A",
+          "title": "Headphones"
+        },
+        {
+          "category_ref": "CAT-AUDIO-SPEAKERS",
+          "line_item_id": "LI-002",
+          "quantity": 1,
+          "refundable_amount": "6200",
+          "sku_ref": "SKU-B",
+          "title": "Speaker"
+        }
+      ],
+      "order_ref": "ORDER-001",
+      "order_snapshot_ref": "ORDER-001@12",
+      "refundable_amount_max": "6900",
+      "snapshot_version": 12
+    },
+    "policy_bundle": {
+      "clauses": [
+        {
+          "allowed_actions": [
+            "FULL_REFUND",
+            "DECLINE"
+          ],
+          "applicable_conditions": {
+            "categories": [
+              "CAT-AUDIO-SPEAKERS"
+            ],
+            "markets": [
+              "TW"
+            ],
+            "reason_codes": [
+              "ITEM_DAMAGED"
+            ]
+          },
+          "clause_id": "POLICY-12:v3#4.2",
+          "effective_from": "2026-01-01T00:00:00Z",
+          "effective_to": null,
+          "policy_version": "POLICY-12:v3",
+          "required_claim_ids": [
+            "DELIVERY_CONFIRMED",
+            "ORDER_WITHIN_RETURN_WINDOW",
+            "ITEM_PHYSICALLY_DAMAGED",
+            "DAMAGE_PRESENT_ON_ARRIVAL"
+          ],
+          "return_policy": "MODEL_JUDGMENT",
+          "text": "Delivered-damaged items may be refunded."
+        }
+      ],
+      "policy_bundle_version": "bundle:2026-09-01T10:00:05Z",
+      "retrieval_status": "OK",
+      "retrieved_at": "2026-09-01T10:00:05Z"
+    },
+    "proposal_history": [
+      {
+        "agent_prompt_version": "resolver:1.1",
+        "case_ref": "CASE-001",
+        "claim_registry_version": "claim-registry:1.0",
+        "evidence_bundle": [
+          {
+            "artifact_ref": "artifact://evidence/EV-002",
+            "collected_at": "2026-09-01T10:40:00Z",
+            "evidence_id": "EV-002",
+            "extracted_summary": "Packaging damage and item crack are both visible.",
+            "source": "USER",
+            "subject": "LI-002",
+            "type": "IMAGE"
+          }
+        ],
+        "handoff_id": "HANDOFF-001",
+        "handoff_version": "1.0",
+        "order_snapshot_ref": "ORDER-001@12",
+        "policy_bundle_version": "bundle:2026-09-01T10:00:05Z",
+        "policy_refs": [
+          "POLICY-12:v3#4.2"
+        ],
+        "proposed_decision": {
+          "action": "FULL_REFUND",
+          "amount": "6200",
+          "currency": "TWD",
+          "evidence_refs": [
+            "EV-002"
+          ],
+          "policy_refs": [
+            "POLICY-12:v3#4.2"
+          ],
+          "reason_code": "ITEM_DAMAGED",
+          "refund_scope": {
+            "line_item_ids": [
+              "LI-002"
+            ]
+          },
+          "return_decision": {
+            "requirement": {
+              "reason_code": "ITEM_UNSALVAGEABLE",
+              "required": false
+            },
+            "source": "MODEL_JUDGMENT"
+          }
+        },
+        "rationale_summary": "The required claims are supported.",
+        "revision_round": 0
+      }
+    ],
+    "review_gate": {
+      "amount": "6200",
+      "config_hash": "26a6dfea4700f4c3470c5172b848ae9c89f764a68664e5e1659b517248b55146",
+      "config_version": "reviewer-gates:1.0",
+      "currency": "TWD",
+      "reason": "HIGH_VALUE_ITEM",
+      "status": "HUMAN_REQUIRED",
+      "threshold": "5000"
+    },
+    "review_history": [
+      {
+        "reviewed_at": "2026-09-01T10:00:00Z",
+        "reviewer_claim_findings": [
+          {
+            "claim_id": "DELIVERY_CONFIRMED",
+            "explanation": "Delivered.",
+            "status": "SUPPORTED",
+            "subject": "ORDER",
+            "supporting_evidence_refs": [
+              "EV-SYS-001"
+            ]
+          },
+          {
+            "claim_id": "ORDER_WITHIN_RETURN_WINDOW",
+            "explanation": "Within window.",
+            "status": "SUPPORTED",
+            "subject": "ORDER",
+            "supporting_evidence_refs": [
+              "EV-SYS-002"
+            ]
+          },
+          {
+            "claim_id": "ITEM_PHYSICALLY_DAMAGED",
+            "explanation": "Damage visible.",
+            "status": "SUPPORTED",
+            "subject": "LI-002",
+            "supporting_evidence_refs": [
+              "EV-002"
+            ]
+          },
+          {
+            "claim_id": "DAMAGE_PRESENT_ON_ARRIVAL",
+            "explanation": "Packaging and damage match.",
+            "status": "SUPPORTED",
+            "subject": "LI-002",
+            "supporting_evidence_refs": [
+              "EV-002"
+            ]
+          }
+        ],
+        "reviewer_prompt_version": "reviewer:2.1",
+        "revision_reasons": [],
+        "verdict": "APPROVE"
+      }
+    ],
+    "revision_events": [],
+    "routing_reason": "HIGH_VALUE_ITEM"
+  },
+  "assessment": {
+    "claim_findings": [
+      {
+        "claim_id": "DELIVERY_CONFIRMED",
+        "explanation": "Delivered.",
+        "status": "SUPPORTED",
+        "subject": "ORDER",
+        "supporting_evidence_refs": [
+          "EV-SYS-001"
+        ]
+      },
+      {
+        "claim_id": "ORDER_WITHIN_RETURN_WINDOW",
+        "explanation": "Within window.",
+        "status": "SUPPORTED",
+        "subject": "ORDER",
+        "supporting_evidence_refs": [
+          "EV-SYS-002"
+        ]
+      },
+      {
+        "claim_id": "ITEM_PHYSICALLY_DAMAGED",
+        "explanation": "Damage visible.",
+        "status": "SUPPORTED",
+        "subject": "LI-002",
+        "supporting_evidence_refs": [
+          "EV-002"
+        ]
+      },
+      {
+        "claim_id": "DAMAGE_PRESENT_ON_ARRIVAL",
+        "explanation": "Packaging and damage match.",
+        "status": "SUPPORTED",
+        "subject": "LI-002",
+        "supporting_evidence_refs": [
+          "EV-002"
+        ]
+      }
+    ],
+    "claim_registry_version": "claim-registry:1.0",
+    "evidence_status": "SUFFICIENT_FOR_APPROVAL"
+  },
+  "candidate": {
+    "claim_registry_version": "claim-registry:1.0",
+    "confidence": 0.72,
+    "memory_id": "MEM-001",
+    "policy_version": "POLICY-12:v3",
+    "rationale": "A human correction showed this reduces repeated evidence rounds.",
+    "recommended_behavior": "Request all missing evidence in one EvidenceRequest.",
+    "retrieval_summary": "Damaged-item evidence is incomplete; request the required evidence together.",
+    "scope": {
+      "categories": [
+        "CAT-AUDIO-SPEAKERS"
+      ],
+      "claim_ids": [
+        "DAMAGE_PRESENT_ON_ARRIVAL"
+      ],
+      "market": "TW",
+      "reason_codes": [
+        "ITEM_DAMAGED"
+      ]
+    },
+    "source_case_refs": [
+      "CASE-005"
+    ],
+    "source_revision_event_refs": [
+      "REV-001"
+    ],
+    "status": "CANDIDATE",
+    "trigger_conditions": [
+      "Only a product close-up is available and two user-evidence claims are missing."
+    ]
+  },
+  "case_context": {
+    "case_opened_at": "2026-09-01T10:00:00Z",
+    "case_ref": "CASE-001",
+    "market": "TW",
+    "order_ref": "ORDER-001",
+    "snapshot_version": 3
+  },
+  "claimed_line_item_ids": [
+    "LI-002"
+  ],
+  "draft": {
+    "action": "FULL_REFUND",
+    "evidence_refs": [
+      "EV-002"
+    ],
+    "policy_refs": [
+      "POLICY-12:v3#4.2"
+    ],
+    "rationale_summary": "The required claims are supported.",
+    "reason_code": "ITEM_DAMAGED",
+    "refund_scope": {
+      "line_item_ids": [
+        "LI-002"
+      ]
+    },
+    "return_decision": {
+      "requirement": {
+        "reason_code": "ITEM_UNSALVAGEABLE",
+        "required": false
+      },
+      "source": "MODEL_JUDGMENT"
+    }
+  },
+  "handoff": {
+    "agent_prompt_version": "resolver:1.1",
+    "case_ref": "CASE-001",
+    "claim_registry_version": "claim-registry:1.0",
+    "evidence_bundle": [
+      {
+        "artifact_ref": "artifact://evidence/EV-002",
+        "collected_at": "2026-09-01T10:40:00Z",
+        "evidence_id": "EV-002",
+        "extracted_summary": "Packaging damage and item crack are both visible.",
+        "source": "USER",
+        "subject": "LI-002",
+        "type": "IMAGE"
+      }
+    ],
+    "handoff_id": "HANDOFF-001",
+    "handoff_version": "1.0",
+    "order_snapshot_ref": "ORDER-001@12",
+    "policy_bundle_version": "bundle:2026-09-01T10:00:05Z",
+    "policy_refs": [
+      "POLICY-12:v3#4.2"
+    ],
+    "proposed_decision": {
+      "action": "FULL_REFUND",
+      "amount": "1200",
+      "currency": "TWD",
+      "evidence_refs": [
+        "EV-002"
+      ],
+      "policy_refs": [
+        "POLICY-12:v3#4.2"
+      ],
+      "reason_code": "ITEM_DAMAGED",
+      "refund_scope": {
+        "line_item_ids": [
+          "LI-002"
+        ]
+      },
+      "return_decision": {
+        "requirement": {
+          "reason_code": "ITEM_UNSALVAGEABLE",
+          "required": false
+        },
+        "source": "MODEL_JUDGMENT"
+      }
+    },
+    "rationale_summary": "The required claims are supported.",
+    "revision_round": 0
+  },
+  "order_snapshot": {
+    "already_refunded_amount": "0",
+    "captured_at": "2026-09-01T10:00:00Z",
+    "currency": "TWD",
+    "delivered_at": "2026-08-25T09:00:00Z",
+    "line_items": [
+      {
+        "category_ref": "CAT-AUDIO-HEADPHONES",
+        "line_item_id": "LI-001",
+        "quantity": 1,
+        "refundable_amount": "700",
+        "sku_ref": "SKU-A",
+        "title": "Headphones"
+      },
+      {
+        "category_ref": "CAT-AUDIO-SPEAKERS",
+        "line_item_id": "LI-002",
+        "quantity": 1,
+        "refundable_amount": "1200",
+        "sku_ref": "SKU-B",
+        "title": "Speaker"
+      }
+    ],
+    "order_ref": "ORDER-001",
+    "order_snapshot_ref": "ORDER-001@12",
+    "refundable_amount_max": "1900",
+    "snapshot_version": 12
+  },
+  "policy_bundle": {
+    "clauses": [
+      {
+        "allowed_actions": [
+          "FULL_REFUND",
+          "DECLINE"
+        ],
+        "applicable_conditions": {
+          "categories": [
+            "CAT-AUDIO-SPEAKERS"
+          ],
+          "markets": [
+            "TW"
+          ],
+          "reason_codes": [
+            "ITEM_DAMAGED"
+          ]
+        },
+        "clause_id": "POLICY-12:v3#4.2",
+        "effective_from": "2026-01-01T00:00:00Z",
+        "effective_to": null,
+        "policy_version": "POLICY-12:v3",
+        "required_claim_ids": [
+          "DELIVERY_CONFIRMED",
+          "ORDER_WITHIN_RETURN_WINDOW",
+          "ITEM_PHYSICALLY_DAMAGED",
+          "DAMAGE_PRESENT_ON_ARRIVAL"
+        ],
+        "return_policy": "MODEL_JUDGMENT",
+        "text": "Delivered-damaged items may be refunded."
+      }
+    ],
+    "policy_bundle_version": "bundle:2026-09-01T10:00:05Z",
+    "retrieval_status": "OK",
+    "retrieved_at": "2026-09-01T10:00:05Z"
+  },
+  "review": {
+    "reviewed_at": "2026-09-01T10:00:00Z",
+    "reviewer_claim_findings": [
+      {
+        "claim_id": "DELIVERY_CONFIRMED",
+        "explanation": "Delivered.",
+        "status": "SUPPORTED",
+        "subject": "ORDER",
+        "supporting_evidence_refs": [
+          "EV-SYS-001"
+        ]
+      },
+      {
+        "claim_id": "ORDER_WITHIN_RETURN_WINDOW",
+        "explanation": "Within window.",
+        "status": "SUPPORTED",
+        "subject": "ORDER",
+        "supporting_evidence_refs": [
+          "EV-SYS-002"
+        ]
+      },
+      {
+        "claim_id": "ITEM_PHYSICALLY_DAMAGED",
+        "explanation": "Damage visible.",
+        "status": "SUPPORTED",
+        "subject": "LI-002",
+        "supporting_evidence_refs": [
+          "EV-002"
+        ]
+      },
+      {
+        "claim_id": "DAMAGE_PRESENT_ON_ARRIVAL",
+        "explanation": "Packaging and damage match.",
+        "status": "SUPPORTED",
+        "subject": "LI-002",
+        "supporting_evidence_refs": [
+          "EV-002"
+        ]
+      }
+    ],
+    "reviewer_prompt_version": "reviewer:2.1",
+    "revision_reasons": [],
+    "verdict": "APPROVE"
+  },
+  "revision_dossier": {
+    "claim_registry_version": "claim-registry:1.0",
+    "claimed_line_item_ids": [
+      "LI-002"
+    ],
+    "order_snapshot": {
+      "already_refunded_amount": "0",
+      "captured_at": "2026-09-01T10:00:00Z",
+      "currency": "TWD",
+      "delivered_at": "2026-08-25T09:00:00Z",
+      "line_items": [
+        {
+          "category_ref": "CAT-AUDIO-HEADPHONES",
+          "line_item_id": "LI-001",
+          "quantity": 1,
+          "refundable_amount": "700",
+          "sku_ref": "SKU-A",
+          "title": "Headphones"
+        },
+        {
+          "category_ref": "CAT-AUDIO-SPEAKERS",
+          "line_item_id": "LI-002",
+          "quantity": 1,
+          "refundable_amount": "1200",
+          "sku_ref": "SKU-B",
+          "title": "Speaker"
+        }
+      ],
+      "order_ref": "ORDER-001",
+      "order_snapshot_ref": "ORDER-001@12",
+      "refundable_amount_max": "1900",
+      "snapshot_version": 12
+    },
+    "policy_bundle": {
+      "clauses": [
+        {
+          "allowed_actions": [
+            "FULL_REFUND",
+            "DECLINE"
+          ],
+          "applicable_conditions": {
+            "categories": [
+              "CAT-AUDIO-SPEAKERS"
+            ],
+            "markets": [
+              "TW"
+            ],
+            "reason_codes": [
+              "ITEM_DAMAGED"
+            ]
+          },
+          "clause_id": "POLICY-12:v3#4.2",
+          "effective_from": "2026-01-01T00:00:00Z",
+          "effective_to": null,
+          "policy_version": "POLICY-12:v3",
+          "required_claim_ids": [
+            "DELIVERY_CONFIRMED",
+            "ORDER_WITHIN_RETURN_WINDOW",
+            "ITEM_PHYSICALLY_DAMAGED",
+            "DAMAGE_PRESENT_ON_ARRIVAL"
+          ],
+          "return_policy": "MODEL_JUDGMENT",
+          "text": "Delivered-damaged items may be refunded."
+        }
+      ],
+      "policy_bundle_version": "bundle:2026-09-01T10:00:05Z",
+      "retrieval_status": "OK",
+      "retrieved_at": "2026-09-01T10:00:05Z"
+    },
+    "proposal_history": [
+      {
+        "agent_prompt_version": "resolver:1.1",
+        "case_ref": "CASE-001",
+        "claim_registry_version": "claim-registry:1.0",
+        "evidence_bundle": [
+          {
+            "artifact_ref": "artifact://evidence/EV-002",
+            "collected_at": "2026-09-01T10:40:00Z",
+            "evidence_id": "EV-002",
+            "extracted_summary": "Packaging damage and item crack are both visible.",
+            "source": "USER",
+            "subject": "LI-002",
+            "type": "IMAGE"
+          }
+        ],
+        "handoff_id": "HANDOFF-ROUND-0",
+        "handoff_version": "1.0",
+        "order_snapshot_ref": "ORDER-001@12",
+        "policy_bundle_version": "bundle:2026-09-01T10:00:05Z",
+        "policy_refs": [
+          "POLICY-12:v3#4.2"
+        ],
+        "proposed_decision": {
+          "action": "FULL_REFUND",
+          "amount": "1200",
+          "currency": "TWD",
+          "evidence_refs": [
+            "EV-002"
+          ],
+          "policy_refs": [
+            "POLICY-12:v3#4.2"
+          ],
+          "reason_code": "ITEM_DAMAGED",
+          "refund_scope": {
+            "line_item_ids": [
+              "LI-002"
+            ]
+          },
+          "return_decision": {
+            "requirement": {
+              "reason_code": "ITEM_UNSALVAGEABLE",
+              "required": false
+            },
+            "source": "MODEL_JUDGMENT"
+          }
+        },
+        "rationale_summary": "The required claims are supported.",
+        "revision_round": 0
+      },
+      {
+        "agent_prompt_version": "resolver:1.1",
+        "case_ref": "CASE-001",
+        "claim_registry_version": "claim-registry:1.0",
+        "evidence_bundle": [
+          {
+            "artifact_ref": "artifact://evidence/EV-002",
+            "collected_at": "2026-09-01T10:40:00Z",
+            "evidence_id": "EV-002",
+            "extracted_summary": "Packaging damage and item crack are both visible.",
+            "source": "USER",
+            "subject": "LI-002",
+            "type": "IMAGE"
+          }
+        ],
+        "handoff_id": "HANDOFF-ROUND-1",
+        "handoff_version": "1.0",
+        "order_snapshot_ref": "ORDER-001@12",
+        "policy_bundle_version": "bundle:2026-09-01T10:00:05Z",
+        "policy_refs": [
+          "POLICY-12:v3#4.2"
+        ],
+        "proposed_decision": {
+          "action": "FULL_REFUND",
+          "amount": "1200",
+          "currency": "TWD",
+          "evidence_refs": [
+            "EV-002"
+          ],
+          "policy_refs": [
+            "POLICY-12:v3#4.2"
+          ],
+          "reason_code": "ITEM_DAMAGED",
+          "refund_scope": {
+            "line_item_ids": [
+              "LI-002"
+            ]
+          },
+          "return_decision": {
+            "requirement": {
+              "reason_code": "ITEM_UNSALVAGEABLE",
+              "required": false
+            },
+            "source": "MODEL_JUDGMENT"
+          }
+        },
+        "rationale_summary": "The required claims are supported.",
+        "revision_round": 1
+      },
+      {
+        "agent_prompt_version": "resolver:1.1",
+        "case_ref": "CASE-001",
+        "claim_registry_version": "claim-registry:1.0",
+        "evidence_bundle": [
+          {
+            "artifact_ref": "artifact://evidence/EV-002",
+            "collected_at": "2026-09-01T10:40:00Z",
+            "evidence_id": "EV-002",
+            "extracted_summary": "Packaging damage and item crack are both visible.",
+            "source": "USER",
+            "subject": "LI-002",
+            "type": "IMAGE"
+          }
+        ],
+        "handoff_id": "HANDOFF-ROUND-2",
+        "handoff_version": "1.0",
+        "order_snapshot_ref": "ORDER-001@12",
+        "policy_bundle_version": "bundle:2026-09-01T10:00:05Z",
+        "policy_refs": [
+          "POLICY-12:v3#4.2"
+        ],
+        "proposed_decision": {
+          "action": "FULL_REFUND",
+          "amount": "1200",
+          "currency": "TWD",
+          "evidence_refs": [
+            "EV-002"
+          ],
+          "policy_refs": [
+            "POLICY-12:v3#4.2"
+          ],
+          "reason_code": "ITEM_DAMAGED",
+          "refund_scope": {
+            "line_item_ids": [
+              "LI-002"
+            ]
+          },
+          "return_decision": {
+            "requirement": {
+              "reason_code": "ITEM_UNSALVAGEABLE",
+              "required": false
+            },
+            "source": "MODEL_JUDGMENT"
+          }
+        },
+        "rationale_summary": "The required claims are supported.",
+        "revision_round": 2
+      },
+      {
+        "agent_prompt_version": "resolver:1.1",
+        "case_ref": "CASE-001",
+        "claim_registry_version": "claim-registry:1.0",
+        "evidence_bundle": [
+          {
+            "artifact_ref": "artifact://evidence/EV-002",
+            "collected_at": "2026-09-01T10:40:00Z",
+            "evidence_id": "EV-002",
+            "extracted_summary": "Packaging damage and item crack are both visible.",
+            "source": "USER",
+            "subject": "LI-002",
+            "type": "IMAGE"
+          }
+        ],
+        "handoff_id": "HANDOFF-ROUND-3",
+        "handoff_version": "1.0",
+        "order_snapshot_ref": "ORDER-001@12",
+        "policy_bundle_version": "bundle:2026-09-01T10:00:05Z",
+        "policy_refs": [
+          "POLICY-12:v3#4.2"
+        ],
+        "proposed_decision": {
+          "action": "FULL_REFUND",
+          "amount": "1200",
+          "currency": "TWD",
+          "evidence_refs": [
+            "EV-002"
+          ],
+          "policy_refs": [
+            "POLICY-12:v3#4.2"
+          ],
+          "reason_code": "ITEM_DAMAGED",
+          "refund_scope": {
+            "line_item_ids": [
+              "LI-002"
+            ]
+          },
+          "return_decision": {
+            "requirement": {
+              "reason_code": "ITEM_UNSALVAGEABLE",
+              "required": false
+            },
+            "source": "MODEL_JUDGMENT"
+          }
+        },
+        "rationale_summary": "The required claims are supported.",
+        "revision_round": 3
+      }
+    ],
+    "review_gate": null,
+    "review_history": [
+      {
+        "reviewed_at": "2026-09-01T10:00:00Z",
+        "reviewer_claim_findings": [
+          {
+            "claim_id": "DELIVERY_CONFIRMED",
+            "explanation": "Delivered.",
+            "status": "SUPPORTED",
+            "subject": "ORDER",
+            "supporting_evidence_refs": [
+              "EV-SYS-001"
+            ]
+          },
+          {
+            "claim_id": "ORDER_WITHIN_RETURN_WINDOW",
+            "explanation": "Within window.",
+            "status": "SUPPORTED",
+            "subject": "ORDER",
+            "supporting_evidence_refs": [
+              "EV-SYS-002"
+            ]
+          },
+          {
+            "claim_id": "ITEM_PHYSICALLY_DAMAGED",
+            "explanation": "Damage visible.",
+            "status": "SUPPORTED",
+            "subject": "LI-002",
+            "supporting_evidence_refs": [
+              "EV-002"
+            ]
+          },
+          {
+            "claim_id": "DAMAGE_PRESENT_ON_ARRIVAL",
+            "explanation": "Packaging and damage match.",
+            "status": "SUPPORTED",
+            "subject": "LI-002",
+            "supporting_evidence_refs": [
+              "EV-002"
+            ]
+          }
+        ],
+        "reviewer_prompt_version": "reviewer:2.1",
+        "revision_reasons": [
+          {
+            "code": "DECISION_INCONSISTENT",
+            "evidence_refs": [],
+            "message": "The return explanation is not supported.",
+            "policy_refs": [
+              "POLICY-12:v3#4.2"
+            ],
+            "required_change": "Explain the return requirement using cited facts.",
+            "subject": "LI-002"
+          }
+        ],
+        "verdict": "REVISE"
+      },
+      {
+        "reviewed_at": "2026-09-01T10:00:00Z",
+        "reviewer_claim_findings": [
+          {
+            "claim_id": "DELIVERY_CONFIRMED",
+            "explanation": "Delivered.",
+            "status": "SUPPORTED",
+            "subject": "ORDER",
+            "supporting_evidence_refs": [
+              "EV-SYS-001"
+            ]
+          },
+          {
+            "claim_id": "ORDER_WITHIN_RETURN_WINDOW",
+            "explanation": "Within window.",
+            "status": "SUPPORTED",
+            "subject": "ORDER",
+            "supporting_evidence_refs": [
+              "EV-SYS-002"
+            ]
+          },
+          {
+            "claim_id": "ITEM_PHYSICALLY_DAMAGED",
+            "explanation": "Damage visible.",
+            "status": "SUPPORTED",
+            "subject": "LI-002",
+            "supporting_evidence_refs": [
+              "EV-002"
+            ]
+          },
+          {
+            "claim_id": "DAMAGE_PRESENT_ON_ARRIVAL",
+            "explanation": "Packaging and damage match.",
+            "status": "SUPPORTED",
+            "subject": "LI-002",
+            "supporting_evidence_refs": [
+              "EV-002"
+            ]
+          }
+        ],
+        "reviewer_prompt_version": "reviewer:2.1",
+        "revision_reasons": [
+          {
+            "code": "DECISION_INCONSISTENT",
+            "evidence_refs": [],
+            "message": "The return explanation is not supported.",
+            "policy_refs": [
+              "POLICY-12:v3#4.2"
+            ],
+            "required_change": "Explain the return requirement using cited facts.",
+            "subject": "LI-002"
+          }
+        ],
+        "verdict": "REVISE"
+      },
+      {
+        "reviewed_at": "2026-09-01T10:00:00Z",
+        "reviewer_claim_findings": [
+          {
+            "claim_id": "DELIVERY_CONFIRMED",
+            "explanation": "Delivered.",
+            "status": "SUPPORTED",
+            "subject": "ORDER",
+            "supporting_evidence_refs": [
+              "EV-SYS-001"
+            ]
+          },
+          {
+            "claim_id": "ORDER_WITHIN_RETURN_WINDOW",
+            "explanation": "Within window.",
+            "status": "SUPPORTED",
+            "subject": "ORDER",
+            "supporting_evidence_refs": [
+              "EV-SYS-002"
+            ]
+          },
+          {
+            "claim_id": "ITEM_PHYSICALLY_DAMAGED",
+            "explanation": "Damage visible.",
+            "status": "SUPPORTED",
+            "subject": "LI-002",
+            "supporting_evidence_refs": [
+              "EV-002"
+            ]
+          },
+          {
+            "claim_id": "DAMAGE_PRESENT_ON_ARRIVAL",
+            "explanation": "Packaging and damage match.",
+            "status": "SUPPORTED",
+            "subject": "LI-002",
+            "supporting_evidence_refs": [
+              "EV-002"
+            ]
+          }
+        ],
+        "reviewer_prompt_version": "reviewer:2.1",
+        "revision_reasons": [
+          {
+            "code": "DECISION_INCONSISTENT",
+            "evidence_refs": [],
+            "message": "The return explanation is not supported.",
+            "policy_refs": [
+              "POLICY-12:v3#4.2"
+            ],
+            "required_change": "Explain the return requirement using cited facts.",
+            "subject": "LI-002"
+          }
+        ],
+        "verdict": "REVISE"
+      },
+      {
+        "reviewed_at": "2026-09-01T10:00:00Z",
+        "reviewer_claim_findings": [
+          {
+            "claim_id": "DELIVERY_CONFIRMED",
+            "explanation": "Delivered.",
+            "status": "SUPPORTED",
+            "subject": "ORDER",
+            "supporting_evidence_refs": [
+              "EV-SYS-001"
+            ]
+          },
+          {
+            "claim_id": "ORDER_WITHIN_RETURN_WINDOW",
+            "explanation": "Within window.",
+            "status": "SUPPORTED",
+            "subject": "ORDER",
+            "supporting_evidence_refs": [
+              "EV-SYS-002"
+            ]
+          },
+          {
+            "claim_id": "ITEM_PHYSICALLY_DAMAGED",
+            "explanation": "Damage visible.",
+            "status": "SUPPORTED",
+            "subject": "LI-002",
+            "supporting_evidence_refs": [
+              "EV-002"
+            ]
+          },
+          {
+            "claim_id": "DAMAGE_PRESENT_ON_ARRIVAL",
+            "explanation": "Packaging and damage match.",
+            "status": "SUPPORTED",
+            "subject": "LI-002",
+            "supporting_evidence_refs": [
+              "EV-002"
+            ]
+          }
+        ],
+        "reviewer_prompt_version": "reviewer:2.1",
+        "revision_reasons": [
+          {
+            "code": "DECISION_INCONSISTENT",
+            "evidence_refs": [],
+            "message": "The return explanation is not supported.",
+            "policy_refs": [
+              "POLICY-12:v3#4.2"
+            ],
+            "required_change": "Explain the return requirement using cited facts.",
+            "subject": "LI-002"
+          }
+        ],
+        "verdict": "REVISE"
+      }
+    ],
+    "revision_events": [
+      {
+        "case_ref": "CASE-001",
+        "created_at": "2026-09-01T10:00:00Z",
+        "event_id": "REV-0",
+        "handoff_before_ref": "HANDOFF-ROUND-0",
+        "review_result": {
+          "reviewed_at": "2026-09-01T10:00:00Z",
+          "reviewer_claim_findings": [
+            {
+              "claim_id": "DELIVERY_CONFIRMED",
+              "explanation": "Delivered.",
+              "status": "SUPPORTED",
+              "subject": "ORDER",
+              "supporting_evidence_refs": [
+                "EV-SYS-001"
+              ]
+            },
+            {
+              "claim_id": "ORDER_WITHIN_RETURN_WINDOW",
+              "explanation": "Within window.",
+              "status": "SUPPORTED",
+              "subject": "ORDER",
+              "supporting_evidence_refs": [
+                "EV-SYS-002"
+              ]
+            },
+            {
+              "claim_id": "ITEM_PHYSICALLY_DAMAGED",
+              "explanation": "Damage visible.",
+              "status": "SUPPORTED",
+              "subject": "LI-002",
+              "supporting_evidence_refs": [
+                "EV-002"
+              ]
+            },
+            {
+              "claim_id": "DAMAGE_PRESENT_ON_ARRIVAL",
+              "explanation": "Packaging and damage match.",
+              "status": "SUPPORTED",
+              "subject": "LI-002",
+              "supporting_evidence_refs": [
+                "EV-002"
+              ]
+            }
+          ],
+          "reviewer_prompt_version": "reviewer:2.1",
+          "revision_reasons": [
+            {
+              "code": "DECISION_INCONSISTENT",
+              "evidence_refs": [],
+              "message": "The return explanation is not supported.",
+              "policy_refs": [
+                "POLICY-12:v3#4.2"
+              ],
+              "required_change": "Explain the return requirement using cited facts.",
+              "subject": "LI-002"
+            }
+          ],
+          "verdict": "REVISE"
+        },
+        "revision_round": 1
+      },
+      {
+        "case_ref": "CASE-001",
+        "created_at": "2026-09-01T10:00:00Z",
+        "event_id": "REV-1",
+        "handoff_before_ref": "HANDOFF-ROUND-1",
+        "review_result": {
+          "reviewed_at": "2026-09-01T10:00:00Z",
+          "reviewer_claim_findings": [
+            {
+              "claim_id": "DELIVERY_CONFIRMED",
+              "explanation": "Delivered.",
+              "status": "SUPPORTED",
+              "subject": "ORDER",
+              "supporting_evidence_refs": [
+                "EV-SYS-001"
+              ]
+            },
+            {
+              "claim_id": "ORDER_WITHIN_RETURN_WINDOW",
+              "explanation": "Within window.",
+              "status": "SUPPORTED",
+              "subject": "ORDER",
+              "supporting_evidence_refs": [
+                "EV-SYS-002"
+              ]
+            },
+            {
+              "claim_id": "ITEM_PHYSICALLY_DAMAGED",
+              "explanation": "Damage visible.",
+              "status": "SUPPORTED",
+              "subject": "LI-002",
+              "supporting_evidence_refs": [
+                "EV-002"
+              ]
+            },
+            {
+              "claim_id": "DAMAGE_PRESENT_ON_ARRIVAL",
+              "explanation": "Packaging and damage match.",
+              "status": "SUPPORTED",
+              "subject": "LI-002",
+              "supporting_evidence_refs": [
+                "EV-002"
+              ]
+            }
+          ],
+          "reviewer_prompt_version": "reviewer:2.1",
+          "revision_reasons": [
+            {
+              "code": "DECISION_INCONSISTENT",
+              "evidence_refs": [],
+              "message": "The return explanation is not supported.",
+              "policy_refs": [
+                "POLICY-12:v3#4.2"
+              ],
+              "required_change": "Explain the return requirement using cited facts.",
+              "subject": "LI-002"
+            }
+          ],
+          "verdict": "REVISE"
+        },
+        "revision_round": 2
+      },
+      {
+        "case_ref": "CASE-001",
+        "created_at": "2026-09-01T10:00:00Z",
+        "event_id": "REV-2",
+        "handoff_before_ref": "HANDOFF-ROUND-2",
+        "review_result": {
+          "reviewed_at": "2026-09-01T10:00:00Z",
+          "reviewer_claim_findings": [
+            {
+              "claim_id": "DELIVERY_CONFIRMED",
+              "explanation": "Delivered.",
+              "status": "SUPPORTED",
+              "subject": "ORDER",
+              "supporting_evidence_refs": [
+                "EV-SYS-001"
+              ]
+            },
+            {
+              "claim_id": "ORDER_WITHIN_RETURN_WINDOW",
+              "explanation": "Within window.",
+              "status": "SUPPORTED",
+              "subject": "ORDER",
+              "supporting_evidence_refs": [
+                "EV-SYS-002"
+              ]
+            },
+            {
+              "claim_id": "ITEM_PHYSICALLY_DAMAGED",
+              "explanation": "Damage visible.",
+              "status": "SUPPORTED",
+              "subject": "LI-002",
+              "supporting_evidence_refs": [
+                "EV-002"
+              ]
+            },
+            {
+              "claim_id": "DAMAGE_PRESENT_ON_ARRIVAL",
+              "explanation": "Packaging and damage match.",
+              "status": "SUPPORTED",
+              "subject": "LI-002",
+              "supporting_evidence_refs": [
+                "EV-002"
+              ]
+            }
+          ],
+          "reviewer_prompt_version": "reviewer:2.1",
+          "revision_reasons": [
+            {
+              "code": "DECISION_INCONSISTENT",
+              "evidence_refs": [],
+              "message": "The return explanation is not supported.",
+              "policy_refs": [
+                "POLICY-12:v3#4.2"
+              ],
+              "required_change": "Explain the return requirement using cited facts.",
+              "subject": "LI-002"
+            }
+          ],
+          "verdict": "REVISE"
+        },
+        "revision_round": 3
+      }
+    ],
+    "routing_reason": "REVISION_BUDGET_EXCEEDED"
+  },
+  "synthetic": true
+}

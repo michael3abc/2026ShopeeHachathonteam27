@@ -1,0 +1,32 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "arguments": {
+      "additionalProperties": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Arguments",
+      "type": "object"
+    },
+    "call_id": {
+      "minLength": 1,
+      "title": "Call Id",
+      "type": "string"
+    },
+    "tool_name": {
+      "minLength": 1,
+      "title": "Tool Name",
+      "type": "string"
+    }
+  },
+  "required": [
+    "call_id",
+    "tool_name"
+  ],
+  "title": "ToolCallPayload",
+  "type": "object"
+}

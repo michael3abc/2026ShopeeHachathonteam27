@@ -1,0 +1,54 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "clause_id": {
+      "minLength": 1,
+      "title": "Clause Id",
+      "type": "string"
+    },
+    "excerpt": {
+      "minLength": 1,
+      "title": "Excerpt",
+      "type": "string"
+    },
+    "policy_version": {
+      "minLength": 1,
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "relevance": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Relevance"
+    },
+    "title": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Title"
+    }
+  },
+  "required": [
+    "clause_id",
+    "policy_version",
+    "excerpt"
+  ],
+  "title": "PolicyDisplayRef",
+  "type": "object"
+}

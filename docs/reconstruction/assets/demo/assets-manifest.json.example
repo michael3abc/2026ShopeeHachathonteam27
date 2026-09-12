@@ -1,0 +1,192 @@
+{
+  "simulation_only": true,
+  "notes": [
+    "12 local images supplied; human review of image/summary agreement is still required.",
+    "Local files do not establish artifact URL availability or runtime image recognition."
+  ],
+  "assets": [
+    {
+      "case_id": "A",
+      "evidence_id": "EV-STUDY-A-CLOSEUP",
+      "artifact_ref": "artifact://demo-study/A/closeup",
+      "suggested_filename": "images/a/closeup.png",
+      "required": true,
+      "status": "LOCAL_FILE_PRESENT_PENDING_VERIFICATION",
+      "capture_requirements": "損壞近照，不能單獨證明到貨時點。 圖片须有 DEMO / AI-GENERATED 標示，依 prompt.md 固定外觀。",
+      "summary_status": "DRAFT_REQUIRES_HUMAN_VERIFICATION",
+      "artifact_resolvable": false,
+      "prompt_section": "prompt.md#case-a",
+      "local_path": "images/a/closeup.png"
+    },
+    {
+      "case_id": "A",
+      "evidence_id": "EV-STUDY-A-PACKAGE",
+      "artifact_ref": "artifact://demo-study/A/package",
+      "suggested_filename": "images/a/package.png",
+      "required": true,
+      "status": "LOCAL_FILE_PRESENT_PENDING_VERIFICATION",
+      "capture_requirements": "包裝與同一商品全景，不混用其他案件照片。 圖片须有 DEMO / AI-GENERATED 標示，依 prompt.md 固定外觀。",
+      "summary_status": "DRAFT_REQUIRES_HUMAN_VERIFICATION",
+      "artifact_resolvable": false,
+      "prompt_section": "prompt.md#case-a",
+      "local_path": "images/a/package.png"
+    },
+    {
+      "case_id": "A",
+      "evidence_id": "EV-STUDY-A-IDENTITY",
+      "artifact_ref": "artifact://demo-study/A/identity",
+      "suggested_filename": "images/a/identity.png",
+      "required": true,
+      "status": "LOCAL_FILE_PRESENT_PENDING_VERIFICATION",
+      "capture_requirements": "同一商品與包裝的合成識別資訊；遮蔽個資。 圖片须有 DEMO / AI-GENERATED 標示，依 prompt.md 固定外觀。",
+      "summary_status": "DRAFT_REQUIRES_HUMAN_VERIFICATION",
+      "artifact_resolvable": false,
+      "prompt_section": "prompt.md#case-a",
+      "local_path": "images/a/identity.png"
+    },
+    {
+      "case_id": "A",
+      "evidence_id": "EV-STUDY-A-ARRIVAL",
+      "artifact_ref": "artifact://demo-study/A/arrival",
+      "suggested_filename": "images/a/arrival.png",
+      "required": true,
+      "status": "LOCAL_FILE_PRESENT_PENDING_VERIFICATION",
+      "capture_requirements": "连续收貨／拆箱照片序列，清楚呈現商品一致性及未使用即有裂痕；不可只憑上傳時間判定。 圖片须有 DEMO / AI-GENERATED 標示，依 prompt.md 固定外觀。",
+      "summary_status": "DRAFT_REQUIRES_HUMAN_VERIFICATION",
+      "artifact_resolvable": false,
+      "prompt_section": "prompt.md#case-a",
+      "local_path": "images/a/arrival.png"
+    },
+    {
+      "case_id": "A",
+      "suggested_filename": "a/unboxing.mp4",
+      "required": false,
+      "status": "PENDING_HUMAN_ASSET",
+      "capture_requirements": "可選連續拆箱錄影；不注入 VIDEO evidence，人工選取截圖並核對 IMAGE summary。",
+      "artifact_resolvable": false,
+      "prompt_section": "prompt.md#case-a"
+    },
+    {
+      "case_id": "B",
+      "evidence_id": "EV-STUDY-B-CLOSEUP",
+      "artifact_ref": "artifact://demo-study/B/closeup",
+      "suggested_filename": "images/b/closeup.jpg",
+      "required": true,
+      "status": "LOCAL_FILE_PRESENT_PENDING_VERIFICATION",
+      "capture_requirements": "損壞近照，不能單獨證明到貨時點。 圖片须有 DEMO / AI-GENERATED 標示，依 prompt.md 固定外觀。",
+      "summary_status": "DRAFT_REQUIRES_HUMAN_VERIFICATION",
+      "artifact_resolvable": false,
+      "prompt_section": "prompt.md#case-b",
+      "local_path": "images/b/closeup.jpg"
+    },
+    {
+      "case_id": "B",
+      "evidence_id": "EV-STUDY-B-PACKAGE",
+      "artifact_ref": "artifact://demo-study/B/package",
+      "suggested_filename": "images/b/package.png",
+      "required": true,
+      "status": "LOCAL_FILE_PRESENT_PENDING_VERIFICATION",
+      "capture_requirements": "包裝與同一商品全景，不混用其他案件照片。 圖片须有 DEMO / AI-GENERATED 標示，依 prompt.md 固定外觀。",
+      "summary_status": "DRAFT_REQUIRES_HUMAN_VERIFICATION",
+      "artifact_resolvable": false,
+      "prompt_section": "prompt.md#case-b",
+      "local_path": "images/b/package.png"
+    },
+    {
+      "case_id": "B",
+      "evidence_id": "EV-STUDY-B-IDENTITY",
+      "artifact_ref": "artifact://demo-study/B/identity",
+      "suggested_filename": "images/b/identity.png",
+      "required": true,
+      "status": "LOCAL_FILE_PRESENT_PENDING_VERIFICATION",
+      "capture_requirements": "同一商品與包裝的合成識別資訊；遮蔽個資。 圖片须有 DEMO / AI-GENERATED 標示，依 prompt.md 固定外觀。",
+      "summary_status": "DRAFT_REQUIRES_HUMAN_VERIFICATION",
+      "artifact_resolvable": false,
+      "prompt_section": "prompt.md#case-b",
+      "local_path": "images/b/identity.png"
+    },
+    {
+      "case_id": "B",
+      "evidence_id": "EV-STUDY-B-ARRIVAL",
+      "artifact_ref": "artifact://demo-study/B/arrival",
+      "suggested_filename": "images/b/arrival.png",
+      "required": true,
+      "status": "LOCAL_FILE_PRESENT_PENDING_VERIFICATION",
+      "capture_requirements": "连续收貨／拆箱照片序列，清楚呈現商品一致性及未使用即有裂痕；不可只憑上傳時間判定。 圖片须有 DEMO / AI-GENERATED 標示，依 prompt.md 固定外觀。",
+      "summary_status": "DRAFT_REQUIRES_HUMAN_VERIFICATION",
+      "artifact_resolvable": false,
+      "prompt_section": "prompt.md#case-b",
+      "local_path": "images/b/arrival.png"
+    },
+    {
+      "case_id": "B",
+      "suggested_filename": "b/unboxing.mp4",
+      "required": false,
+      "status": "PENDING_HUMAN_ASSET",
+      "capture_requirements": "可選連續拆箱錄影；不注入 VIDEO evidence，人工選取截圖並核對 IMAGE summary。",
+      "artifact_resolvable": false,
+      "prompt_section": "prompt.md#case-b"
+    },
+    {
+      "case_id": "C",
+      "evidence_id": "EV-STUDY-C-CLOSEUP",
+      "artifact_ref": "artifact://demo-study/C/closeup",
+      "suggested_filename": "images/c/closeup.png",
+      "required": true,
+      "status": "LOCAL_FILE_PRESENT_PENDING_VERIFICATION",
+      "capture_requirements": "損壞近照，不能單獨證明到貨時點。 圖片须有 DEMO / AI-GENERATED 標示，依 prompt.md 固定外觀。",
+      "summary_status": "DRAFT_REQUIRES_HUMAN_VERIFICATION",
+      "artifact_resolvable": false,
+      "prompt_section": "prompt.md#case-c",
+      "local_path": "images/c/closeup.png"
+    },
+    {
+      "case_id": "C",
+      "evidence_id": "EV-STUDY-C-PACKAGE",
+      "artifact_ref": "artifact://demo-study/C/package",
+      "suggested_filename": "images/c/package.png",
+      "required": true,
+      "status": "LOCAL_FILE_PRESENT_PENDING_VERIFICATION",
+      "capture_requirements": "包裝與同一商品全景，不混用其他案件照片。 圖片须有 DEMO / AI-GENERATED 標示，依 prompt.md 固定外觀。",
+      "summary_status": "DRAFT_REQUIRES_HUMAN_VERIFICATION",
+      "artifact_resolvable": false,
+      "prompt_section": "prompt.md#case-c",
+      "local_path": "images/c/package.png"
+    },
+    {
+      "case_id": "C",
+      "evidence_id": "EV-STUDY-C-IDENTITY",
+      "artifact_ref": "artifact://demo-study/C/identity",
+      "suggested_filename": "images/c/identity.png",
+      "required": true,
+      "status": "LOCAL_FILE_PRESENT_PENDING_VERIFICATION",
+      "capture_requirements": "同一商品與包裝的合成識別資訊；遮蔽個資。 圖片须有 DEMO / AI-GENERATED 標示，依 prompt.md 固定外觀。",
+      "summary_status": "DRAFT_REQUIRES_HUMAN_VERIFICATION",
+      "artifact_resolvable": false,
+      "prompt_section": "prompt.md#case-c",
+      "local_path": "images/c/identity.png"
+    },
+    {
+      "case_id": "C",
+      "evidence_id": "EV-STUDY-C-ARRIVAL",
+      "artifact_ref": "artifact://demo-study/C/arrival",
+      "suggested_filename": "images/c/arrival.png",
+      "required": true,
+      "status": "LOCAL_FILE_PRESENT_PENDING_VERIFICATION",
+      "capture_requirements": "连续收貨／拆箱照片序列，清楚呈現商品一致性及未使用即有裂痕；不可只憑上傳時間判定。 圖片须有 DEMO / AI-GENERATED 標示，依 prompt.md 固定外觀。",
+      "summary_status": "DRAFT_REQUIRES_HUMAN_VERIFICATION",
+      "artifact_resolvable": false,
+      "prompt_section": "prompt.md#case-c",
+      "local_path": "images/c/arrival.png"
+    },
+    {
+      "case_id": "C",
+      "suggested_filename": "c/unboxing.mp4",
+      "required": false,
+      "status": "PENDING_HUMAN_ASSET",
+      "capture_requirements": "可選連續拆箱錄影；不注入 VIDEO evidence，人工選取截圖並核對 IMAGE summary。",
+      "artifact_resolvable": false,
+      "prompt_section": "prompt.md#case-c"
+    }
+  ]
+}

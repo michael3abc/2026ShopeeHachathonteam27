@@ -1,0 +1,9 @@
+{
+  "operations_contract_version": "v1",
+  "schemas": [
+    "ApplyRefundRequest.schema.json",
+    "RefundApplicationResult.schema.json",
+    "ExecuteRefundRequest.schema.json",
+    "RefundExecutionRecord.schema.json"
+  ]
+}

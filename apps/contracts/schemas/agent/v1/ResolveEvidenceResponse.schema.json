@@ -1,0 +1,83 @@
+{
+  "$defs": {
+    "EvidenceItem": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_ref": {
+          "minLength": 1,
+          "title": "Artifact Ref",
+          "type": "string"
+        },
+        "collected_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Collected At",
+          "type": "string"
+        },
+        "evidence_id": {
+          "minLength": 1,
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "extracted_summary": {
+          "minLength": 1,
+          "title": "Extracted Summary",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/EvidenceSource"
+        },
+        "subject": {
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/EvidenceType"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "type",
+        "source",
+        "subject",
+        "artifact_ref",
+        "extracted_summary",
+        "collected_at"
+      ],
+      "title": "EvidenceItem",
+      "type": "object"
+    },
+    "EvidenceSource": {
+      "enum": [
+        "USER",
+        "ORDER_TOOL",
+        "LOGISTICS_TOOL",
+        "SYSTEM"
+      ],
+      "title": "EvidenceSource",
+      "type": "string"
+    },
+    "EvidenceType": {
+      "enum": [
+        "IMAGE",
+        "VIDEO",
+        "TEXT",
+        "DOCUMENT"
+      ],
+      "title": "EvidenceType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "result": {
+      "$ref": "#/$defs/EvidenceItem"
+    }
+  },
+  "required": [
+    "result"
+  ],
+  "title": "ResolveEvidenceResponse",
+  "type": "object"
+}

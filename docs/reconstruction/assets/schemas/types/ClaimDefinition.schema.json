@@ -1,0 +1,97 @@
+{
+  "$defs": {
+    "ClaimId": {
+      "enum": [
+        "DELIVERY_CONFIRMED",
+        "ORDER_WITHIN_RETURN_WINDOW",
+        "SHIPMENT_SEAL_INTACT",
+        "ITEM_PHYSICALLY_DAMAGED",
+        "DAMAGE_PRESENT_ON_ARRIVAL",
+        "ITEM_FUNCTIONALLY_IMPAIRED",
+        "ITEM_DIFFERS_FROM_LISTING",
+        "WRONG_ITEM_RECEIVED",
+        "ITEM_NOT_IN_SHIPMENT",
+        "ITEM_UNUSED"
+      ],
+      "title": "ClaimId",
+      "type": "string"
+    },
+    "EvidenceType": {
+      "enum": [
+        "IMAGE",
+        "VIDEO",
+        "TEXT",
+        "DOCUMENT"
+      ],
+      "title": "EvidenceType",
+      "type": "string"
+    },
+    "SatisfiableBy": {
+      "enum": [
+        "SYSTEM_FACTS",
+        "USER_EVIDENCE"
+      ],
+      "title": "SatisfiableBy",
+      "type": "string"
+    },
+    "SubjectScope": {
+      "enum": [
+        "ORDER",
+        "LINE_ITEM"
+      ],
+      "title": "SubjectScope",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "accepted_evidence_types": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/EvidenceType"
+      },
+      "title": "Accepted Evidence Types",
+      "type": "array"
+    },
+    "claim_id": {
+      "$ref": "#/$defs/ClaimId"
+    },
+    "description": {
+      "minLength": 1,
+      "title": "Description",
+      "type": "string"
+    },
+    "distinguish_from": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ClaimId"
+      },
+      "title": "Distinguish From",
+      "type": "array"
+    },
+    "observable_requirement": {
+      "minLength": 1,
+      "title": "Observable Requirement",
+      "type": "string"
+    },
+    "satisfiable_by": {
+      "items": {
+        "$ref": "#/$defs/SatisfiableBy"
+      },
+      "title": "Satisfiable By",
+      "type": "array"
+    },
+    "subject_scope": {
+      "$ref": "#/$defs/SubjectScope"
+    }
+  },
+  "required": [
+    "claim_id",
+    "description",
+    "subject_scope",
+    "satisfiable_by",
+    "observable_requirement"
+  ],
+  "title": "ClaimDefinition",
+  "type": "object"
+}

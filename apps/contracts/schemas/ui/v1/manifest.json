@@ -1,0 +1,26 @@
+{
+  "schemas": [
+    "ActivityEvent.schema.json",
+    "ActivityPage.schema.json",
+    "AgentEvent.schema.json",
+    "TokenPayload.schema.json",
+    "StateChangePayload.schema.json",
+    "NodeLifecyclePayload.schema.json",
+    "DonePayload.schema.json",
+    "ErrorPayload.schema.json",
+    "InterruptPayload.schema.json",
+    "ClarificationInterruptPayload.schema.json",
+    "EvidenceRequestView.schema.json",
+    "HumanReviewPayload.schema.json",
+    "ReviewDecision.schema.json",
+    "MemoryRecordView.schema.json",
+    "MemoryRetrievalPayload.schema.json",
+    "ToolCallPayload.schema.json",
+    "ToolResultPayload.schema.json",
+    "CreateCaseRequest.schema.json",
+    "CreateCaseResponse.schema.json",
+    "CaseDetail.schema.json",
+    "SendMessageRequest.schema.json"
+  ],
+  "ui_contract_version": "v1"
+}

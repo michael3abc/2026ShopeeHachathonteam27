@@ -1,0 +1,126 @@
+{
+  "$defs": {
+    "AgentRunFailedPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "failed_node": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GraphNodeName"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "retryable"
+      ],
+      "title": "AgentRunFailedPayload",
+      "type": "object"
+    },
+    "GraphNodeName": {
+      "enum": [
+        "parse_request",
+        "request_clarification",
+        "load_case_context",
+        "retrieve_policy",
+        "prepare_memory_query",
+        "retrieve_memory",
+        "assess_case",
+        "request_evidence",
+        "propose_decision",
+        "external_verification",
+        "reviewer",
+        "record_revision_event",
+        "await_human_review",
+        "emit_resolution_handoff",
+        "enqueue_memory_distillation",
+        "distill_memory",
+        "submit_candidate",
+        "external_memory_approval",
+        "terminate_automation"
+      ],
+      "title": "GraphNodeName",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "case_ref": {
+      "minLength": 1,
+      "title": "Case Ref",
+      "type": "string"
+    },
+    "command_id": {
+      "minLength": 1,
+      "title": "Command Id",
+      "type": "string"
+    },
+    "event_id": {
+      "minLength": 1,
+      "title": "Event Id",
+      "type": "string"
+    },
+    "event_index": {
+      "minimum": 1,
+      "title": "Event Index",
+      "type": "integer"
+    },
+    "event_type": {
+      "const": "RUN_FAILED",
+      "title": "Event Type",
+      "type": "string"
+    },
+    "occurred_at": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+      "title": "Occurred At",
+      "type": "string"
+    },
+    "payload": {
+      "$ref": "#/$defs/AgentRunFailedPayload"
+    },
+    "schema_version": {
+      "const": "v1",
+      "default": "v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "thread_id": {
+      "minLength": 1,
+      "title": "Thread Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "event_id",
+    "command_id",
+    "case_ref",
+    "thread_id",
+    "event_index",
+    "occurred_at",
+    "event_type",
+    "payload"
+  ],
+  "title": "AgentRunFailedEvent",
+  "type": "object"
+}

@@ -1,0 +1,347 @@
+{
+  "$defs": {
+    "ActivityFacts": {
+      "additionalProperties": false,
+      "description": "Finite allowlist; raw prose, URLs, messages and documents are excluded.",
+      "properties": {
+        "action": {
+          "anyOf": [
+            {
+              "enum": [
+                "FULL_REFUND",
+                "DECLINE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Action"
+        },
+        "count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Count"
+        },
+        "finding_statuses": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_:.-]+$",
+            "type": "string"
+          },
+          "maxItems": 30,
+          "title": "Finding Statuses",
+          "type": "array"
+        },
+        "findings": {
+          "items": {
+            "$ref": "#/$defs/ActivityFinding"
+          },
+          "maxItems": 30,
+          "title": "Findings",
+          "type": "array"
+        },
+        "next_node": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_:.-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Node"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_:.-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outcome"
+        },
+        "reason_codes": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_:.-]+$",
+            "type": "string"
+          },
+          "maxItems": 30,
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "references": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_:.-]+$",
+            "type": "string"
+          },
+          "maxItems": 30,
+          "title": "References",
+          "type": "array"
+        },
+        "revision_round": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Revision Round"
+        },
+        "verdict": {
+          "anyOf": [
+            {
+              "enum": [
+                "APPROVE",
+                "REVISE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verdict"
+        }
+      },
+      "title": "ActivityFacts",
+      "type": "object"
+    },
+    "ActivityFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/ClaimId"
+        },
+        "evidence_refs": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_:.-]+$",
+            "type": "string"
+          },
+          "maxItems": 30,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/ClaimStatus"
+        }
+      },
+      "required": [
+        "claim_id",
+        "status"
+      ],
+      "title": "ActivityFinding",
+      "type": "object"
+    },
+    "ActivityInputs": {
+      "additionalProperties": false,
+      "properties": {
+        "argument_count": {
+          "minimum": 0,
+          "title": "Argument Count",
+          "type": "integer"
+        },
+        "reason_code": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReasonCode"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "required_claim_ids": {
+          "items": {
+            "$ref": "#/$defs/ClaimId"
+          },
+          "maxItems": 30,
+          "title": "Required Claim Ids",
+          "type": "array"
+        },
+        "top_k": {
+          "anyOf": [
+            {
+              "maximum": 3,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Top K"
+        }
+      },
+      "required": [
+        "argument_count"
+      ],
+      "title": "ActivityInputs",
+      "type": "object"
+    },
+    "ClaimId": {
+      "enum": [
+        "DELIVERY_CONFIRMED",
+        "ORDER_WITHIN_RETURN_WINDOW",
+        "SHIPMENT_SEAL_INTACT",
+        "ITEM_PHYSICALLY_DAMAGED",
+        "DAMAGE_PRESENT_ON_ARRIVAL",
+        "ITEM_FUNCTIONALLY_IMPAIRED",
+        "ITEM_DIFFERS_FROM_LISTING",
+        "WRONG_ITEM_RECEIVED",
+        "ITEM_NOT_IN_SHIPMENT",
+        "ITEM_UNUSED"
+      ],
+      "title": "ClaimId",
+      "type": "string"
+    },
+    "ClaimStatus": {
+      "enum": [
+        "SUPPORTED",
+        "UNSUPPORTED",
+        "CONTRADICTED"
+      ],
+      "title": "ClaimStatus",
+      "type": "string"
+    },
+    "ReasonCode": {
+      "enum": [
+        "ITEM_DAMAGED",
+        "ITEM_NOT_AS_DESCRIBED",
+        "MISSING_ITEM",
+        "WRONG_ITEM",
+        "QUALITY_ISSUE",
+        "CHANGED_MIND"
+      ],
+      "title": "ReasonCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "duration_ms": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Duration Ms"
+    },
+    "error_code": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_:.-]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error Code"
+    },
+    "facts": {
+      "$ref": "#/$defs/ActivityFacts"
+    },
+    "inputs": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ActivityInputs"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "model": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_:.-]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model"
+    },
+    "name": {
+      "maxLength": 200,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_:.-]+$",
+      "title": "Name",
+      "type": "string"
+    },
+    "phase": {
+      "enum": [
+        "STARTED",
+        "COMPLETED",
+        "PAUSED",
+        "FAILED"
+      ],
+      "title": "Phase",
+      "type": "string"
+    },
+    "type": {
+      "enum": [
+        "node",
+        "model",
+        "tool"
+      ],
+      "title": "Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "type",
+    "phase",
+    "name"
+  ],
+  "title": "Lifecycle",
+  "type": "object"
+}

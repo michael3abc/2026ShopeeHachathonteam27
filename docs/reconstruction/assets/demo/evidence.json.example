@@ -1,0 +1,110 @@
+[
+  {
+    "evidence_id": "EV-STUDY-A-CLOSEUP",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-STUDY-A",
+    "artifact_ref": "artifact://demo-study/A/closeup",
+    "extracted_summary": "石墨灰圓角長方形音箱，黑色網罩、橙色掛繩，正面右下外殼有一道細裂痕。近照未呈現包裝或連續拆箱過程，單憑此圖無法確定損壞發生時點。",
+    "collected_at": "2026-09-01T10:42:00Z"
+  },
+  {
+    "evidence_id": "EV-STUDY-A-PACKAGE",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-STUDY-A",
+    "artifact_ref": "artifact://demo-study/A/package",
+    "extracted_summary": "石墨灰藍牙音箱與牛皮紙包裝箱同時出現在淺木紋桌上，箱體前右下角凹折；可見商品同一位置的裂痕。此圖本身未記錄到貨時間。",
+    "collected_at": "2026-09-01T10:42:00Z"
+  },
+  {
+    "evidence_id": "EV-STUDY-A-IDENTITY",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-STUDY-A",
+    "artifact_ref": "artifact://demo-study/A/identity",
+    "extracted_summary": "石墨灰藍牙音箱與同一包裝箱的白色識別貼紙均顯示 SKU-STUDY-A，外觀與其他圖片一致；無真實姓名、地址或電話。",
+    "collected_at": "2026-09-01T10:42:00Z"
+  },
+  {
+    "evidence_id": "EV-STUDY-A-ARRIVAL",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-STUDY-A",
+    "artifact_ref": "artifact://demo-study/A/arrival",
+    "extracted_summary": "四格 Demo 模擬拆箱序列依序呈現封箱、開箱、取出同一件石墨灰藍牙音箱及同一裂痕的近照。包裝凹折、桌面及商品外觀一致；畫面未出現使用過程。實際到貨時間仍須結合可信訂單資料與買家陳述判斷。",
+    "collected_at": "2026-09-01T10:42:00Z"
+  },
+  {
+    "evidence_id": "EV-STUDY-B-CLOSEUP",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-STUDY-B",
+    "artifact_ref": "artifact://demo-study/B/closeup",
+    "extracted_summary": "霧黑色有線罩耳耳機，深灰耳墊、紅色耳罩環，左側耳罩支架接合處有裂痕。近照未呈現包裝或連續拆箱過程，單憑此圖無法確定損壞發生時點。",
+    "collected_at": "2026-09-01T10:42:00Z"
+  },
+  {
+    "evidence_id": "EV-STUDY-B-PACKAGE",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-STUDY-B",
+    "artifact_ref": "artifact://demo-study/B/package",
+    "extracted_summary": "黑色錄音室耳機與牛皮紙包裝箱同時出現在深灰桌面上，箱體前左上角凹折；可見商品同一位置的裂痕。此圖本身未記錄到貨時間。",
+    "collected_at": "2026-09-01T10:42:00Z"
+  },
+  {
+    "evidence_id": "EV-STUDY-B-IDENTITY",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-STUDY-B",
+    "artifact_ref": "artifact://demo-study/B/identity",
+    "extracted_summary": "黑色錄音室耳機與同一包裝箱的白色識別貼紙均顯示 SKU-STUDY-B，外觀與其他圖片一致；無真實姓名、地址或電話。",
+    "collected_at": "2026-09-01T10:42:00Z"
+  },
+  {
+    "evidence_id": "EV-STUDY-B-ARRIVAL",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-STUDY-B",
+    "artifact_ref": "artifact://demo-study/B/arrival",
+    "extracted_summary": "四格 Demo 模擬拆箱序列依序呈現封箱、開箱、取出同一件黑色錄音室耳機及同一裂痕的近照。包裝凹折、桌面及商品外觀一致；畫面未出現使用過程。實際到貨時間仍須結合可信訂單資料與買家陳述判斷。",
+    "collected_at": "2026-09-01T10:42:00Z"
+  },
+  {
+    "evidence_id": "EV-STUDY-C-CLOSEUP",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-STUDY-C",
+    "artifact_ref": "artifact://demo-study/C/closeup",
+    "extracted_summary": "奶油白無線罩耳耳機，米色耳墊、銀色轉軸，右側耳罩支架接合處有裂痕。近照未呈現包裝或連續拆箱過程，單憑此圖無法確定損壞發生時點。",
+    "collected_at": "2026-09-01T10:42:00Z"
+  },
+  {
+    "evidence_id": "EV-STUDY-C-PACKAGE",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-STUDY-C",
+    "artifact_ref": "artifact://demo-study/C/package",
+    "extracted_summary": "奶油白無線耳機與牛皮紙包裝箱同時出現在淺藍桌墊上，箱體後右上角凹折；可見商品同一位置的裂痕。此圖本身未記錄到貨時間。",
+    "collected_at": "2026-09-01T10:42:00Z"
+  },
+  {
+    "evidence_id": "EV-STUDY-C-IDENTITY",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-STUDY-C",
+    "artifact_ref": "artifact://demo-study/C/identity",
+    "extracted_summary": "奶油白無線耳機與同一包裝箱的白色識別貼紙均顯示 SKU-STUDY-C，外觀與其他圖片一致；無真實姓名、地址或電話。",
+    "collected_at": "2026-09-01T10:42:00Z"
+  },
+  {
+    "evidence_id": "EV-STUDY-C-ARRIVAL",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-STUDY-C",
+    "artifact_ref": "artifact://demo-study/C/arrival",
+    "extracted_summary": "四格 Demo 模擬拆箱序列依序呈現封箱、開箱、取出同一件奶油白無線耳機及同一裂痕的近照。包裝凹折、桌面及商品外觀一致；畫面未出現使用過程。實際到貨時間仍須結合可信訂單資料與買家陳述判斷。",
+    "collected_at": "2026-09-01T10:42:00Z"
+  }
+]

@@ -1,0 +1,55 @@
+{
+  "purpose": "錄影與人工操作文字，不是 runtime DTO；預期語句不可直接注入 Agent 結論。",
+  "cases": [
+    {
+      "scenario_id": "STUDY-A",
+      "product_description": "石墨灰圓角長方形音箱，黑色網罩、橙色掛繩，正面右下外殼有一道細裂痕",
+      "initial_message": "昨天收到石墨灰藍牙音箱，拆箱時發現正面右下外殼有裂痕。我尚未使用，想申請這件商品退款，先附上裂痕近照。",
+      "followup_message": "補上同一件石墨灰藍牙音箱與包裝、商品識別貼紙，以及依序排列的拆箱照片。照片中的識別為 SKU-STUDY-A；拆開包裝、取出商品後就看見同一處裂痕，尚未使用。",
+      "narration": "這筆音箱案件有已核准的相關經驗。畫面會展示記憶是否命中，以及系統是否一次提出必要的補件要求。",
+      "expected_evidence_request_reference": "請一起提供商品裂痕、商品與包裝同框、商品識別，以及能说明拆箱時狀況的連續照片。此句僅供比對，實際 Agent 用語由 runtime 產生。",
+      "claim_notes": {
+        "DELIVERY_CONFIRMED": "以可信 order snapshot 的 delivered_at 核對。",
+        "ORDER_WITHIN_RETURN_WINDOW": "模擬資料為到貨翌日開案，應由系統按政策核對。",
+        "ITEM_PHYSICALLY_DAMAGED": "以實際生成並核對過的裂痕素材判斷。",
+        "DAMAGE_PRESENT_ON_ARRIVAL": "近照不足；需結合拆箱情境、可信訂單時間及陳述，不把合成圖片當成真實時間證明。"
+      }
+    },
+    {
+      "scenario_id": "STUDY-B",
+      "product_description": "霧黑色有線罩耳耳機，深灰耳墊、紅色耳罩環，左側耳罩支架接合處有裂痕",
+      "initial_message": "昨天收到黑色錄音室耳機，拆箱時發現耳罩支架接合處有裂痕。我尚未使用，想申請這件商品退款，先附上裂痕近照。",
+      "followup_message": "補上同一件黑色錄音室耳機與包裝、商品識別貼紙，以及依序排列的拆箱照片。照片中的識別為 SKU-STUDY-B；拆開包裝、取出商品後就看見同一處裂痕，尚未使用。",
+      "narration": "這是沒有適用記憶的新耳機情境。充分證據與高額人工授權是分開的條件。若實際修正歷程產生候選記憶，再展示另行核准；單純人工同意目前不會觸發蒸餾。",
+      "expected_evidence_request_reference": "請一起提供商品裂痕、商品與包裝同框、商品識別，以及能说明拆箱時狀況的連續照片。此句僅供比對，實際 Agent 用語由 runtime 產生。",
+      "claim_notes": {
+        "DELIVERY_CONFIRMED": "以可信 order snapshot 的 delivered_at 核對。",
+        "ORDER_WITHIN_RETURN_WINDOW": "模擬資料為到貨翌日開案，應由系統按政策核對。",
+        "ITEM_PHYSICALLY_DAMAGED": "以實際生成並核對過的裂痕素材判斷。",
+        "DAMAGE_PRESENT_ON_ARRIVAL": "近照不足；需結合拆箱情境、可信訂單時間及陳述，不把合成圖片當成真實時間證明。"
+      }
+    },
+    {
+      "scenario_id": "STUDY-C",
+      "product_description": "奶油白無線罩耳耳機，米色耳墊、銀色轉軸，右側耳罩支架接合處有裂痕",
+      "initial_message": "昨天收到奶油白無線耳機，拆箱時發現耳罩支架接合處有裂痕。我尚未使用，想申請這件商品退款，先附上裂痕近照。",
+      "followup_message": "補上同一件奶油白無線耳機與包裝、商品識別貼紙，以及依序排列的拆箱照片。照片中的識別為 SKU-STUDY-C；拆開包裝、取出商品後就看見同一處裂痕，尚未使用。",
+      "narration": "這是另一筆相似耳機案件。確認檢索的是上一案實際產生並核准的記憶；高額人工審核仍然保留。",
+      "expected_evidence_request_reference": "請一起提供商品裂痕、商品與包裝同框、商品識別，以及能说明拆箱時狀況的連續照片。此句僅供比對，實際 Agent 用語由 runtime 產生。",
+      "claim_notes": {
+        "DELIVERY_CONFIRMED": "以可信 order snapshot 的 delivered_at 核對。",
+        "ORDER_WITHIN_RETURN_WINDOW": "模擬資料為到貨翌日開案，應由系統按政策核對。",
+        "ITEM_PHYSICALLY_DAMAGED": "以實際生成並核對過的裂痕素材判斷。",
+        "DAMAGE_PRESENT_ON_ARRIVAL": "近照不足；需結合拆箱情境、可信訂單時間及陳述，不把合成圖片當成真實時間證明。"
+      }
+    }
+  ],
+  "memory_from_b": {
+    "runtime_precondition": "目前需要 correction trace 才觸發蒸餾，仍可能 SKIP；沒有實際 candidate 時停止 B 到 C 的學習展示。",
+    "seed": false,
+    "expected_learning": "相似耳機到貨損壞申請，一次蒐集受損處、商品與包裝識別及連續拆箱資料，再逐项核對到貨損壞主張。",
+    "approval_note": "核對實際 B 案來源、scope、政策與 registry version 後，才核准這筆候選；建議不得取代證據或高額人工審核。",
+    "recorded_memory_id": null
+  },
+  "closing_narration": "本展示使用合成案例與 AI 生成圖片，退款 adapter 為模擬金流。畫面展示可追溯的政策、證據、人工處理與記憶治理；執行成功與記憶命中均以實際 runtime 紀錄為準。"
+}

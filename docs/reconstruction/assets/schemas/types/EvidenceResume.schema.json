@@ -1,0 +1,25 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "artifact_refs": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Artifact Refs",
+      "type": "array"
+    },
+    "kind": {
+      "const": "EVIDENCE_REQUEST",
+      "title": "Kind",
+      "type": "string"
+    }
+  },
+  "required": [
+    "kind",
+    "artifact_refs"
+  ],
+  "title": "EvidenceResume",
+  "type": "object"
+}

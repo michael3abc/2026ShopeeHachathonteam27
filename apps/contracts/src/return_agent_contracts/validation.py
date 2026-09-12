@@ -1,255 +1,627 @@
-"""Context-dependent safety checks. Model shape validation alone is insufficient."""
-from typing import Literal
+"""Deterministic validation that needs more than one contract DTO."""
 
-from pydantic import TypeAdapter
+from __future__ import annotations
 
-from .domain import (
-    CaseContext, ClaimFinding, ClaimId, CorrectedDecision, EvidenceAssessment, EvidenceItem,
-    EvidenceRequest, HumanReviewDossier, OrderSnapshot, PolicyBundle, ProposedDecisionDraft,
-    ProposedDecisionHandoff, ReviewResult, ReviewerGateConfig, AgentReturnDecision,
-    DraftReturnDecision, HumanReviewReturnDecision, refund_amount,
+from .review_gates import ReviewerGateConfig, evaluate_review_gate
+from .models import REVIEW_REVISION_LIMIT
+
+import re
+from collections.abc import Iterable
+from decimal import Decimal
+
+from .enums import (
+    ClaimId,
+    ClaimStatus,
+    EvidenceStatus,
+    RequiredReturnReasonCode,
+    ResolutionAction,
+    RetrievalStatus,
+    ReturnDecisionSource,
+    ReturnPolicy,
+    ReviewVerdict,
+    SatisfiableBy,
+    SubjectScope,
+    WaivedReturnReasonCode,
 )
-from .gates import evaluate_gate
-from .primitives import unique
-from .registry import REGISTRY, REGISTRY_VERSION
-
-Pair = tuple[ClaimId, str]
-
-
-def validate_policy(context: CaseContext, snapshot: OrderSnapshot, policy: PolicyBundle, reason: str, claimed: list[str]) -> None:
-    if policy.retrieval_status != "OK" or not policy.clauses:
-        raise ValueError("Policy is unavailable or ambiguous")
-    if context.order_ref != snapshot.order_ref or context.snapshot_version != snapshot.snapshot_version:
-        raise ValueError("Context and order version mismatch")
-    unique(claimed, "claimed item")
-    lines = {item.line_item_id: item for item in snapshot.line_items}
-    if not claimed or not set(claimed) <= lines.keys():
-        raise ValueError("Claimed items must come from the trusted order")
-    categories = {lines[item].category_ref for item in claimed}
-    for clause in policy.clauses:
-        if context.case_opened_at < clause.effective_from or (clause.effective_to is not None and context.case_opened_at > clause.effective_to):
-            raise ValueError("Policy does not cover the case date")
-        scope = clause.applicable_conditions
-        if (scope.markets and context.market not in scope.markets) or (scope.reason_codes and reason not in scope.reason_codes) or (scope.categories and not categories.intersection(scope.categories)):
-            raise ValueError("Policy does not cover the case scope")
-    allowed_actions(policy)
-    effective_return_policy(policy)
+from .models import (
+    CaseContext,
+    CaseContextLoadResult,
+    ClaimFinding,
+    CorrectedDecision,
+    EvidenceAssessment,
+    EvidenceItem,
+    EvidenceRequest,
+    HumanReviewDossier,
+    HumanReviewResult,
+    MemoryCandidate,
+    OrderSnapshot,
+    PolicyBundle,
+    ProposedDecisionDraft,
+    ProposedDecisionHandoff,
+    ReviewResult,
+)
+from .registry import get_claim_definition
 
 
-def allowed_actions(policy: PolicyBundle) -> set[str]:
-    if policy.retrieval_status != "OK" or not policy.clauses:
-        raise ValueError("A usable policy is required")
-    actions = set.intersection(*(set(clause.allowed_actions) for clause in policy.clauses))
-    if not actions:
-        raise ValueError("Policy actions conflict")
-    return actions
+class ContractInvariantError(ValueError):
+    """A relationship between individually-valid DTOs is invalid."""
 
 
-def effective_return_policy(policy: PolicyBundle) -> Literal["REQUIRED", "NOT_REQUIRED", "MODEL_JUDGMENT"]:
-    requirements = {clause.return_policy for clause in policy.clauses}
-    fixed = requirements - {"MODEL_JUDGMENT"}
-    if len(fixed) > 1 or not requirements:
-        raise ValueError("Policy return requirements conflict or are missing")
-    return next(iter(fixed)) if fixed else "MODEL_JUDGMENT"
+ClaimSubjectPair = tuple[str, str]
+_CANDIDATE_PII_PATTERNS = (
+    re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE),
+    re.compile(r"(?<!\d)(?:\+?886[-\s]?)?0?9\d{2}[-\s]?\d{3}[-\s]?\d{3}(?!\d)"),
+    re.compile(r"(?<!\d)(?:\d[ -]?){13,19}(?!\d)"),
+    re.compile(r"(?:姓名|收件人|聯絡人)\s*[:：]?\s*[\w\u3400-\u9fff]{2,}"),
+    re.compile(r"(?:地址|住址)\s*[:：]?\s*[^\s,，。]{4,}"),
+    re.compile(r"(?:artifact|https?)://", re.IGNORECASE),
+)
 
 
-def expected_pairs(policy: PolicyBundle, snapshot: OrderSnapshot, claimed: list[str]) -> set[Pair]:
-    unique(claimed, "claimed item")
-    if not claimed or not set(claimed) <= {item.line_item_id for item in snapshot.line_items}:
-        raise ValueError("Unknown or empty original claim scope")
-    claims = {claim for clause in policy.clauses for claim in clause.required_claim_ids}
-    return {(claim, subject) for claim in claims for subject in ([snapshot.order_ref] if REGISTRY[claim].subject_scope == "ORDER" else claimed)}
+def validate_memory_summary(summary: str) -> None:
+    """Reject obvious PII and raw references before text reaches embeddings."""
+    if not summary.strip() or len(summary) > 2000:
+        raise ContractInvariantError("memory summary must contain 1 to 2000 characters")
+    if any(pattern.search(summary) for pattern in _CANDIDATE_PII_PATTERNS):
+        raise ContractInvariantError("memory summary contains PII or a raw reference")
 
 
-def validate_findings(findings: list[ClaimFinding], policy: PolicyBundle, snapshot: OrderSnapshot, claimed: list[str], evidence: list[EvidenceItem]) -> None:
-    pairs = [(f.claim_id, f.subject) for f in findings]
-    unique(pairs, "claim finding pair")
-    if set(pairs) != expected_pairs(policy, snapshot, claimed):
-        raise ValueError("Claim findings must cover exactly all required subject pairs")
-    unique([item.evidence_id for item in evidence], "evidence ID")
-    by_ref = {item.evidence_id: item for item in evidence}
-    for finding in findings:
-        unique(finding.supporting_evidence_refs, "supporting evidence reference")
-        if not set(finding.supporting_evidence_refs) <= by_ref.keys():
-            raise ValueError("Finding references unknown evidence")
-        for ref in finding.supporting_evidence_refs:
-            item = by_ref[ref]
-            definition = REGISTRY[finding.claim_id]
-            if item.subject != finding.subject:
-                raise ValueError("Evidence subject differs from the finding")
-            if item.source == "USER" and ("USER_EVIDENCE" not in definition.satisfiable_by or item.type not in definition.accepted_evidence_types):
-                raise ValueError("Evidence type or source cannot establish this claim")
+def validate_memory_candidate(candidate: MemoryCandidate) -> None:
+    """Reject duplicate scope metadata and obvious PII/raw artifact leakage."""
+
+    validate_memory_summary(candidate.retrieval_summary)
+    unique_lists = {
+        "source_case_refs": candidate.source_case_refs,
+        "source_revision_event_refs": candidate.source_revision_event_refs,
+        "scope.reason_codes": candidate.scope.reason_codes,
+        "scope.claim_ids": candidate.scope.claim_ids,
+        "scope.categories": candidate.scope.categories,
+    }
+    for field_name, values in unique_lists.items():
+        if len(values) != len(set(values)):
+            raise ContractInvariantError(f"{field_name} must contain unique values")
+
+    natural_language = [
+        *candidate.trigger_conditions,
+        candidate.recommended_behavior,
+        candidate.rationale,
+    ]
+    for text in natural_language:
+        if any(pattern.search(text) for pattern in _CANDIDATE_PII_PATTERNS):
+            raise ContractInvariantError(
+                "memory candidate contains PII or a raw artifact reference"
+            )
 
 
-def eligible_items(findings: list[ClaimFinding], snapshot: OrderSnapshot, claimed: list[str]) -> tuple[list[str], bool]:
-    approved: list[str] = []
-    declined: list[str] = []
-    for item in claimed:
-        statuses = [f.status for f in findings if f.subject in (item, snapshot.order_ref)]
-        if statuses and all(status == "SUPPORTED" for status in statuses):
-            approved.append(item)
-        if "CONTRADICTED" in statuses:
-            declined.append(item)
-    return approved, len(declined) == len(claimed)
+def validate_applicable_policy_bundle(
+    case_context: CaseContext, policy_bundle: PolicyBundle
+) -> None:
+    """Ensure the Policy provider returned usable clauses for this case instant."""
+
+    if policy_bundle.retrieval_status is not RetrievalStatus.OK:
+        raise ContractInvariantError(
+            "a non-OK PolicyBundle must follow its fail-closed graph route"
+        )
+    for clause in policy_bundle.clauses:
+        if clause.effective_from > case_context.case_opened_at or (
+            clause.effective_to is not None
+            and clause.effective_to < case_context.case_opened_at
+        ):
+            raise ContractInvariantError(
+                "policy clause effective range does not cover case_opened_at"
+            )
 
 
-def evidence_status(findings: list[ClaimFinding], snapshot: OrderSnapshot, claimed: list[str]) -> str:
-    approved, declined = eligible_items(findings, snapshot, claimed)
-    return "SUFFICIENT_FOR_APPROVAL" if approved else "SUFFICIENT_FOR_DECLINE" if declined else "INSUFFICIENT"
+def validate_case_context_load_result(
+    expected_case_ref: str, result: CaseContextLoadResult
+) -> None:
+    """Validate the part of a case load result that is not self-contained."""
+
+    if result.case_context.case_ref != expected_case_ref:
+        raise ContractInvariantError(
+            "CaseContextLoadResult.case_context.case_ref does not match request"
+        )
+    if result.case_context.order_ref != result.order_snapshot.order_ref:
+        raise ContractInvariantError(
+            "CaseContextLoadResult case_context and order_snapshot order_ref differ"
+        )
 
 
-def validate_evidence_request(request: EvidenceRequest, findings: list[ClaimFinding], policy: PolicyBundle) -> None:
-    unresolved = {(f.claim_id, f.subject) for f in findings if f.status == "UNSUPPORTED" and "USER_EVIDENCE" in REGISTRY[f.claim_id].satisfiable_by}
-    requested = [(claim.claim_id, claim.subject) for claim in request.missing_claims]
-    unique(requested, "missing claim pair")
-    if set(requested) != unresolved:
-        raise ValueError("Evidence request must contain every unresolved user-evidence pair only")
-    types = {kind for claim, _ in unresolved for kind in REGISTRY[claim].accepted_evidence_types}
-    unique(request.accepted_evidence_types, "accepted evidence type")
-    if set(request.accepted_evidence_types) != types:
-        raise ValueError("Accepted evidence types differ from the registry union")
-    validate_refs(request.policy_refs, [clause.clause_id for clause in policy.clauses], "policy")
+def _claimed_items(
+    order_snapshot: OrderSnapshot, claimed_line_item_ids: Iterable[str]
+) -> tuple[str, ...]:
+    claimed = tuple(claimed_line_item_ids)
+    known = {item.line_item_id for item in order_snapshot.line_items}
+    if not claimed:
+        raise ContractInvariantError("claimed_line_item_ids must not be empty")
+    if len(claimed) != len(set(claimed)):
+        raise ContractInvariantError("claimed_line_item_ids must be unique")
+    unknown = set(claimed) - known
+    if unknown:
+        raise ContractInvariantError(f"unknown claimed line items: {sorted(unknown)}")
+    return claimed
 
 
-def validate_assessment(assessment: EvidenceAssessment, policy: PolicyBundle, snapshot: OrderSnapshot, claimed: list[str], evidence: list[EvidenceItem]) -> None:
-    assessment = TypeAdapter(EvidenceAssessment).validate_python(assessment)
-    if assessment.claim_registry_version != REGISTRY_VERSION:
-        raise ValueError("Unknown assessment registry version")
-    validate_findings(assessment.claim_findings, policy, snapshot, claimed, evidence)
-    if assessment.evidence_status != evidence_status(assessment.claim_findings, snapshot, claimed):
-        raise ValueError("Assessment status does not follow claim findings")
-    if assessment.evidence_status == "INSUFFICIENT":
-        validate_evidence_request(assessment.missing_evidence_request, assessment.claim_findings, policy)
+def expected_claim_pairs(
+    policy_bundle: PolicyBundle, claimed_line_item_ids: Iterable[str]
+) -> set[ClaimSubjectPair]:
+    """Return the exact `(claim_id, subject)` set required by the policy."""
+
+    if not policy_bundle.clauses:
+        raise ContractInvariantError("assessment requires a non-empty PolicyBundle")
+    expected: set[ClaimSubjectPair] = set()
+    for clause in policy_bundle.clauses:
+        for claim_id in clause.required_claim_ids:
+            definition = get_claim_definition(claim_id)
+            if definition.subject_scope is SubjectScope.ORDER:
+                expected.add((claim_id.value, "ORDER"))
+            else:
+                expected.update(
+                    (claim_id.value, line_item_id)
+                    for line_item_id in claimed_line_item_ids
+                )
+    return expected
 
 
-def validate_refs(refs: list[str], known: list[str], label: str) -> None:
-    unique(refs, label + " reference")
-    if not set(refs) <= set(known):
-        raise ValueError(f"Unknown {label} reference")
+def _findings_by_pair(
+    findings: Iterable[ClaimFinding],
+) -> dict[ClaimSubjectPair, ClaimFinding]:
+    return {(finding.claim_id.value, finding.subject): finding for finding in findings}
 
 
-def validate_resolved_evidence(requested_ref: str, item: EvidenceItem, subjects: set[str], *, source: str | None = None) -> None:
-    item = EvidenceItem.model_validate(item)
-    if item.artifact_ref != requested_ref or item.subject not in subjects or (source is not None and item.source != source):
-        raise ValueError("Resolved evidence does not match the requested artifact, subject or source")
+def validate_claim_findings(
+    findings: Iterable[ClaimFinding],
+    policy_bundle: PolicyBundle,
+    order_snapshot: OrderSnapshot,
+    claimed_line_item_ids: Iterable[str],
+) -> None:
+    """Validate completeness and subject scope of an assessment/review."""
+
+    items = _claimed_items(order_snapshot, claimed_line_item_ids)
+    all_findings = tuple(findings)
+    expected = expected_claim_pairs(policy_bundle, items)
+    actual = {(finding.claim_id.value, finding.subject) for finding in all_findings}
+    if len(actual) != len(all_findings):
+        raise ContractInvariantError("claim findings must not contain duplicate pairs")
+    if actual != expected:
+        raise ContractInvariantError(
+            f"claim finding pairs differ; expected {sorted(expected)}, got {sorted(actual)}"
+        )
 
 
-def validate_return(decision: AgentReturnDecision | DraftReturnDecision | HumanReviewReturnDecision, policy: PolicyBundle, *, human: bool = False, draft: bool = False) -> None:
-    rule = effective_return_policy(policy)
-    expected_source = "HUMAN_REVIEW" if human else "MODEL_JUDGMENT" if rule == "MODEL_JUDGMENT" else "POLICY"
-    if decision.source != expected_source:
-        raise ValueError("Return decision source does not match policy authority")
-    if draft and decision.source == "POLICY":
-        from .domain import RequiredReturnReasonCode
-        from typing import get_args
-        required = decision.reason_code in get_args(RequiredReturnReasonCode)
-    else:
-        required = decision.requirement.required
-    if (rule == "REQUIRED" and not required) or (rule == "NOT_REQUIRED" and required):
-        raise ValueError("Return decision conflicts with a fixed policy")
+def expected_evidence_status(
+    findings: Iterable[ClaimFinding],
+    policy_bundle: PolicyBundle,
+    claimed_line_item_ids: Iterable[str],
+) -> EvidenceStatus:
+    """Apply the documented three-valued evidence decision rule."""
+
+    by_pair = _findings_by_pair(findings)
+    required_claim_ids = {
+        claim_id
+        for clause in policy_bundle.clauses
+        for claim_id in clause.required_claim_ids
+    }
+    order_claims = [
+        claim_id
+        for claim_id in required_claim_ids
+        if get_claim_definition(claim_id).subject_scope is SubjectScope.ORDER
+    ]
+    line_item_claims = [
+        claim_id
+        for claim_id in required_claim_ids
+        if get_claim_definition(claim_id).subject_scope is SubjectScope.LINE_ITEM
+    ]
+
+    per_item_statuses: list[list[ClaimStatus]] = []
+    for line_item_id in claimed_line_item_ids:
+        statuses = [
+            by_pair[(claim_id.value, "ORDER")].status for claim_id in order_claims
+        ]
+        statuses.extend(
+            by_pair[(claim_id.value, line_item_id)].status
+            for claim_id in line_item_claims
+        )
+        per_item_statuses.append(statuses)
+
+    if any(
+        all(status is ClaimStatus.SUPPORTED for status in statuses)
+        for statuses in per_item_statuses
+    ):
+        return EvidenceStatus.SUFFICIENT_FOR_APPROVAL
+    if all(ClaimStatus.CONTRADICTED in statuses for statuses in per_item_statuses):
+        return EvidenceStatus.SUFFICIENT_FOR_DECLINE
+    return EvidenceStatus.INSUFFICIENT
 
 
-def validate_draft(draft: ProposedDecisionDraft, assessment: EvidenceAssessment, policy: PolicyBundle, snapshot: OrderSnapshot, claimed: list[str], evidence: list[EvidenceItem]) -> None:
-    draft = TypeAdapter(ProposedDecisionDraft).validate_python(draft)
-    validate_assessment(assessment, policy, snapshot, claimed, evidence)
-    if draft.action not in allowed_actions(policy):
-        raise ValueError("Policy does not allow this action")
-    validate_refs(draft.policy_refs, [c.clause_id for c in policy.clauses], "policy")
-    validate_refs(draft.evidence_refs, [e.evidence_id for e in evidence], "evidence")
-    approved, declined = eligible_items(assessment.claim_findings, snapshot, claimed)
-    if draft.action == "FULL_REFUND":
-        if not set(draft.refund_scope.line_item_ids) <= set(approved):
-            raise ValueError("Refund scope is not supported by the assessed claims")
-        refund_amount(snapshot, draft.refund_scope.line_item_ids)
-        validate_return(draft.return_decision, policy, draft=True)
-    elif not declined:
-        raise ValueError("DECLINE requires contradictory claims for every requested item")
+def validate_evidence_request(
+    request: EvidenceRequest,
+    claim_findings: Iterable[ClaimFinding],
+    policy_bundle: PolicyBundle,
+    order_snapshot: OrderSnapshot,
+    claimed_line_item_ids: Iterable[str],
+) -> None:
+    items = _claimed_items(order_snapshot, claimed_line_item_ids)
+    all_findings = tuple(claim_findings)
+    validate_claim_findings(all_findings, policy_bundle, order_snapshot, items)
+    unresolved_user_pairs = {
+        (finding.claim_id.value, finding.subject)
+        for finding in all_findings
+        if finding.status is ClaimStatus.UNSUPPORTED
+        and SatisfiableBy.USER_EVIDENCE
+        in get_claim_definition(finding.claim_id).satisfiable_by
+    }
+    missing_pairs = {
+        (entry.claim_id.value, entry.subject) for entry in request.missing_claims
+    }
+    if len(missing_pairs) != len(request.missing_claims):
+        raise ContractInvariantError("missing_claims must not contain duplicate pairs")
+    if missing_pairs != unresolved_user_pairs:
+        raise ContractInvariantError(
+            "missing_claims must equal all unresolved USER_EVIDENCE claim pairs"
+        )
+
+    accepted_types = set()
+    for claim_id, _ in missing_pairs:
+        definition = get_claim_definition(ClaimId(claim_id))
+        if definition.satisfiable_by == (SatisfiableBy.SYSTEM_FACTS,):
+            raise ContractInvariantError("SYSTEM_FACTS-only claims cannot be requested")
+        accepted_types.update(definition.accepted_evidence_types)
+    if set(request.accepted_evidence_types) != accepted_types:
+        raise ContractInvariantError(
+            "accepted_evidence_types must equal the registry union"
+        )
 
 
-def validate_handoff(handoff: ProposedDecisionHandoff, context: CaseContext, snapshot: OrderSnapshot, policy: PolicyBundle, claimed: list[str]) -> None:
-    handoff = ProposedDecisionHandoff.model_validate(handoff)
-    decision = handoff.proposed_decision
-    validate_policy(context, snapshot, policy, decision.reason_code, claimed)
-    if (handoff.case_ref != context.case_ref or handoff.order_snapshot_ref != snapshot.order_snapshot_ref or handoff.policy_bundle_version != policy.policy_bundle_version or handoff.claim_registry_version != REGISTRY_VERSION):
-        raise ValueError("Handoff identity or version does not match trusted context")
-    unique([e.evidence_id for e in handoff.evidence_bundle], "evidence ID")
-    validate_refs(handoff.policy_refs, [c.clause_id for c in policy.clauses], "policy")
-    validate_refs(decision.policy_refs, handoff.policy_refs, "decision policy")
-    validate_refs(decision.evidence_refs, [e.evidence_id for e in handoff.evidence_bundle], "evidence")
-    if decision.action not in allowed_actions(policy):
-        raise ValueError("Action is not permitted by all applicable policy clauses")
-    if not set(decision.refund_scope.line_item_ids) <= set(claimed):
-        raise ValueError("Handoff expands the original claim scope")
-    if decision.currency != snapshot.currency or decision.amount != refund_amount(snapshot, decision.refund_scope.line_item_ids):
-        raise ValueError("Handoff amount or currency differs from the trusted scope total")
-    needs_user = any("USER_EVIDENCE" in REGISTRY[claim].satisfiable_by for clause in policy.clauses for claim in clause.required_claim_ids)
-    if needs_user and not handoff.evidence_bundle:
-        raise ValueError("The policy requires an evidence bundle")
-    if decision.action == "FULL_REFUND":
-        validate_return(decision.return_decision, policy)
+def validate_evidence_assessment(
+    assessment: EvidenceAssessment,
+    policy_bundle: PolicyBundle,
+    order_snapshot: OrderSnapshot,
+    claimed_line_item_ids: Iterable[str],
+) -> None:
+    items = _claimed_items(order_snapshot, claimed_line_item_ids)
+    validate_claim_findings(
+        assessment.claim_findings, policy_bundle, order_snapshot, items
+    )
+    actual_status = expected_evidence_status(
+        assessment.claim_findings, policy_bundle, items
+    )
+    if assessment.evidence_status is not actual_status:
+        raise ContractInvariantError(
+            f"evidence_status must be {actual_status.value}, got {assessment.evidence_status.value}"
+        )
+    missing_evidence_request = getattr(assessment, "missing_evidence_request", None)
+    if missing_evidence_request is not None:
+        validate_evidence_request(
+            missing_evidence_request,
+            assessment.claim_findings,
+            policy_bundle,
+            order_snapshot,
+            items,
+        )
 
 
-def validate_review(review: ReviewResult, handoff: ProposedDecisionHandoff, snapshot: OrderSnapshot, policy: PolicyBundle, claimed: list[str]) -> None:
-    review = TypeAdapter(ReviewResult).validate_python(review)
-    validate_findings(review.reviewer_claim_findings, policy, snapshot, claimed, handoff.evidence_bundle)
-    if review.verdict == "REVISE":
-        for reason in review.revision_reasons:
-            if not reason.message.strip() or not reason.required_change.strip():
-                raise ValueError("Reviewer objections must request a concrete change")
-            validate_refs(reason.evidence_refs, [e.evidence_id for e in handoff.evidence_bundle], "revision evidence")
-            validate_refs(reason.policy_refs, [c.clause_id for c in policy.clauses], "revision policy")
+def validate_resolved_evidence_item(
+    evidence_item: EvidenceItem, artifact_ref: str, pending_request: EvidenceRequest
+) -> None:
+    """Validate the deterministic merge after ``EvidenceProvider.resolve``."""
+
+    if evidence_item.artifact_ref != artifact_ref:
+        raise ContractInvariantError(
+            "resolved evidence artifact_ref does not match the provider request"
+        )
+    pending_subjects = {entry.subject for entry in pending_request.missing_claims}
+    if evidence_item.subject not in pending_subjects:
+        raise ContractInvariantError(
+            "resolved evidence subject is not in the pending evidence request"
+        )
+
+
+def _validate_action_against_policy(
+    action: ResolutionAction, policy_bundle: PolicyBundle
+) -> ReturnPolicy:
+    if not policy_bundle.clauses:
+        raise ContractInvariantError("decision requires a non-empty PolicyBundle")
+    if any(action not in clause.allowed_actions for clause in policy_bundle.clauses):
+        raise ContractInvariantError("action is not allowed by every applicable clause")
+    return_policies = {clause.return_policy for clause in policy_bundle.clauses}
+    if {ReturnPolicy.REQUIRED, ReturnPolicy.NOT_REQUIRED}.issubset(return_policies):
+        raise ContractInvariantError("applicable clauses disagree on return policy")
+    if ReturnPolicy.REQUIRED in return_policies:
+        return ReturnPolicy.REQUIRED
+    if ReturnPolicy.NOT_REQUIRED in return_policies:
+        return ReturnPolicy.NOT_REQUIRED
+    return ReturnPolicy.MODEL_JUDGMENT
+
+
+def _supported_item_ids(
+    findings: Iterable[ClaimFinding],
+    policy_bundle: PolicyBundle,
+    claimed_line_item_ids: Iterable[str],
+) -> set[str]:
+    by_pair = _findings_by_pair(findings)
+    required_claim_ids = {
+        claim_id
+        for clause in policy_bundle.clauses
+        for claim_id in clause.required_claim_ids
+    }
+    supported: set[str] = set()
+    for line_item_id in claimed_line_item_ids:
+        statuses = []
+        for claim_id in required_claim_ids:
+            subject = (
+                "ORDER"
+                if get_claim_definition(claim_id).subject_scope is SubjectScope.ORDER
+                else line_item_id
+            )
+            statuses.append(by_pair[(claim_id.value, subject)].status)
+        if all(status is ClaimStatus.SUPPORTED for status in statuses):
+            supported.add(line_item_id)
+    return supported
+
+
+def validate_proposed_decision_draft(
+    draft: ProposedDecisionDraft,
+    assessment: EvidenceAssessment,
+    policy_bundle: PolicyBundle,
+    order_snapshot: OrderSnapshot,
+    claimed_line_item_ids: Iterable[str],
+) -> None:
+    items = _claimed_items(order_snapshot, claimed_line_item_ids)
+    validate_evidence_assessment(assessment, policy_bundle, order_snapshot, items)
+    return_policy = _validate_action_against_policy(draft.action, policy_bundle)
+    _validate_policy_refs(draft.policy_refs, policy_bundle)
+    _validate_rationale_has_no_amount(draft.rationale_summary, order_snapshot.currency)
+    if not set(draft.refund_scope.line_item_ids).issubset(
+        _supported_item_ids(assessment.claim_findings, policy_bundle, items)
+    ):
+        raise ContractInvariantError(
+            "refund_scope includes items without supported claims"
+        )
+    if draft.action is ResolutionAction.DECLINE:
+        if assessment.evidence_status is not EvidenceStatus.SUFFICIENT_FOR_DECLINE:
+            raise ContractInvariantError(
+                "DECLINE requires SUFFICIENT_FOR_DECLINE for every claimed item"
+            )
         return
-    approved, declined = eligible_items(review.reviewer_claim_findings, snapshot, claimed)
+
+    return_decision = draft.return_decision
+    if return_policy is ReturnPolicy.MODEL_JUDGMENT:
+        if return_decision.source is not ReturnDecisionSource.MODEL_JUDGMENT:
+            raise ContractInvariantError(
+                "MODEL_JUDGMENT policy requires a model-authored return decision"
+            )
+        return
+    if return_decision.source is not ReturnDecisionSource.POLICY:
+        raise ContractInvariantError(
+            "static return policy requires a POLICY return-decision draft"
+        )
+    if return_policy is ReturnPolicy.REQUIRED and not isinstance(
+        return_decision.reason_code, RequiredReturnReasonCode
+    ):
+        raise ContractInvariantError(
+            "REQUIRED policy requires a return-required reason"
+        )
+    if return_policy is ReturnPolicy.NOT_REQUIRED and not isinstance(
+        return_decision.reason_code, WaivedReturnReasonCode
+    ):
+        raise ContractInvariantError(
+            "NOT_REQUIRED policy requires a return-waived reason"
+        )
+
+
+def validate_review_result(
+    review_result: ReviewResult,
+    reviewed_handoff: ProposedDecisionHandoff,
+    policy_bundle: PolicyBundle,
+    order_snapshot: OrderSnapshot,
+    claimed_line_item_ids: Iterable[str],
+) -> None:
+    """Validate Reviewer findings and the references carried by a revision."""
+
+    validate_claim_findings(
+        review_result.reviewer_claim_findings,
+        policy_bundle,
+        order_snapshot,
+        claimed_line_item_ids,
+    )
+    evidence_ids = {item.evidence_id for item in reviewed_handoff.evidence_bundle}
+    for reason in review_result.revision_reasons:
+        _validate_policy_refs(reason.policy_refs, policy_bundle)
+        if not set(reason.evidence_refs).issubset(evidence_ids):
+            raise ContractInvariantError(
+                "revision reason evidence_refs must exist in evidence_bundle"
+            )
+
+    if review_result.verdict is not ReviewVerdict.APPROVE:
+        return
+    decision = reviewed_handoff.proposed_decision
+    if decision.action is ResolutionAction.FULL_REFUND:
+        supported_items = _supported_item_ids(
+            review_result.reviewer_claim_findings,
+            policy_bundle,
+            claimed_line_item_ids,
+        )
+        if not set(decision.refund_scope.line_item_ids).issubset(supported_items):
+            raise ContractInvariantError(
+                "Reviewer APPROVE refund scope includes unsupported items"
+            )
+    elif (
+        expected_evidence_status(
+            review_result.reviewer_claim_findings,
+            policy_bundle,
+            claimed_line_item_ids,
+        )
+        is not EvidenceStatus.SUFFICIENT_FOR_DECLINE
+    ):
+        raise ContractInvariantError(
+            "Reviewer APPROVE decline requires complete decline eligibility"
+        )
+
+
+def validate_proposed_decision_handoff(
+    handoff: ProposedDecisionHandoff,
+    policy_bundle: PolicyBundle,
+    order_snapshot: OrderSnapshot,
+) -> None:
+    if handoff.order_snapshot_ref != order_snapshot.order_snapshot_ref:
+        raise ContractInvariantError(
+            "handoff order_snapshot_ref does not match snapshot"
+        )
+    if handoff.policy_bundle_version != policy_bundle.policy_bundle_version:
+        raise ContractInvariantError(
+            "handoff policy bundle version does not match bundle"
+        )
+    return_policy = _validate_action_against_policy(
+        handoff.proposed_decision.action, policy_bundle
+    )
+    _validate_policy_refs(handoff.policy_refs, policy_bundle)
+    _validate_rationale_has_no_amount(
+        handoff.rationale_summary, order_snapshot.currency
+    )
     decision = handoff.proposed_decision
-    if decision.action == "FULL_REFUND" and not set(decision.refund_scope.line_item_ids) <= set(approved):
-        raise ValueError("Reviewer findings do not support the refund scope")
-    if decision.action == "DECLINE" and not declined:
-        raise ValueError("Reviewer findings do not establish decline for all requested items")
+    if decision.action is ResolutionAction.FULL_REFUND:
+        return_decision = decision.return_decision
+        if return_policy is ReturnPolicy.MODEL_JUDGMENT:
+            if return_decision.source is not ReturnDecisionSource.MODEL_JUDGMENT:
+                raise ContractInvariantError(
+                    "MODEL_JUDGMENT policy requires MODEL_JUDGMENT return decision"
+                )
+        else:
+            if return_decision.source is not ReturnDecisionSource.POLICY:
+                raise ContractInvariantError(
+                    "static return policy requires POLICY return decision"
+                )
+            required = return_decision.requirement.required
+            if return_policy is ReturnPolicy.REQUIRED and not required:
+                raise ContractInvariantError("REQUIRED policy requires return")
+            if return_policy is ReturnPolicy.NOT_REQUIRED and required:
+                raise ContractInvariantError("NOT_REQUIRED policy waives return")
+
+    line_items = {item.line_item_id: item for item in order_snapshot.line_items}
+    scope = handoff.proposed_decision.refund_scope.line_item_ids
+    if not set(scope).issubset(line_items):
+        raise ContractInvariantError("handoff refund scope contains unknown line items")
+    expected_amount = sum(
+        (line_items[line_item_id].refundable_amount for line_item_id in scope),
+        Decimal(0),
+    )
+    if handoff.proposed_decision.amount != expected_amount:
+        raise ContractInvariantError("handoff amount must equal the refund scope total")
+    if handoff.proposed_decision.amount > order_snapshot.refundable_amount_max:
+        raise ContractInvariantError("handoff amount exceeds refundable_amount_max")
+    if handoff.proposed_decision.currency != order_snapshot.currency:
+        raise ContractInvariantError("handoff currency must match order snapshot")
+
+    requires_user_evidence = any(
+        SatisfiableBy.USER_EVIDENCE in get_claim_definition(claim_id).satisfiable_by
+        for clause in policy_bundle.clauses
+        for claim_id in clause.required_claim_ids
+    )
+    if requires_user_evidence and not handoff.evidence_bundle:
+        raise ContractInvariantError(
+            "user-evidence policy requires a non-empty evidence bundle"
+        )
 
 
-def validate_dossier(dossier: HumanReviewDossier, handoff: ProposedDecisionHandoff, review: ReviewResult, context: CaseContext, config: ReviewerGateConfig) -> None:
-    dossier = HumanReviewDossier.model_validate(dossier)
-    proposals, reviews, events = dossier.proposal_history, dossier.review_history, dossier.revision_events
-    if len(proposals) != len(reviews) or len(events) != len(proposals) - 1:
-        raise ValueError("Dossier must contain every reviewed proposal and completed revision")
-    unique([p.handoff_id for p in proposals], "proposal ID")
-    unique([e.event_id for e in events], "revision event ID")
-    unique(dossier.claimed_line_item_ids, "original claimed item")
-    if dossier.claim_registry_version != REGISTRY_VERSION:
-        raise ValueError("Dossier registry mismatch")
-    if proposals[-1] != handoff or reviews[-1] != review:
-        raise ValueError("Dossier does not end at the submitted proposal and review")
-    for index, (proposal, result) in enumerate(zip(proposals, reviews, strict=True)):
-        if proposal.revision_round != index:
-            raise ValueError("Reviewer rounds must start at zero and be contiguous")
-        validate_handoff(proposal, context, dossier.order_snapshot, dossier.policy_bundle, dossier.claimed_line_item_ids)
-        validate_review(result, proposal, dossier.order_snapshot, dossier.policy_bundle, dossier.claimed_line_item_ids)
-        if index < len(events):
-            event = events[index]
-            if (event.case_ref != context.case_ref or event.handoff_before_ref != proposal.handoff_id or event.revision_round != index + 1 or event.review_result != result or result.verdict != "REVISE"):
-                raise ValueError("Revision event does not match its preceding reviewed proposal")
+def validate_human_review_entry(handoff: ProposedDecisionHandoff, review: ReviewResult, dossier: HumanReviewDossier, config: ReviewerGateConfig) -> None:
+    if dossier.proposal_history[-1] != handoff or dossier.review_history[-1] != review:
+        raise ContractInvariantError("human dossier does not match final proposal and review")
     if dossier.routing_reason == "REVISION_BUDGET_EXCEEDED":
-        if len(proposals) != 4 or review.verdict != "REVISE" or dossier.review_gate is not None:
-            raise ValueError("Revision entry requires four REVISE reviews and no monetary gate")
-    else:
-        decision = handoff.proposed_decision
-        gate = evaluate_gate(decision.action, decision.amount, decision.currency, config)
-        if review.verdict != "APPROVE" or gate.status != "HUMAN_REQUIRED" or gate != dossier.review_gate or dossier.routing_reason != gate.reason:
-            raise ValueError("Human monetary entry does not match the current verified gate")
+        if review.verdict is not ReviewVerdict.REVISE or handoff.revision_round < REVIEW_REVISION_LIMIT or dossier.review_gate is not None:
+            raise ContractInvariantError("revision entry requires exhausted REVISE without monetary gate")
+        return
+    decision = handoff.proposed_decision
+    expected = evaluate_review_gate(decision.action, decision.amount, decision.currency, config)
+    if (review.verdict is not ReviewVerdict.APPROVE or expected.status != "HUMAN_REQUIRED"
+        or dossier.review_gate != expected or dossier.routing_reason != expected.reason):
+        raise ContractInvariantError("human amount-gate entry is invalid or configuration changed")
 
 
-def validate_human_decision(decision: CorrectedDecision, dossier: HumanReviewDossier, current: OrderSnapshot, policy: PolicyBundle) -> None:
-    decision = TypeAdapter(CorrectedDecision).validate_python(decision)
-    if current.order_ref != dossier.order_snapshot.order_ref or current.currency != dossier.order_snapshot.currency:
-        raise ValueError("Human review cannot change the order or currency")
-    if policy != dossier.policy_bundle or policy.retrieval_status != "OK":
-        raise ValueError("Human review must retain the exact persisted policy")
-    if decision.action not in allowed_actions(policy):
-        raise ValueError("Human review action is not allowed by policy")
-    if not set(decision.refund_scope.line_item_ids) <= set(dossier.claimed_line_item_ids):
-        raise ValueError("Human review cannot expand original claim scope")
-    refund_amount(current, decision.refund_scope.line_item_ids)
-    if decision.action == "FULL_REFUND":
-        validate_return(decision.return_decision, policy, human=True)
-        if any("USER_EVIDENCE" in REGISTRY[claim].satisfiable_by for clause in policy.clauses for claim in clause.required_claim_ids) and not dossier.proposal_history[-1].evidence_bundle:
-            raise ValueError("Human refund lacks the required evidence bundle")
+def validate_human_decision(
+    decision: CorrectedDecision,
+    dossier: HumanReviewDossier,
+    order_snapshot: OrderSnapshot,
+    policy_bundle: PolicyBundle,
+) -> Decimal:
+    """Human owns evidence judgment; deterministic policy and money still bind."""
+    if order_snapshot.order_ref != dossier.order_snapshot.order_ref:
+        raise ContractInvariantError("human review order mismatch")
+    if policy_bundle != dossier.policy_bundle:
+        raise ContractInvariantError("human review policy changed or unavailable")
+    return_policy = _validate_action_against_policy(decision.action, policy_bundle)
+    scope = decision.refund_scope.line_item_ids
+    if not set(scope).issubset(dossier.claimed_line_item_ids):
+        raise ContractInvariantError("refund scope exceeds original claimed items")
+    items = {item.line_item_id: item for item in order_snapshot.line_items}
+    if not set(scope).issubset(items):
+        raise ContractInvariantError("refund scope is no longer available")
+    if order_snapshot.currency != dossier.order_snapshot.currency:
+        raise ContractInvariantError("order currency changed")
+    amount = sum((items[item].refundable_amount for item in scope), Decimal(0))
+    if amount > order_snapshot.refundable_amount_max:
+        raise ContractInvariantError("refund exceeds current refundable maximum")
+    if decision.action is ResolutionAction.FULL_REFUND:
+        required = decision.return_decision.requirement.required
+        if return_policy is ReturnPolicy.REQUIRED and not required:
+            raise ContractInvariantError("Policy requires return")
+        if return_policy is ReturnPolicy.NOT_REQUIRED and required:
+            raise ContractInvariantError("Policy waives return")
+        if not dossier.proposal_history[-1].evidence_bundle and any(
+            SatisfiableBy.USER_EVIDENCE in get_claim_definition(claim).satisfiable_by
+            for clause in policy_bundle.clauses for claim in clause.required_claim_ids
+        ):
+            raise ContractInvariantError("required user evidence is absent")
+    return amount
+
+
+def human_corrected_decision(
+    result: HumanReviewResult, handoff: ProposedDecisionHandoff
+) -> CorrectedDecision:
+    """Normalize the public review actions without reversing REJECT semantics."""
+    from .models import CorrectedDeclineDecision, CorrectedFullRefundDecision
+
+    if result.decision.value == "EDIT":
+        return result.corrected_decision
+    if result.decision.value == "REJECT" or handoff.proposed_decision.action is ResolutionAction.DECLINE:
+        return CorrectedDeclineDecision(action="DECLINE", refund_scope={"line_item_ids": []})
+    proposal = handoff.proposed_decision
+    return CorrectedFullRefundDecision(
+        action="FULL_REFUND", refund_scope=proposal.refund_scope,
+        return_decision={"source": "HUMAN_REVIEW", "requirement": proposal.return_decision.requirement},
+    )
+
+
+def derive_memory_categories(
+    order_snapshot: OrderSnapshot, claimed_line_item_ids: Iterable[str]
+) -> list[str]:
+    """Derive the only categories allowed in a memory query."""
+
+    claimed = set(_claimed_items(order_snapshot, claimed_line_item_ids))
+    return sorted(
+        {
+            item.category_ref
+            for item in order_snapshot.line_items
+            if item.line_item_id in claimed
+        }
+    )
+
+
+def _validate_policy_refs(refs: Iterable[str], policy_bundle: PolicyBundle) -> None:
+    clause_ids = {clause.clause_id for clause in policy_bundle.clauses}
+    unknown = set(refs) - clause_ids
+    if unknown:
+        raise ContractInvariantError(f"unknown policy references: {sorted(unknown)}")
+
+
+def _validate_rationale_has_no_amount(rationale: str, currency: str) -> None:
+    escaped_currency = re.escape(currency)
+    prohibited = re.compile(
+        rf"(?:\b{escaped_currency}\s*\d+|\b\d+\s*{escaped_currency}\b|"
+        r"\b(?:refund|amount)\s*[:：]?\s*\d+|(?:退款|金額)\s*(?:為|是|[:：])?\s*\d+|\d+\s*[元塊])",
+        re.IGNORECASE,
+    )
+    if prohibited.search(rationale):
+        raise ContractInvariantError(
+            "rationale_summary must not contain a refund amount"
+        )

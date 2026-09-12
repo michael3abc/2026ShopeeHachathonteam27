@@ -1,0 +1,173 @@
+{
+  "$defs": {
+    "GraphNodeName": {
+      "enum": [
+        "parse_request",
+        "request_clarification",
+        "load_case_context",
+        "retrieve_policy",
+        "prepare_memory_query",
+        "retrieve_memory",
+        "assess_case",
+        "request_evidence",
+        "propose_decision",
+        "external_verification",
+        "reviewer",
+        "record_revision_event",
+        "await_human_review",
+        "emit_resolution_handoff",
+        "enqueue_memory_distillation",
+        "distill_memory",
+        "submit_candidate",
+        "external_memory_approval",
+        "terminate_automation"
+      ],
+      "title": "GraphNodeName",
+      "type": "string"
+    },
+    "NodeLifecyclePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        },
+        "review_gate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReviewGateResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "NodeLifecyclePayload",
+      "type": "object"
+    },
+    "ReviewGateResult": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+          "title": "Amount",
+          "type": "string"
+        },
+        "config_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Config Hash",
+          "type": "string"
+        },
+        "config_version": {
+          "minLength": 1,
+          "title": "Config Version",
+          "type": "string"
+        },
+        "currency": {
+          "maxLength": 3,
+          "minLength": 3,
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "HIGH_VALUE_ITEM",
+                "CURRENCY_THRESHOLD_UNCONFIGURED"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason"
+        },
+        "status": {
+          "enum": [
+            "PASS",
+            "HUMAN_REQUIRED",
+            "NOT_APPLICABLE"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Threshold"
+        }
+      },
+      "required": [
+        "config_version",
+        "config_hash",
+        "status",
+        "amount",
+        "currency",
+        "threshold",
+        "reason"
+      ],
+      "title": "ReviewGateResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "case_ref": {
+      "minLength": 1,
+      "title": "Case Ref",
+      "type": "string"
+    },
+    "node": {
+      "$ref": "#/$defs/GraphNodeName"
+    },
+    "payload": {
+      "$ref": "#/$defs/NodeLifecyclePayload"
+    },
+    "seq": {
+      "minimum": 1,
+      "title": "Seq",
+      "type": "integer"
+    },
+    "ts": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+      "title": "Ts",
+      "type": "string"
+    },
+    "type": {
+      "const": "node_enter",
+      "title": "Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "case_ref",
+    "seq",
+    "ts",
+    "node",
+    "type"
+  ],
+  "title": "NodeEnterEvent",
+  "type": "object"
+}

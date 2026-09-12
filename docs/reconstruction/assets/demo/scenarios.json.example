@@ -1,0 +1,107 @@
+{
+  "schema_note": "Orchestration metadata; not a shared DTO.",
+  "runtime_limitations": [
+    "Memory distillation may still return SKIP; the runner treats that as a failed learning segment.",
+    "B-to-C learning requires B's actual candidate and explicit governance approval."
+  ],
+  "execution_order": [
+    "STUDY-A",
+    "STUDY-B",
+    "APPROVE_ACTUAL_MEMORY_FROM_B",
+    "STUDY-C"
+  ],
+  "cases": [
+    {
+      "scenario_id": "STUDY-A",
+      "case_file": "case-a.json.example",
+      "expected_memory": "MEM-STUDY-SPEAKER-PRELOAD",
+      "amount": "1200.00",
+      "currency": "TWD",
+      "expected_review_gate": {"status": "PASS", "reason": null, "precondition": "Reviewer APPROVE of FULL_REFUND"},
+      "expected": [
+        "Evidence request before sufficient arrival evidence",
+        "Verification PASS after verified follow-up",
+        "Demo refund SUCCEEDED"
+      ],
+      "stop_if": [
+        "Missing runtime integration",
+        "Unverified assets or summaries",
+        "Unexpected memory match",
+        "Required distillation FAILED or SKIP"
+      ]
+    },
+    {
+      "scenario_id": "STUDY-B",
+      "case_file": "case-b.json.example",
+      "expected_memory": "NO_MATCH",
+      "amount": "6200.00",
+      "currency": "TWD",
+      "expected_review_gate": {"status": "HUMAN_REQUIRED", "reason": "HIGH_VALUE_ITEM", "precondition": "Reviewer APPROVE of FULL_REFUND"},
+      "expected": [
+        "Evidence request before sufficient arrival evidence",
+        "Verification PASS after verified follow-up",
+        "Human edits the return requirement before demo refund",
+        "The confirmed correction produces an actual CREATE_CANDIDATE",
+        "Candidate invisible until explicit approval"
+      ],
+      "stop_if": [
+        "Missing runtime integration",
+        "Unverified assets or summaries",
+        "Unexpected memory match",
+        "Required distillation FAILED or SKIP"
+      ]
+    },
+    {
+      "scenario_id": "STUDY-C",
+      "case_file": "case-c.json.example",
+      "expected_memory": "ACTUAL_APPROVED_MEMORY_FROM_B",
+      "amount": "6800.00",
+      "currency": "TWD",
+      "expected_review_gate": {"status": "HUMAN_REQUIRED", "reason": "HIGH_VALUE_ITEM", "precondition": "Reviewer APPROVE of FULL_REFUND"},
+      "expected": [
+        "Evidence request before sufficient arrival evidence",
+        "Verification PASS after verified follow-up",
+        "Human approval before demo refund"
+      ],
+      "stop_if": [
+        "Missing runtime integration",
+        "Unverified assets or summaries",
+        "Unexpected memory match",
+        "Required distillation FAILED or SKIP"
+      ]
+    }
+  ],
+  "timeline": [
+    [
+      "00:00",
+      "00:25",
+      "Architecture"
+    ],
+    [
+      "00:25",
+      "01:20",
+      "A: preloaded memory"
+    ],
+    [
+      "01:20",
+      "03:15",
+      "B: human review, distillation, approval"
+    ],
+    [
+      "03:15",
+      "04:35",
+      "C: reuse B memory, retain human gate"
+    ],
+    [
+      "04:35",
+      "05:00",
+      "Audit and mock-money disclaimer"
+    ]
+  ],
+  "runtime_bindings": {
+    "human_handoffs": "Fetch each case's current human_review.handoff_id before submitting its ReviewDecision.",
+    "review_gate_config": "config/reviewer-gates.json; verify API and Agent config_version/config_hash match. Expected thresholds here assume reviewer-gates:1.0.",
+    "case_refs": "Capture CreateCaseResponse; template case refs are not persisted identities.",
+    "memory_from_b": "Capture actual candidate ID and verify source_case_refs before approval."
+  }
+}

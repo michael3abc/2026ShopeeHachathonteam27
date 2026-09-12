@@ -1,0 +1,56 @@
+{
+  "case_context": {
+    "case_ref": "CASE-STUDY-C-TEMPLATE",
+    "order_ref": "ORDER-DEMO-STUDY-C",
+    "market": "TW",
+    "case_opened_at": "2026-09-02T09:00:00Z",
+    "snapshot_version": 1
+  },
+  "order_snapshot": {
+    "order_snapshot_ref": "ORDER-DEMO-STUDY-C@1",
+    "order_ref": "ORDER-DEMO-STUDY-C",
+    "snapshot_version": 1,
+    "captured_at": "2026-09-02T09:00:00Z",
+    "currency": "TWD",
+    "delivered_at": "2026-09-01T10:00:00Z",
+    "line_items": [
+      {
+        "line_item_id": "LI-STUDY-C",
+        "sku_ref": "SKU-STUDY-C",
+        "category_ref": "CAT-AUDIO-HEADPHONES",
+        "title": "奶油白無線耳機",
+        "quantity": 1,
+        "refundable_amount": "6800.00"
+      }
+    ],
+    "refundable_amount_max": "6800.00",
+    "already_refunded_amount": "0.00"
+  },
+  "initial_user_turn": {
+    "turn_id": "TURN-STUDY-C",
+    "role": "USER",
+    "text": "昨天收到奶油白無線耳機，拆箱時發現耳罩支架接合處有裂痕。我尚未使用，想申請這件商品退款，先附上裂痕近照。",
+    "attached_artifact_refs": [
+      "artifact://demo-study/C/closeup"
+    ],
+    "received_at": "2026-09-02T09:00:00Z"
+  },
+  "create_case_request": {
+    "order_ref": "ORDER-DEMO-STUDY-C",
+    "user_ref": "USER-STUDY-C",
+    "initial_message": "昨天收到奶油白無線耳機，拆箱時發現耳罩支架接合處有裂痕。我尚未使用，想申請這件商品退款，先附上裂痕近照。",
+    "attached_artifact_refs": [
+      "artifact://demo-study/C/closeup"
+    ]
+  },
+  "followup_messages": [
+    {
+      "message": "補上同一件奶油白無線耳機與包裝、商品識別貼紙，以及依序排列的拆箱照片。照片中的識別為 SKU-STUDY-C；拆開包裝、取出商品後就看見同一處裂痕，尚未使用。",
+      "attached_artifact_refs": [
+        "artifact://demo-study/C/package",
+        "artifact://demo-study/C/identity",
+        "artifact://demo-study/C/arrival"
+      ]
+    }
+  ]
+}

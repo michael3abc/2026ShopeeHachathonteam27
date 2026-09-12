@@ -1,0 +1,56 @@
+{
+  "case_context": {
+    "case_ref": "CASE-STUDY-A-TEMPLATE",
+    "order_ref": "ORDER-DEMO-STUDY-A",
+    "market": "TW",
+    "case_opened_at": "2026-09-02T09:00:00Z",
+    "snapshot_version": 1
+  },
+  "order_snapshot": {
+    "order_snapshot_ref": "ORDER-DEMO-STUDY-A@1",
+    "order_ref": "ORDER-DEMO-STUDY-A",
+    "snapshot_version": 1,
+    "captured_at": "2026-09-02T09:00:00Z",
+    "currency": "TWD",
+    "delivered_at": "2026-09-01T10:00:00Z",
+    "line_items": [
+      {
+        "line_item_id": "LI-STUDY-A",
+        "sku_ref": "SKU-STUDY-A",
+        "category_ref": "CAT-AUDIO-SPEAKERS",
+        "title": "石墨灰藍牙音箱",
+        "quantity": 1,
+        "refundable_amount": "1200.00"
+      }
+    ],
+    "refundable_amount_max": "1200.00",
+    "already_refunded_amount": "0.00"
+  },
+  "initial_user_turn": {
+    "turn_id": "TURN-STUDY-A",
+    "role": "USER",
+    "text": "昨天收到石墨灰藍牙音箱，拆箱時發現正面右下外殼有裂痕。我尚未使用，想申請這件商品退款，先附上裂痕近照。",
+    "attached_artifact_refs": [
+      "artifact://demo-study/A/closeup"
+    ],
+    "received_at": "2026-09-02T09:00:00Z"
+  },
+  "create_case_request": {
+    "order_ref": "ORDER-DEMO-STUDY-A",
+    "user_ref": "USER-STUDY-A",
+    "initial_message": "昨天收到石墨灰藍牙音箱，拆箱時發現正面右下外殼有裂痕。我尚未使用，想申請這件商品退款，先附上裂痕近照。",
+    "attached_artifact_refs": [
+      "artifact://demo-study/A/closeup"
+    ]
+  },
+  "followup_messages": [
+    {
+      "message": "補上同一件石墨灰藍牙音箱與包裝、商品識別貼紙，以及依序排列的拆箱照片。照片中的識別為 SKU-STUDY-A；拆開包裝、取出商品後就看見同一處裂痕，尚未使用。",
+      "attached_artifact_refs": [
+        "artifact://demo-study/A/package",
+        "artifact://demo-study/A/identity",
+        "artifact://demo-study/A/arrival"
+      ]
+    }
+  ]
+}

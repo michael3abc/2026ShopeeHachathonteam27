@@ -1,0 +1,124 @@
+"""Fan resolved cases out to the independent memory-distillation stream."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Protocol
+
+from pydantic import TypeAdapter, ValidationError
+from return_agent_contracts.models import MemoryDistillationInput
+from return_agent_contracts.service import (
+    AgentResolvedEvent,
+    AgentServiceEvent,
+    MemoryDistillationJob,
+)
+
+from .broker import BrokerMessage, MemoryEnqueueStreamBroker
+from .memory_activity import MemoryActivityIdentity, background
+from .memory_supervision import MemoryRetryPolicy
+
+LOGGER = logging.getLogger(__name__)
+EVENT_ADAPTER = TypeAdapter(AgentServiceEvent)
+
+
+class MemoryDistillationInputProvider(Protocol):
+    async def aget_memory_distillation_input(
+        self, *, thread_id: str
+    ) -> MemoryDistillationInput | None: ...
+
+
+class MemoryEnqueueWorker:
+    """Consume durable terminal events without delaying customer resolution."""
+
+    def __init__(
+        self,
+        *,
+        input_provider: MemoryDistillationInputProvider,
+        broker: MemoryEnqueueStreamBroker,
+        consumer_name: str,
+        clock: Callable[[], datetime] | None = None,
+        block_ms: int = 1_000,
+        reclaim_idle_ms: int = 60_000,
+        retry_policy: MemoryRetryPolicy | None = None,
+        activity_sink=None,
+    ) -> None:
+        if not consumer_name.strip():
+            raise ValueError("consumer_name must be non-empty")
+        if block_ms < 1 or reclaim_idle_ms < 1:
+            raise ValueError("Redis timing values must be positive")
+        self._input_provider = input_provider
+        self._broker = broker
+        self._consumer_name = consumer_name
+        self._clock = clock or (lambda: datetime.now(UTC))
+        self._block_ms = block_ms
+        self._reclaim_idle_ms = reclaim_idle_ms
+        self._retry_policy = retry_policy or MemoryRetryPolicy()
+        self._activity_sink = activity_sink
+
+    async def run_forever(self, stop: asyncio.Event) -> None:
+        await self._retry_policy.run(
+            stop=stop,
+            initialize=self._broker.ensure_memory_enqueue_consumer_group,
+            run_once=self.run_once,
+            worker_name="memory-enqueue-worker",
+        )
+
+    async def run_once(self) -> bool:
+        message = await self._broker.read_agent_event_for_memory(
+            consumer_name=self._consumer_name,
+            block_ms=self._block_ms,
+            reclaim_idle_ms=self._reclaim_idle_ms,
+        )
+        if message is None:
+            return False
+        event = self._parse_event(message)
+        if event is None or not isinstance(event, AgentResolvedEvent):
+            await self._broker.acknowledge_agent_event_for_memory(message.message_id)
+            return True
+
+        identity = MemoryActivityIdentity(event.case_ref, event.command_id,
+            f"memory:{event.payload.result.resolution_handoff.handoff_id}")
+        try:
+            input_ = await self._input_provider.aget_memory_distillation_input(
+                thread_id=event.thread_id
+            )
+        except Exception:
+            background(self._activity_sink, identity, "RETRYING", "MEMORY_ENQUEUE_UNAVAILABLE")
+            raise
+        if input_ is not None:
+            handoff_id = event.payload.result.resolution_handoff.handoff_id
+            await self._broker.publish_memory_job(
+                MemoryDistillationJob(
+                    job_id=f"memory:{handoff_id}",
+                    source_command_id=event.command_id,
+                    case_ref=event.case_ref,
+                    thread_id=event.thread_id,
+                    issued_at=self._utc_now(),
+                    payload={"input": input_},
+                )
+            )
+        background(self._activity_sink, identity,
+            "SCHEDULED" if input_ is not None else "SKIPPED")
+        await self._broker.acknowledge_agent_event_for_memory(message.message_id)
+        return True
+
+    @staticmethod
+    def _parse_event(message: BrokerMessage) -> AgentServiceEvent | None:
+        try:
+            return EVENT_ADAPTER.validate_python(json.loads(message.body))
+        except (json.JSONDecodeError, ValidationError, TypeError, ValueError):
+            LOGGER.exception(
+                "invalid Agent event %s cannot produce a memory job",
+                message.message_id,
+            )
+            return None
+
+    def _utc_now(self) -> datetime:
+        value = self._clock()
+        if value.tzinfo is None or value.utcoffset() != UTC.utcoffset(value):
+            raise ValueError("memory enqueue worker clock must return UTC")
+        return value.astimezone(UTC)

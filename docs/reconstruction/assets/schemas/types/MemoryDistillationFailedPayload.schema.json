@@ -1,0 +1,32 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "minLength": 1,
+      "title": "Code",
+      "type": "string"
+    },
+    "distiller_prompt_version": {
+      "minLength": 1,
+      "title": "Distiller Prompt Version",
+      "type": "string"
+    },
+    "message": {
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "retryable": {
+      "title": "Retryable",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "code",
+    "message",
+    "retryable",
+    "distiller_prompt_version"
+  ],
+  "title": "MemoryDistillationFailedPayload",
+  "type": "object"
+}

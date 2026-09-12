@@ -1,0 +1,146 @@
+{
+  "$defs": {
+    "ClaimId": {
+      "enum": [
+        "DELIVERY_CONFIRMED",
+        "ORDER_WITHIN_RETURN_WINDOW",
+        "SHIPMENT_SEAL_INTACT",
+        "ITEM_PHYSICALLY_DAMAGED",
+        "DAMAGE_PRESENT_ON_ARRIVAL",
+        "ITEM_FUNCTIONALLY_IMPAIRED",
+        "ITEM_DIFFERS_FROM_LISTING",
+        "WRONG_ITEM_RECEIVED",
+        "ITEM_NOT_IN_SHIPMENT",
+        "ITEM_UNUSED"
+      ],
+      "title": "ClaimId",
+      "type": "string"
+    },
+    "MemoryScope": {
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Categories",
+          "type": "array"
+        },
+        "claim_ids": {
+          "items": {
+            "$ref": "#/$defs/ClaimId"
+          },
+          "title": "Claim Ids",
+          "type": "array"
+        },
+        "market": {
+          "minLength": 1,
+          "title": "Market",
+          "type": "string"
+        },
+        "reason_codes": {
+          "items": {
+            "$ref": "#/$defs/ReasonCode"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "market"
+      ],
+      "title": "MemoryScope",
+      "type": "object"
+    },
+    "MemoryStatus": {
+      "enum": [
+        "CANDIDATE",
+        "APPROVED",
+        "RETIRED"
+      ],
+      "title": "MemoryStatus",
+      "type": "string"
+    },
+    "ReasonCode": {
+      "enum": [
+        "ITEM_DAMAGED",
+        "ITEM_NOT_AS_DESCRIBED",
+        "MISSING_ITEM",
+        "WRONG_ITEM",
+        "QUALITY_ISSUE",
+        "CHANGED_MIND"
+      ],
+      "title": "ReasonCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Display-only memory card; only APPROVED records are retrievable.",
+  "properties": {
+    "action": {
+      "minLength": 1,
+      "title": "Action",
+      "type": "string"
+    },
+    "boundary": {
+      "minLength": 1,
+      "title": "Boundary",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+      "title": "Created At",
+      "type": "string"
+    },
+    "hit_count": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Hit Count"
+    },
+    "memory_id": {
+      "minLength": 1,
+      "title": "Memory Id",
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "#/$defs/MemoryScope"
+    },
+    "source_case_refs": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Source Case Refs",
+      "type": "array"
+    },
+    "status": {
+      "$ref": "#/$defs/MemoryStatus"
+    },
+    "trigger": {
+      "minLength": 1,
+      "title": "Trigger",
+      "type": "string"
+    }
+  },
+  "required": [
+    "memory_id",
+    "status",
+    "trigger",
+    "boundary",
+    "action",
+    "scope",
+    "created_at"
+  ],
+  "title": "MemoryRecordView",
+  "type": "object"
+}

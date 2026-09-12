@@ -1,0 +1,80 @@
+[
+  {
+    "description": "Create Louis-owned neutral evidence metadata storage.\n\nRevision ID: 0001_evidence_capability\nRevises:\nCreate Date: 2026-09-05",
+    "down_revision": null,
+    "revision": "0001_evidence_capability",
+    "source": "apps/api/alembic/versions/0001_evidence_capability.py"
+  },
+  {
+    "description": "Create the backend-owned case lifecycle tables.\n\nRevision ID: 0002_case_lifecycle\nRevises: 0001_evidence_capability\nCreate Date: 2026-09-06",
+    "down_revision": "0001_evidence_capability",
+    "revision": "0002_case_lifecycle",
+    "source": "apps/api/alembic/versions/0002_case_lifecycle.py"
+  },
+  {
+    "description": "Create versioned structured Policy RAG storage.\n\nRevision ID: 0003_policy_rag\nRevises: 0002_case_lifecycle\nCreate Date: 2026-09-06",
+    "down_revision": "0002_case_lifecycle",
+    "revision": "0003_policy_rag",
+    "source": "apps/api/alembic/versions/0003_policy_rag.py"
+  },
+  {
+    "description": "Create durable operational-memory lifecycle storage.\n\nRevision ID: 0004_operational_memory\nRevises: 0003_policy_rag\nCreate Date: 2026-09-06",
+    "down_revision": "0003_policy_rag",
+    "revision": "0004_operational_memory",
+    "source": "apps/api/alembic/versions/0004_operational_memory.py"
+  },
+  {
+    "description": "Create durable verification and risk-gate records.\n\nRevision ID: 0005_safety_verification_risk\nRevises: 0004_operational_memory\nCreate Date: 2026-09-07",
+    "down_revision": "0004_operational_memory",
+    "revision": "0005_safety_verification_risk",
+    "source": "apps/api/alembic/versions/0005_safety_verification_risk.py"
+  },
+  {
+    "description": "Create durable authorized-refund execution records.\n\nRevision ID: 0006_refund_execution\nRevises: 0005_safety_verification_risk\nCreate Date: 2026-09-08",
+    "down_revision": "0005_safety_verification_risk",
+    "revision": "0006_refund_execution",
+    "source": "apps/api/alembic/versions/0006_refund_execution.py"
+  },
+  {
+    "description": "Reserve order items before refund mutation; stop execution during upgrade.\n\nRevision ID: 0007_refund_item_reservations\nRevises: 0006_refund_execution",
+    "down_revision": "0006_refund_execution",
+    "revision": "0007_refund_item_reservations",
+    "source": "apps/api/alembic/versions/0007_refund_item_reservations.py"
+  },
+  {
+    "description": "Add the Agent command outbox and event idempotency ledger.\n\nRevision ID: 0008_agent_bridge\nRevises: 0007_refund_item_reservations\nCreate Date: 2026-09-08",
+    "down_revision": "0007_refund_item_reservations",
+    "revision": "0008_agent_bridge",
+    "source": "apps/api/alembic/versions/0008_agent_bridge.py"
+  },
+  {
+    "description": "Add durable Human Review handoff storage.\n\nRevision ID: 0009_human_reviews\nRevises: 0008_agent_bridge\nCreate Date: 2026-09-08",
+    "down_revision": "0008_agent_bridge",
+    "revision": "0009_human_reviews",
+    "source": "apps/api/alembic/versions/0009_human_reviews.py"
+  },
+  {
+    "description": "Replace risk-based human submission with Reviewer objections.\n\nHistorical risk records remain audit-only; old graph checkpoints cannot resume.",
+    "down_revision": "0009_human_reviews",
+    "revision": "0010_reviewer_handoff",
+    "source": "apps/api/alembic/versions/0010_reviewer_handoff.py"
+  },
+  {
+    "description": "Add derived memory summaries and vectors without changing governed records.",
+    "down_revision": "0010_reviewer_handoff",
+    "revision": "0011_memory_vectors",
+    "source": "apps/api/alembic/versions/0011_memory_vectors.py"
+  },
+  {
+    "description": "Preserve structured nonconvergence history for human adjudication.",
+    "down_revision": "0011_memory_vectors",
+    "revision": "0012_human_review_dossier",
+    "source": "apps/api/alembic/versions/0012_human_review_dossier.py"
+  },
+  {
+    "description": "Independent activity sequence and transactional narration outbox.",
+    "down_revision": "0012_human_review_dossier",
+    "revision": "0013_activity_tracing",
+    "source": "apps/api/alembic/versions/0013_activity_tracing.py"
+  }
+]

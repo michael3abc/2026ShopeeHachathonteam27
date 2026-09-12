@@ -1,0 +1,29 @@
+{
+  "$defs": {
+    "RequiredReturnReasonCode": {
+      "enum": [
+        "RESALE_VALUE_RETAINED",
+        "RETURN_REQUIRED_FOR_INSPECTION"
+      ],
+      "title": "RequiredReturnReasonCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "reason_code": {
+      "$ref": "#/$defs/RequiredReturnReasonCode"
+    },
+    "required": {
+      "const": true,
+      "title": "Required",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "required",
+    "reason_code"
+  ],
+  "title": "RequiredReturnRequirement",
+  "type": "object"
+}

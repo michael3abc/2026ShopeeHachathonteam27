@@ -1,0 +1,51 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "error_code": {
+      "minLength": 1,
+      "title": "Error Code",
+      "type": "string"
+    },
+    "error_message": {
+      "minLength": 1,
+      "title": "Error Message",
+      "type": "string"
+    },
+    "failed_at": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+      "title": "Failed At",
+      "type": "string"
+    },
+    "raw_body": {
+      "title": "Raw Body",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "v1",
+      "default": "v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_message_id": {
+      "minLength": 1,
+      "title": "Source Message Id",
+      "type": "string"
+    },
+    "source_stream": {
+      "const": "return-agent.memory-jobs.v1",
+      "default": "return-agent.memory-jobs.v1",
+      "title": "Source Stream",
+      "type": "string"
+    }
+  },
+  "required": [
+    "source_message_id",
+    "raw_body",
+    "error_code",
+    "error_message",
+    "failed_at"
+  ],
+  "title": "MemoryJobDeadLetter",
+  "type": "object"
+}

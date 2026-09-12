@@ -1,0 +1,31 @@
+{
+  "candidate": {
+    "retrieval_summary": "Damaged-item claims with close-up photos but no arrival-condition evidence: request all remaining package and damage evidence together.",
+    "memory_id": "MEM-DEMO-REQUEST-COMPLETE-DAMAGE-EVIDENCE",
+    "trigger_conditions": [
+      "A damaged-item claim has a close-up of the item but lacks evidence about package condition or arrival timing."
+    ],
+    "recommended_behavior": "Request all remaining buyer-provided evidence in one EvidenceRequest, including the package condition and the damaged area, instead of splitting the request across rounds.",
+    "rationale": "A reviewed correction showed that repeated evidence requests were avoidable when all unresolved buyer-evidence claims were requested together.",
+    "source_case_refs": ["CASE-DEMO-SOURCE-001"],
+    "source_revision_event_refs": ["REV-DEMO-SOURCE-001"],
+    "policy_version": "RETURNS-TW:v1",
+    "claim_registry_version": "claim-registry:1.0",
+    "scope": {
+      "market": "TW",
+      "reason_codes": ["ITEM_DAMAGED"],
+      "claim_ids": ["DAMAGE_PRESENT_ON_ARRIVAL"],
+      "categories": ["CAT-AUDIO-SPEAKERS"]
+    },
+    "confidence": 0.8,
+    "status": "CANDIDATE"
+  },
+  "expected_governance_transition": "APPROVE",
+  "expected_visible_after_approval": true,
+  "expected_invisible_when": [
+    "status is CANDIDATE or RETIRED",
+    "policy_version differs from RETURNS-TW:v1",
+    "claim_registry major version differs from 1",
+    "market, reason code, claim scope, or category does not overlap"
+  ]
+}

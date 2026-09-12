@@ -1,0 +1,14 @@
+{
+  "tasks": [
+    {"id":"T01","depends_on":[],"modules":["M08"]},
+    {"id":"T02","depends_on":["T01"],"modules":["M01"]},
+    {"id":"T03","depends_on":["T02"],"modules":["M03"]},
+    {"id":"T04","depends_on":["T03"],"modules":["M04"]},
+    {"id":"T05","depends_on":["T02"],"modules":["M02"]},
+    {"id":"T06","depends_on":["T04","T05"],"modules":["M03","M04","M06"]},
+    {"id":"T07","depends_on":["T06"],"modules":["M05","M06"]},
+    {"id":"T08","depends_on":["T06"],"modules":["M06"]},
+    {"id":"T09","depends_on":["T06","T07","T08"],"modules":["M07"]},
+    {"id":"T10","depends_on":["T09"],"modules":["M08"]}
+  ]
+}

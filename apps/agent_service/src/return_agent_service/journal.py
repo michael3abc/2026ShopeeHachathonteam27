@@ -1,80 +1,180 @@
-from datetime import datetime, timedelta, timezone
+"""Command idempotency port; production must provide a durable implementation."""
 
-from pydantic import TypeAdapter
-from sqlalchemy import func, select
+from __future__ import annotations
 
-from return_agent_contracts.messages import AgentCommand
-from return_agent_contracts.primitives import payload_hash
-from return_agent_contracts.providers import ContractConflict
-from return_agent_contracts.workflow import AgentRunResult, AgentServiceEvent, NodeExecutionObservation
-from return_agent_runtime.ports import stable_id
+import asyncio
+from datetime import UTC, datetime, timedelta
+from enum import StrEnum
+from typing import Protocol
 
-from .db import CommandRow, EventOutboxRow, ThreadRow
+from psycopg_pool import AsyncConnectionPool
 
 
-class JournalBusy(RuntimeError):
-    pass
+class CommandClaim(StrEnum):
+    CLAIMED = "CLAIMED"
+    BUSY = "BUSY"
+    TERMINAL = "TERMINAL"
 
 
-class CommandJournal:
-    def __init__(self, sessions, *, clock=lambda: datetime.now(timezone.utc), lease_seconds: int = 900):
-        self.sessions, self.clock, self.lease_seconds = sessions, clock, lease_seconds
+class CommandJournal(Protocol):
+    async def claim(self, command_id: str) -> CommandClaim: ...
 
-    def claim(self, command: AgentCommand, owner: str, checkpoint_id: str | None) -> tuple[str, str | None]:
-        with self.sessions.begin() as session:
-            session.execute(select(func.pg_advisory_xact_lock(func.hashtextextended(command.thread_id, 0))))
-            row = session.get(CommandRow, command.command_id, with_for_update=True)
-            if row:
-                if row.payload_hash != payload_hash(command):
-                    raise ContractConflict("Command ID reused with different content")
-                if row.status == "TERMINAL":
-                    return "TERMINAL", row.initial_checkpoint_id
-                if row.leased_until > self.clock() and row.lease_owner != owner:
-                    return "BUSY", row.initial_checkpoint_id
-                row.lease_owner, row.leased_until = owner, self.clock() + timedelta(seconds=self.lease_seconds)
-                return "CLAIMED", row.initial_checkpoint_id
-            thread = session.get(ThreadRow, command.thread_id)
-            if command.command_type == "START":
-                if thread is not None:
-                    raise ContractConflict("Thread already has a start command")
-                thread = ThreadRow(thread_id=command.thread_id, case_ref=command.case_ref, start_command_id=command.command_id)
-                session.add(thread)
-                session.flush()
-            elif thread is None or thread.case_ref != command.case_ref:
-                raise ContractConflict("Resume is not bound to a known case thread")
-            session.add(CommandRow(command_id=command.command_id, thread_id=command.thread_id, case_ref=command.case_ref, payload_hash=payload_hash(command), request=command.model_dump(mode="json"), status="CLAIMED", lease_owner=owner, leased_until=self.clock() + timedelta(seconds=self.lease_seconds), initial_checkpoint_id=checkpoint_id, created_at=self.clock()))
-            return "CLAIMED", checkpoint_id
+    async def complete(self, command_id: str) -> None: ...
 
-    def append(self, session, command, event_id, event_type, payload):
-        session.get(CommandRow, command.command_id, with_for_update=True)
-        existing = session.get(EventOutboxRow, event_id)
-        if existing:
-            if existing.payload["payload"] != payload:
-                raise ContractConflict("Journal event identity reused with different content")
-            return
-        index = (session.scalar(select(func.max(EventOutboxRow.event_index)).where(EventOutboxRow.command_id == command.command_id)) or 0) + 1
-        event = TypeAdapter(AgentServiceEvent).validate_python({"event_id": event_id, "command_id": command.command_id, "case_ref": command.case_ref, "thread_id": command.thread_id, "event_index": index, "occurred_at": self.clock(), "event_type": event_type, "payload": payload})
-        session.add(EventOutboxRow(event_id=event_id, command_id=command.command_id, event_index=index, payload=event.model_dump(mode="json")))
+    async def fail(self, command_id: str) -> None: ...
 
-    def observe(self, command: AgentCommand, observation: NodeExecutionObservation):
-        with self.sessions.begin() as session:
-            self.append(session, command, stable_id("agent-event", command.command_id, observation.task_ref, observation.phase), "NODE_OBSERVED", {"observation": observation.model_dump(mode="json")})
+    async def abandon(self, command_id: str) -> None: ...
 
-    def complete(self, command: AgentCommand, owner: str, result: AgentRunResult, distillation_input):
-        result = TypeAdapter(AgentRunResult).validate_python(result)
-        event_type = {"RESOLUTION": "RESOLVED", "INTERRUPTED": "INTERRUPTED", "MANUAL_ESCALATION": "ESCALATED"}[result.result_type]
-        with self.sessions.begin() as session:
-            row = session.get(CommandRow, command.command_id, with_for_update=True)
-            if row.lease_owner != owner or row.payload_hash != payload_hash(command):
-                raise JournalBusy("Command lease was replaced")
-            self.append(session, command, stable_id("agent-event", command.command_id, "terminal"), event_type, {"result": result.model_dump(mode="json")})
-            row.result, row.status = result.model_dump(mode="json"), "TERMINAL"
-            row.distillation_input = distillation_input.model_dump(mode="json") if distillation_input else None
 
-    def fail(self, command: AgentCommand, owner: str):
-        with self.sessions.begin() as session:
-            row = session.get(CommandRow, command.command_id, with_for_update=True)
-            if row.lease_owner != owner:
-                raise JournalBusy("Command lease was replaced")
-            self.append(session, command, stable_id("agent-event", command.command_id, "terminal"), "RUN_FAILED", {"code": "INVALID_RUNTIME_COMMAND", "message": "Command does not match the durable runtime state", "retryable": False, "failed_node": None})
-            row.status = "TERMINAL"
+class InMemoryCommandJournal:
+    """Development-only journal; state is lost when the process restarts."""
+
+    def __init__(self) -> None:
+        self._states: dict[str, str] = {}
+        self._lock = asyncio.Lock()
+
+    async def claim(self, command_id: str) -> CommandClaim:
+        async with self._lock:
+            state = self._states.get(command_id)
+            if state in {"COMPLETED", "FAILED"}:
+                return CommandClaim.TERMINAL
+            if state == "RUNNING":
+                return CommandClaim.BUSY
+            self._states[command_id] = "RUNNING"
+            return CommandClaim.CLAIMED
+
+    async def complete(self, command_id: str) -> None:
+        await self._finish(command_id, "COMPLETED")
+
+    async def fail(self, command_id: str) -> None:
+        await self._finish(command_id, "FAILED")
+
+    async def abandon(self, command_id: str) -> None:
+        async with self._lock:
+            if self._states.get(command_id) == "RUNNING":
+                del self._states[command_id]
+
+    async def _finish(self, command_id: str, state: str) -> None:
+        async with self._lock:
+            if self._states.get(command_id) != "RUNNING":
+                raise RuntimeError(f"command {command_id} is not claimed")
+            self._states[command_id] = state
+
+
+class PostgresCommandJournal:
+    """Lease-based durable command idempotency for Agent Service replicas."""
+
+    def __init__(
+        self,
+        conninfo: str,
+        *,
+        owner: str,
+        lease_seconds: int = 900,
+    ) -> None:
+        if not conninfo.strip() or not owner.strip():
+            raise ValueError("conninfo and owner must be non-empty")
+        if lease_seconds < 1:
+            raise ValueError("lease_seconds must be positive")
+        self._owner = owner
+        self._lease_seconds = lease_seconds
+        self._pool = AsyncConnectionPool(conninfo, open=False)
+
+    async def setup(self) -> None:
+        await self._pool.open()
+        async with self._pool.connection() as connection:
+            await connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS agent_command_journal (
+                    command_id TEXT PRIMARY KEY,
+                    state TEXT NOT NULL CHECK (
+                        state IN ('RUNNING', 'COMPLETED', 'FAILED')
+                    ),
+                    claimed_by TEXT,
+                    claimed_until TIMESTAMPTZ,
+                    updated_at TIMESTAMPTZ NOT NULL
+                )
+                """
+            )
+
+    async def close(self) -> None:
+        await self._pool.close()
+
+    async def ping(self) -> bool:
+        try:
+            async with self._pool.connection() as connection:
+                await connection.execute("SELECT 1")
+            return True
+        except Exception:  # noqa: BLE001 - readiness reports false
+            return False
+
+    async def claim(self, command_id: str) -> CommandClaim:
+        now = datetime.now(UTC)
+        claimed_until = now + timedelta(seconds=self._lease_seconds)
+        async with self._pool.connection() as connection:
+            async with connection.transaction():
+                cursor = await connection.execute(
+                    """
+                    SELECT state, claimed_by, claimed_until
+                    FROM agent_command_journal
+                    WHERE command_id = %s
+                    FOR UPDATE
+                    """,
+                    (command_id,),
+                )
+                row = await cursor.fetchone()
+                if row is None:
+                    await connection.execute(
+                        """
+                        INSERT INTO agent_command_journal (
+                            command_id, state, claimed_by, claimed_until, updated_at
+                        ) VALUES (%s, 'RUNNING', %s, %s, %s)
+                        """,
+                        (command_id, self._owner, claimed_until, now),
+                    )
+                    return CommandClaim.CLAIMED
+                state, _claimed_by, existing_until = row
+                if state in {"COMPLETED", "FAILED"}:
+                    return CommandClaim.TERMINAL
+                if existing_until is not None and existing_until > now:
+                    return CommandClaim.BUSY
+                await connection.execute(
+                    """
+                    UPDATE agent_command_journal
+                    SET claimed_by = %s, claimed_until = %s, updated_at = %s
+                    WHERE command_id = %s
+                    """,
+                    (self._owner, claimed_until, now, command_id),
+                )
+                return CommandClaim.CLAIMED
+
+    async def complete(self, command_id: str) -> None:
+        await self._finish(command_id, "COMPLETED")
+
+    async def fail(self, command_id: str) -> None:
+        await self._finish(command_id, "FAILED")
+
+    async def abandon(self, command_id: str) -> None:
+        async with self._pool.connection() as connection:
+            cursor = await connection.execute(
+                """
+                DELETE FROM agent_command_journal
+                WHERE command_id = %s AND state = 'RUNNING' AND claimed_by = %s
+                """,
+                (command_id, self._owner),
+            )
+            if cursor.rowcount not in {0, 1}:
+                raise RuntimeError("unexpected command journal abandon count")
+
+    async def _finish(self, command_id: str, state: str) -> None:
+        now = datetime.now(UTC)
+        async with self._pool.connection() as connection:
+            cursor = await connection.execute(
+                """
+                UPDATE agent_command_journal
+                SET state = %s, claimed_by = NULL, claimed_until = NULL, updated_at = %s
+                WHERE command_id = %s AND state = 'RUNNING' AND claimed_by = %s
+                """,
+                (state, now, command_id, self._owner),
+            )
+            if cursor.rowcount != 1:
+                raise RuntimeError(f"command {command_id} is not owned and running")

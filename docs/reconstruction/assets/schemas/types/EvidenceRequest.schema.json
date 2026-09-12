@@ -1,0 +1,96 @@
+{
+  "$defs": {
+    "ClaimId": {
+      "enum": [
+        "DELIVERY_CONFIRMED",
+        "ORDER_WITHIN_RETURN_WINDOW",
+        "SHIPMENT_SEAL_INTACT",
+        "ITEM_PHYSICALLY_DAMAGED",
+        "DAMAGE_PRESENT_ON_ARRIVAL",
+        "ITEM_FUNCTIONALLY_IMPAIRED",
+        "ITEM_DIFFERS_FROM_LISTING",
+        "WRONG_ITEM_RECEIVED",
+        "ITEM_NOT_IN_SHIPMENT",
+        "ITEM_UNUSED"
+      ],
+      "title": "ClaimId",
+      "type": "string"
+    },
+    "EvidenceType": {
+      "enum": [
+        "IMAGE",
+        "VIDEO",
+        "TEXT",
+        "DOCUMENT"
+      ],
+      "title": "EvidenceType",
+      "type": "string"
+    },
+    "MissingClaim": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/ClaimId"
+        },
+        "subject": {
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        }
+      },
+      "required": [
+        "claim_id",
+        "subject"
+      ],
+      "title": "MissingClaim",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "accepted_evidence_types": {
+      "items": {
+        "$ref": "#/$defs/EvidenceType"
+      },
+      "minItems": 1,
+      "title": "Accepted Evidence Types",
+      "type": "array"
+    },
+    "missing_claims": {
+      "items": {
+        "$ref": "#/$defs/MissingClaim"
+      },
+      "minItems": 1,
+      "title": "Missing Claims",
+      "type": "array"
+    },
+    "policy_refs": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Policy Refs",
+      "type": "array"
+    },
+    "request_id": {
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "user_message": {
+      "minLength": 1,
+      "title": "User Message",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "missing_claims",
+    "accepted_evidence_types",
+    "user_message",
+    "policy_refs"
+  ],
+  "title": "EvidenceRequest",
+  "type": "object"
+}

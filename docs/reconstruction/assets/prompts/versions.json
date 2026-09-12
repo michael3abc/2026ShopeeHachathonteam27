@@ -1,0 +1,8 @@
+{
+  "INTAKE_PROMPT_VERSION": "intake:1.1",
+  "MEMORY_DISTILLER_PROMPT_VERSION": "memory-distiller:2.0",
+  "MEMORY_QUERY_PROMPT_VERSION": "memory-query:1.0",
+  "NARRATION_PROMPT_VERSION": "unversioned-inline@485048c",
+  "RESOLVER_PROMPT_VERSION": "resolver:1.1",
+  "REVIEWER_PROMPT_VERSION": "reviewer:2.1"
+}

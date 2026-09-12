@@ -1,0 +1,185 @@
+{
+  "$defs": {
+    "ApplicableConditions": {
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Categories",
+          "type": "array"
+        },
+        "markets": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Markets",
+          "type": "array"
+        },
+        "reason_codes": {
+          "items": {
+            "$ref": "#/$defs/ReasonCode"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        }
+      },
+      "title": "ApplicableConditions",
+      "type": "object"
+    },
+    "ClaimId": {
+      "enum": [
+        "DELIVERY_CONFIRMED",
+        "ORDER_WITHIN_RETURN_WINDOW",
+        "SHIPMENT_SEAL_INTACT",
+        "ITEM_PHYSICALLY_DAMAGED",
+        "DAMAGE_PRESENT_ON_ARRIVAL",
+        "ITEM_FUNCTIONALLY_IMPAIRED",
+        "ITEM_DIFFERS_FROM_LISTING",
+        "WRONG_ITEM_RECEIVED",
+        "ITEM_NOT_IN_SHIPMENT",
+        "ITEM_UNUSED"
+      ],
+      "title": "ClaimId",
+      "type": "string"
+    },
+    "PolicyClauseFixture": {
+      "additionalProperties": false,
+      "description": "Fixture form of PolicyClause; document version is derived at ingestion.",
+      "properties": {
+        "allowed_actions": {
+          "items": {
+            "$ref": "#/$defs/ResolutionAction"
+          },
+          "title": "Allowed Actions",
+          "type": "array"
+        },
+        "applicable_conditions": {
+          "$ref": "#/$defs/ApplicableConditions"
+        },
+        "clause_id": {
+          "minLength": 1,
+          "title": "Clause Id",
+          "type": "string"
+        },
+        "effective_from": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Effective From",
+          "type": "string"
+        },
+        "effective_to": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effective To"
+        },
+        "required_claim_ids": {
+          "items": {
+            "$ref": "#/$defs/ClaimId"
+          },
+          "title": "Required Claim Ids",
+          "type": "array"
+        },
+        "return_policy": {
+          "$ref": "#/$defs/ReturnPolicy"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "clause_id",
+        "effective_from",
+        "applicable_conditions",
+        "required_claim_ids",
+        "allowed_actions",
+        "return_policy",
+        "text"
+      ],
+      "title": "PolicyClauseFixture",
+      "type": "object"
+    },
+    "ReasonCode": {
+      "enum": [
+        "ITEM_DAMAGED",
+        "ITEM_NOT_AS_DESCRIBED",
+        "MISSING_ITEM",
+        "WRONG_ITEM",
+        "QUALITY_ISSUE",
+        "CHANGED_MIND"
+      ],
+      "title": "ReasonCode",
+      "type": "string"
+    },
+    "ResolutionAction": {
+      "enum": [
+        "DECLINE",
+        "FULL_REFUND"
+      ],
+      "title": "ResolutionAction",
+      "type": "string"
+    },
+    "ReturnPolicy": {
+      "enum": [
+        "REQUIRED",
+        "NOT_REQUIRED",
+        "MODEL_JUDGMENT"
+      ],
+      "title": "ReturnPolicy",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A versioned source containing structured clauses, not raw RAG chunks.",
+  "properties": {
+    "active": {
+      "default": true,
+      "title": "Active",
+      "type": "boolean"
+    },
+    "clauses": {
+      "items": {
+        "$ref": "#/$defs/PolicyClauseFixture"
+      },
+      "title": "Clauses",
+      "type": "array"
+    },
+    "policy_family": {
+      "minLength": 1,
+      "title": "Policy Family",
+      "type": "string"
+    },
+    "source_ref": {
+      "minLength": 1,
+      "title": "Source Ref",
+      "type": "string"
+    },
+    "version": {
+      "minLength": 1,
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "policy_family",
+    "version",
+    "source_ref",
+    "clauses"
+  ],
+  "title": "PolicyDocumentFixture",
+  "type": "object"
+}

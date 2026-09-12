@@ -1,0 +1,64 @@
+{
+  "$defs": {
+    "ClarificationRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "clarification_question": {
+          "minLength": 1,
+          "title": "Clarification Question",
+          "type": "string"
+        },
+        "clarification_round": {
+          "minimum": 1,
+          "title": "Clarification Round",
+          "type": "integer"
+        },
+        "missing_fields": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Missing Fields",
+          "type": "array"
+        },
+        "request_id": {
+          "minLength": 1,
+          "title": "Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id",
+        "missing_fields",
+        "clarification_question",
+        "clarification_round"
+      ],
+      "title": "ClarificationRequest",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "case_ref": {
+      "minLength": 1,
+      "title": "Case Ref",
+      "type": "string"
+    },
+    "interrupt_kind": {
+      "const": "CLARIFICATION",
+      "title": "Interrupt Kind",
+      "type": "string"
+    },
+    "request": {
+      "$ref": "#/$defs/ClarificationRequest"
+    }
+  },
+  "required": [
+    "interrupt_kind",
+    "case_ref",
+    "request"
+  ],
+  "title": "ClarificationInterruptPayload",
+  "type": "object"
+}

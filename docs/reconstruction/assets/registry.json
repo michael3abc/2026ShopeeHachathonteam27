@@ -1,0 +1,154 @@
+{
+  "claims": [
+    {
+      "accepted_evidence_types": [],
+      "claim_id": "DELIVERY_CONFIRMED",
+      "description": "The shipment was delivered.",
+      "distinguish_from": [],
+      "observable_requirement": "Determine from the logistics snapshot; never request it from the user.",
+      "satisfiable_by": [
+        "SYSTEM_FACTS"
+      ],
+      "subject_scope": "ORDER"
+    },
+    {
+      "accepted_evidence_types": [],
+      "claim_id": "ORDER_WITHIN_RETURN_WINDOW",
+      "description": "The order is within the applicable return window.",
+      "distinguish_from": [],
+      "observable_requirement": "Determine from delivered_at and the applicable policy; never request it from the user.",
+      "satisfiable_by": [
+        "SYSTEM_FACTS"
+      ],
+      "subject_scope": "ORDER"
+    },
+    {
+      "accepted_evidence_types": [
+        "IMAGE",
+        "VIDEO"
+      ],
+      "claim_id": "SHIPMENT_SEAL_INTACT",
+      "description": "The shipment seal was intact.",
+      "distinguish_from": [],
+      "observable_requirement": "The intact state of the carton seal or tape must be identifiable.",
+      "satisfiable_by": [
+        "USER_EVIDENCE"
+      ],
+      "subject_scope": "ORDER"
+    },
+    {
+      "accepted_evidence_types": [
+        "IMAGE",
+        "VIDEO"
+      ],
+      "claim_id": "ITEM_PHYSICALLY_DAMAGED",
+      "description": "The item has visible physical damage.",
+      "distinguish_from": [
+        "DAMAGE_PRESENT_ON_ARRIVAL",
+        "ITEM_FUNCTIONALLY_IMPAIRED"
+      ],
+      "observable_requirement": "The damaged area of the item must be clearly visible.",
+      "satisfiable_by": [
+        "USER_EVIDENCE"
+      ],
+      "subject_scope": "LINE_ITEM"
+    },
+    {
+      "accepted_evidence_types": [
+        "IMAGE",
+        "VIDEO"
+      ],
+      "claim_id": "DAMAGE_PRESENT_ON_ARRIVAL",
+      "description": "The item was damaged when delivered, not afterwards.",
+      "distinguish_from": [
+        "ITEM_PHYSICALLY_DAMAGED"
+      ],
+      "observable_requirement": "An image must show both outer packaging and the damaged item area.",
+      "satisfiable_by": [
+        "USER_EVIDENCE"
+      ],
+      "subject_scope": "LINE_ITEM"
+    },
+    {
+      "accepted_evidence_types": [
+        "IMAGE",
+        "VIDEO",
+        "TEXT"
+      ],
+      "claim_id": "ITEM_FUNCTIONALLY_IMPAIRED",
+      "description": "The item cannot perform its intended function.",
+      "distinguish_from": [
+        "ITEM_PHYSICALLY_DAMAGED"
+      ],
+      "observable_requirement": "Show the attempted operation or its result demonstrating failed function.",
+      "satisfiable_by": [
+        "USER_EVIDENCE"
+      ],
+      "subject_scope": "LINE_ITEM"
+    },
+    {
+      "accepted_evidence_types": [
+        "IMAGE",
+        "VIDEO"
+      ],
+      "claim_id": "ITEM_DIFFERS_FROM_LISTING",
+      "description": "The received item differs from the listing.",
+      "distinguish_from": [
+        "WRONG_ITEM_RECEIVED"
+      ],
+      "observable_requirement": "Identifiable received-item characteristics must be comparable with the listing.",
+      "satisfiable_by": [
+        "USER_EVIDENCE"
+      ],
+      "subject_scope": "LINE_ITEM"
+    },
+    {
+      "accepted_evidence_types": [
+        "IMAGE"
+      ],
+      "claim_id": "WRONG_ITEM_RECEIVED",
+      "description": "A different item was received.",
+      "distinguish_from": [
+        "ITEM_DIFFERS_FROM_LISTING",
+        "ITEM_NOT_IN_SHIPMENT"
+      ],
+      "observable_requirement": "The received item name or SKU must be identifiable and differ from the ordered item.",
+      "satisfiable_by": [
+        "USER_EVIDENCE"
+      ],
+      "subject_scope": "LINE_ITEM"
+    },
+    {
+      "accepted_evidence_types": [
+        "IMAGE",
+        "VIDEO"
+      ],
+      "claim_id": "ITEM_NOT_IN_SHIPMENT",
+      "description": "The ordered item was missing from the shipment.",
+      "distinguish_from": [
+        "WRONG_ITEM_RECEIVED"
+      ],
+      "observable_requirement": "The full contents of the opened package must show the item is absent.",
+      "satisfiable_by": [
+        "USER_EVIDENCE",
+        "SYSTEM_FACTS"
+      ],
+      "subject_scope": "LINE_ITEM"
+    },
+    {
+      "accepted_evidence_types": [
+        "IMAGE"
+      ],
+      "claim_id": "ITEM_UNUSED",
+      "description": "The item is unused.",
+      "distinguish_from": [],
+      "observable_requirement": "The item, accessories, and tags must show an unused state.",
+      "satisfiable_by": [
+        "USER_EVIDENCE"
+      ],
+      "subject_scope": "LINE_ITEM"
+    }
+  ],
+  "major": 1,
+  "version": "claim-registry:1.0"
+}

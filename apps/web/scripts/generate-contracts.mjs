@@ -1,30 +1,31 @@
-import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { compile } from "json-schema-to-typescript";
 
-const schemaDir = fileURLToPath(new URL("../../contracts/schemas/", import.meta.url));
-const outputDir = fileURLToPath(new URL("../src/generated/", import.meta.url));
-const check = process.argv.includes("--check");
-const definitions = {};
-for (const file of (await readdir(schemaDir)).filter((name) => name.endsWith(".schema.json")).sort()) {
-  const schema = JSON.parse(await readFile(`${schemaDir}/${file}`, "utf8"));
-  for (const [name, definition] of Object.entries(schema.$defs ?? {})) {
-    if (definitions[name] && JSON.stringify(definitions[name]) !== JSON.stringify(definition)) throw new Error(`Conflicting schema: ${name}`);
-    definitions[name] = definition;
-  }
-  const { $defs: unusedDefinitions, $schema: unusedDialect, ...definition } = schema;
-  void unusedDefinitions; void unusedDialect;
-  const name = file.replace(".schema.json", "");
-  if (definitions[name] && JSON.stringify(definitions[name]) !== JSON.stringify(definition)) throw new Error(`Conflicting root schema: ${name}`);
-  definitions[name] = definition;
-}
-const source = { title: "Contracts", anyOf: Object.keys(definitions).sort().map((name) => ({ $ref: `#/$defs/${name}` })), $defs: definitions };
-const result = await compile(source, "Contracts", { bannerComment: "/* Generated from this project's Pydantic contracts. Run npm run contracts. */", additionalProperties: false, unreachableDefinitions: true });
-const path = `${outputDir}/contracts.ts`;
-if (check) {
-  if ((await readFile(path, "utf8")) !== result) throw new Error("TypeScript contracts have drifted");
-} else {
-  await mkdir(outputDir, { recursive: true });
-  await writeFile(path, result);
-}
-console.log(`${check ? "Checked" : "Generated"} TypeScript contracts`);
+import { compileFromFile } from "json-schema-to-typescript";
+
+const webRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const schemaRoot = path.resolve(webRoot, "../contracts/schemas/ui/v1");
+const outputRoot = path.resolve(webRoot, "src/contracts");
+
+const contracts = [
+  ["ActivityEvent.schema.json", "activity-event.ts"],
+  ["ActivityPage.schema.json", "activity-page.ts"],
+  ["AgentEvent.schema.json", "agent-event.ts"],
+  ["CaseDetail.schema.json", "case-detail.ts"],
+  ["CreateCaseRequest.schema.json", "create-case-request.ts"],
+  ["CreateCaseResponse.schema.json", "create-case-response.ts"],
+  ["SendMessageRequest.schema.json", "send-message-request.ts"],
+  ["ReviewDecision.schema.json", "review-decision.ts"],
+];
+
+await mkdir(outputRoot, { recursive: true });
+await Promise.all(
+  contracts.map(async ([schema, output]) => {
+    const source = await compileFromFile(path.join(schemaRoot, schema), {
+      bannerComment: "/* Generated from apps/contracts. Do not edit manually. */",
+      style: { singleQuote: false },
+    });
+    await writeFile(path.join(outputRoot, output), source);
+  }),
+);

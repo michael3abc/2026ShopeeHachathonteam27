@@ -1,0 +1,17 @@
+id: 1
+event: activity
+data: {"schema_version":"1.0","event_id":"evt-start","case_ref":"CASE-001","run_id":"run-demo","job_id":null,"scope":"CASE","node":"reviewer","operation_id":"op-review-node","parent_operation_id":null,"attempt_id":"attempt-demo","occurred_at":"2026-09-01T10:00:00Z","payload":{"type":"node","phase":"STARTED","name":"reviewer","duration_ms":null,"model":null,"facts":{"outcome":null,"action":null,"verdict":null,"next_node":null,"count":null,"revision_round":null,"reason_codes":[],"references":[],"finding_statuses":[],"findings":[]},"inputs":null,"error_code":null},"seq":1}
+
+id: 2
+event: activity
+data: {"schema_version":"1.0","event_id":"evt-complete","case_ref":"CASE-001","run_id":"run-demo","job_id":null,"scope":"CASE","node":"reviewer","operation_id":"op-review-node","parent_operation_id":null,"attempt_id":"attempt-demo","occurred_at":"2026-09-01T10:00:00Z","payload":{"type":"node","phase":"COMPLETED","name":"reviewer","duration_ms":140,"model":null,"facts":{"outcome":null,"action":null,"verdict":null,"next_node":null,"count":null,"revision_round":null,"reason_codes":[],"references":[],"finding_statuses":[],"findings":[]},"inputs":null,"error_code":null},"seq":2}
+
+id: 3
+event: activity
+data: {"schema_version":"1.0","event_id":"evt-summary","case_ref":"CASE-001","run_id":"run-demo","job_id":null,"scope":"CASE","node":"reviewer","operation_id":"op-review-node","parent_operation_id":null,"attempt_id":"attempt-demo","occurred_at":"2026-09-01T10:00:00Z","payload":{"type":"node_summary","facts":{"outcome":null,"action":null,"verdict":"APPROVE","next_node":"emit_resolution_handoff","count":null,"revision_round":null,"reason_codes":[],"references":[],"finding_statuses":[],"findings":[]},"memory_retrieval":null,"review_gate":null},"seq":3}
+
+id: 4
+event: activity
+data: {"schema_version":"1.0","event_id":"evt-disabled","case_ref":"CASE-001","run_id":"run-demo","job_id":null,"scope":"CASE","node":"reviewer","operation_id":"op-review-node","parent_operation_id":null,"attempt_id":"attempt-demo","occurred_at":"2026-09-01T10:00:00Z","payload":{"type":"narration","source_event_id":"evt-summary","status":"UNAVAILABLE","text":null,"error_code":"NARRATION_DISABLED_OFFLINE_DEMO"},"seq":4}
+
+: end of synthetic sample

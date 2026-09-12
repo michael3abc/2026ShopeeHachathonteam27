@@ -1,0 +1,73 @@
+flowchart TD
+    subgraph MAIN["案件主流程（LangGraph）"]
+        direction TD
+        START([START]) --> PARSE[parse_request]
+        PARSE -->|INCOMPLETE, budget ok| CLARIFY[[request_clarification]]
+        CLARIFY --> PARSE
+        PARSE -->|COMPLETE| CONTEXT[load_case_context]
+        CONTEXT -->|line items 未綁定| PARSE
+        CONTEXT -->|已綁定| POLICY[retrieve_policy]
+        POLICY -->|OK| PREPARE[prepare_memory_query]
+        PREPARE -->|summary OK| RETRIEVE_MEM[retrieve_memory]
+        PREPARE -->|summary UNAVAILABLE| ASSESS
+        PREPARE -.->|attachment resolve 失敗| MANUAL
+        MEMORY_SOURCE[(APPROVED Memory VDB)] -.->|scope + cosine| RETRIEVE_MEM
+        RETRIEVE_MEM -->|Top 3 / empty / UNAVAILABLE| ASSESS[assess_case]
+        ASSESS -->|INSUFFICIENT, budget ok| EVIDENCE[[request_evidence]]
+        EVIDENCE --> PREPARE
+        ASSESS -->|SUFFICIENT_FOR_APPROVAL| PROPOSE[propose_decision]
+        ASSESS -->|SUFFICIENT_FOR_DECLINE| PROPOSE
+        PROPOSE -->|REQUEST_EVIDENCE, budget ok| EVIDENCE
+        PROPOSE -->|HANDOFF| VERIFY[external_verification]
+        VERIFY -->|PASS| REVIEW[reviewer]
+        VERIFY -->|FAIL, budget ok| PROPOSE
+        REVIEW -->|APPROVE + Python gate PASS / DECLINE| OUT[emit_resolution_handoff]
+        REVIEW -->|APPROVE + 高額或未設定幣別| HUMAN
+        REVIEW -->|REVISE: round 0–2| EVENT[record_revision_event]
+        EVENT --> PROPOSE
+        REVIEW -->|REVISE: round 3 + dossier| HUMAN[[await_human_review<br/>完整歷程 + 人工最終裁決]]
+        HUMAN -->|API 驗證並保存裁決後 resume| OUT
+        OUT -->|has correction trace| ENQUEUE[enqueue_memory_distillation<br/>prepare payload]
+        OUT -->|no correction trace| END([MAIN END])
+        ENQUEUE -->|payload checkpointed| END
+
+        PARSE -.->|budget exceeded| MANUAL[terminate_automation<br/>異常終止自動處理]
+        CONTEXT -.->|載入失敗| MANUAL
+        POLICY -.->|AMBIGUOUS / NOT_FOUND / 條款失效| MANUAL
+        ASSESS -.->|budget exceeded / 契約違規| MANUAL
+        EVIDENCE -.->|resolve 失敗| MANUAL
+        PROPOSE -.->|budget exceeded / 契約違規 / revision 衝突| MANUAL
+        VERIFY -.->|UNAVAILABLE / budget exceeded| MANUAL
+        REVIEW -.->|契約違規| MANUAL
+        MANUAL --> END
+    end
+
+    subgraph MEMORY_PIPELINE["非同步 Operational Memory pipeline"]
+        direction LR
+        FANOUT[Memory Enqueue Worker]
+        DISTILL[distill_memory]
+        FANOUT -->|MemoryDistillationJob<br/>Redis Stream| DISTILL
+        DISTILL -->|CREATE_CANDIDATE| SUBMIT[submit_candidate]
+        DISTILL -->|SKIP| MEMORY_END([MEMORY END])
+        SUBMIT --> EMBED[API embedding + atomic insert]
+        EMBED --> APPROVAL[[external_memory_approval]]
+        APPROVAL --> VDB[(APPROVED Memory VDB)]
+
+        APPROVAL --> MEMORY_END
+    end
+
+    ENQUEUE -.->|MAIN END 後消費 RESOLVED event| FANOUT
+
+    classDef llm fill:#DBEAFE,stroke:#2563EB,color:#172554,stroke-width:1.5px
+    classDef deterministic fill:#DCFCE7,stroke:#16A34A,color:#14532D,stroke-width:1.5px
+    classDef external fill:#FFEDD5,stroke:#EA580C,color:#7C2D12,stroke-width:1.5px
+    classDef interrupt fill:#F3E8FF,stroke:#9333EA,color:#581C87,stroke-width:1.5px
+    classDef failure fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D,stroke-width:1.5px
+    classDef terminal fill:#F3F4F6,stroke:#4B5563,color:#111827,stroke-width:1.5px
+
+    class PARSE,PREPARE,ASSESS,PROPOSE,REVIEW,DISTILL llm
+    class RETRIEVE_MEM,EVENT,OUT,ENQUEUE,FANOUT deterministic
+    class CONTEXT,POLICY,VERIFY,SUBMIT,EMBED,APPROVAL,VDB,MEMORY_SOURCE external
+    class CLARIFY,EVIDENCE,HUMAN interrupt
+    class MANUAL failure
+    class START,END,MEMORY_END terminal

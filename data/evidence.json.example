@@ -1,0 +1,38 @@
+[
+  {
+    "evidence_id": "EV-DEMO-DAMAGE-CLOSEUP",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-DEMO-SPEAKER",
+    "artifact_ref": "artifact://demo/EV-DEMO-DAMAGE-CLOSEUP",
+    "extracted_summary": "The speaker housing has a visible crack. The image does not show the package.",
+    "collected_at": "2026-09-01T10:40:00Z"
+  },
+  {
+    "evidence_id": "EV-DEMO-PACKAGING-AND-DAMAGE",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-DEMO-SPEAKER",
+    "artifact_ref": "artifact://demo/EV-DEMO-PACKAGING-AND-DAMAGE",
+    "extracted_summary": "The shipping box is visibly crushed near one corner and the speaker housing has a visible crack.",
+    "collected_at": "2026-09-01T10:42:00Z"
+  },
+  {
+    "evidence_id": "EV-DEMO-ARRIVAL-PACKAGING-AND-DAMAGE",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-DEMO-SPEAKER",
+    "artifact_ref": "artifact://demo/EV-DEMO-ARRIVAL-PACKAGING-AND-DAMAGE",
+    "extracted_summary": "One image captured immediately upon receipt shows the crushed shipping box and the matching crack in the speaker housing before use.",
+    "collected_at": "2026-09-01T10:42:30Z"
+  },
+  {
+    "evidence_id": "EV-DEMO-ITEM-INTACT",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-DEMO-SPEAKER",
+    "artifact_ref": "artifact://demo/EV-DEMO-ITEM-INTACT",
+    "extracted_summary": "The visible speaker surfaces appear intact and no crack or dent is visible in this image.",
+    "collected_at": "2026-09-01T10:45:00Z"
+  }
+]

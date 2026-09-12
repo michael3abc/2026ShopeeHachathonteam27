@@ -1,0 +1,24 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "status": {
+      "enum": [
+        "RESOLVED",
+        "ESCALATED"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "terminal_ref": {
+      "minLength": 1,
+      "title": "Terminal Ref",
+      "type": "string"
+    }
+  },
+  "required": [
+    "terminal_ref",
+    "status"
+  ],
+  "title": "DonePayload",
+  "type": "object"
+}

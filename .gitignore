@@ -9,7 +9,7 @@ AGENTS.md
 /secrets/
 *.key
 *.pem
-
+.secrets
 # Python
 .venv/
 __pycache__/
@@ -31,9 +31,26 @@ build/
 *.tsbuildinfo
 
 # Runtime data and local verification artifacts
-/data/
+/data/*
+!/data/*.json.example
+!/data/README.md
+!/data/demo-case-study/
+/data/demo-case-study/*
+!/data/demo-case-study/*.json.example
+!/data/demo-case-study/*.md
+!/data/demo-case-study/prepare_runtime.py
+!/data/demo-case-study/compose.demo.yaml
+!/data/demo-case-study/images/
+/data/demo-case-study/images/*
+!/data/demo-case-study/images/a/
+!/data/demo-case-study/images/b/
+!/data/demo-case-study/images/c/
+/data/demo-case-study/images/*/*
+!/data/demo-case-study/images/*/*.png
+!/data/demo-case-study/images/*/*.jpg
 /volumes/
 /artifacts/
+/.artifacts/
 test-results/
 playwright-report/
 coverage/

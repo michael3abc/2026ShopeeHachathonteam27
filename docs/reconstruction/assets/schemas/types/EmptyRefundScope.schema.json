@@ -1,0 +1,16 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "line_item_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 0,
+      "title": "Line Item Ids",
+      "type": "array"
+    }
+  },
+  "title": "EmptyRefundScope",
+  "type": "object"
+}

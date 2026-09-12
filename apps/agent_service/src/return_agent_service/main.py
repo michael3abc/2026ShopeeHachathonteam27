@@ -44,13 +44,25 @@ def _configured_model(*, compass: bool, memory: bool = False):
     from return_agent_runtime import OpenAIStructuredOutputModel
 
     base_url = os.environ.get("RETURN_AGENT_MODEL_BASE_URL")
-    model_name = os.environ.get("RETURN_AGENT_MODEL_NAME")
+    model_name = os.environ.get("RETURN_AGENT_MODEL_NAME") or (
+        "compass-5.6-terra" if compass else None
+    )
     api_key = os.environ.get("RETURN_AGENT_MODEL_API_KEY")
     key_file = os.environ.get("RETURN_AGENT_MODEL_API_KEY_FILE")
-    effort = None
+    effort = os.environ.get("RETURN_AGENT_MODEL_REASONING_EFFORT") or None
+    if not compass and effort is not None:
+        raise ValueError(
+            "Compass model reasoning effort requires integrated-compass profile"
+        )
+    if compass and effort is None:
+        effort = "medium"
     if memory:
-        model_name = os.environ.get("RETURN_AGENT_MEMORY_MODEL_NAME") or ("compass-5.6-sol" if compass else model_name)
-        effort = os.environ.get("RETURN_AGENT_MEMORY_REASONING_EFFORT") or ("high" if compass else None)
+        model_name = os.environ.get("RETURN_AGENT_MEMORY_MODEL_NAME") or (
+            "compass-5.6-terra" if compass else model_name
+        )
+        effort = os.environ.get("RETURN_AGENT_MEMORY_REASONING_EFFORT") or (
+            "medium" if compass else None
+        )
         if not compass and (effort is not None or (model_name or "").startswith("compass-")):
             raise ValueError("Compass memory model/effort requires integrated-compass profile")
         # Transport credentials are deliberately shared unless explicitly overridden.

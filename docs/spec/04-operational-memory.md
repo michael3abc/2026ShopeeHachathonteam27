@@ -54,9 +54,9 @@ USER 句子固定為 `USER_STATEMENT_UNVERIFIED`；AGENT 句子為 `AGENT_REQUES
 
 新工作與事件使用 schema v2、`memory-v2:`／`memory-event-v2:` ID namespace、v2 Redis streams／consumer groups。既有首次結果及 terminal event 不覆寫；pending job 的 prompt version 不相符時拒絕執行。V1 jobs、pending graph 與 replay records 不自動轉成 v2；切換前須排空或隔離，由原版本處理舊 pending 工作。
 
-### 獨立 Sol-high 與重播
+### 統一 Terra-medium 與重播
 
-`integrated-compass` 的 Distiller 使用独立 `compass-5.6-sol`／Responses `reasoning.effort=high`；Intake、Resolver、Reviewer、query summary 與 narration 保持原模型設定，embedding 不變。設定與 secret 注入見 [Agent Service](../../apps/agent_service/README.md)。每次呼叫 timeout 預設 180 秒、output budget 16384（包含 reasoning），model retries=0；失敗為 terminal FAILED，不換 Luna，也不重跑裁決。
+`integrated-compass` 的 Intake、Resolver、Reviewer、query summary、narration 與 Distiller 統一使用 `compass-5.6-terra`／Responses `reasoning.effort=medium`；Distiller 保持獨立 model instance，embedding 不變。設定與 secret 注入見 [Agent Service](../../apps/agent_service/README.md)。Distiller 每次呼叫 timeout 預設 180 秒、output budget 16384（包含 reasoning），所有 model retries=0；失敗為 terminal FAILED，不切換模型，也不重跑裁決。
 
 Agent migration `0002_memory_model_profile` 為 replay 新增 nullable profile，保存 model、effort、API 類型、endpoint hash、timeout、output budget、retries，不存 URL／key。舊行保留 NULL；舊無對話 DTO 的 semantic hash 保留，新增對話內容仍納入 hash。Pending job 拒絕 prompt／profile 變更；已保存結果／terminal event 仍精確重播，不因升級重算。有 profile 紀錄時拒絕丟棄欄位的 downgrade。切換前先排空或隔離舊 pending，API 及 Agent DTO producer/consumer 要協調升級。
 

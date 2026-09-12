@@ -72,7 +72,7 @@ Reviewer 不讀 `EvidenceAssessment` 與 Operational Memory 的理由見 [Reason
 - [Intake](intake.md)：解析使用者退貨意圖、綁定 claimed line items、提出澄清缺口。
 - [Resolver](resolver.md)：判定 claim、產生 decision draft 並處理 Reviewer/Verification feedback。
 - [Reviewer](reviewer.md)：獨立複核完整 handoff。
-- [Memory Distiller](memory-distiller.md)：prompt 3.1，從所有已完成裁決案件的完整 learning trace／可追溯去識別化對話產生整案回顧、學習判定與至多一則 candidate 或 SKIP。Compass 背景模型獨立 Sol/high；使用者說法不是已驗證證據，補件文字僅供學習。
+- [Memory Distiller](memory-distiller.md)：prompt 3.1，從所有已完成裁決案件的完整 learning trace／可追溯去識別化對話產生整案回顧、學習判定與至多一則 candidate 或 SKIP。Compass 背景 model instance 與其他角色同為 Terra/medium；使用者說法不是已驗證證據，補件文字僅供學習。
 
 
 ## Memory Query Prompt

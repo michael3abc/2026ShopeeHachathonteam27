@@ -7,7 +7,9 @@ def clean_memory_env(monkeypatch):
     import os
     for name in os.environ:
         if name.startswith("RETURN_AGENT_MEMORY_MODEL_") or name in {
-            "RETURN_AGENT_MEMORY_REASONING_EFFORT", "RETURN_AGENT_MEMORY_MAX_OUTPUT_TOKENS"
+            "RETURN_AGENT_MODEL_REASONING_EFFORT",
+            "RETURN_AGENT_MEMORY_REASONING_EFFORT",
+            "RETURN_AGENT_MEMORY_MAX_OUTPUT_TOKENS",
         }:
             monkeypatch.delenv(name)
 
@@ -24,6 +26,7 @@ def test_model_profiles_keep_provider_options_separate(monkeypatch, compass):
     assert model.max_retries == 0
     assert model.temperature == (None if compass else 0)
     assert model.include_schema_in_prompt is not compass
+    assert model.reasoning_effort == ("medium" if compass else None)
     assert model.extra_body == (
         None if compass else {"chat_template_kwargs": {"enable_thinking": False}}
     )
@@ -32,7 +35,6 @@ def test_model_profiles_keep_provider_options_separate(monkeypatch, compass):
 def test_compass_profile_uses_integrated_composition(monkeypatch):
     monkeypatch.setenv("RETURN_AGENT_SERVICE_PROFILE", "integrated-compass")
     monkeypatch.setenv("RETURN_AGENT_MODEL_BASE_URL", "http://127.0.0.1:8790/v1")
-    monkeypatch.setenv("RETURN_AGENT_MODEL_NAME", "compass-5.6-luna")
     monkeypatch.setenv("RETURN_AGENT_MODEL_API_KEY", "local-router")
     monkeypatch.setattr(
         "return_agent_service.composition.compose_integrated_service",
@@ -41,10 +43,10 @@ def test_compass_profile_uses_integrated_composition(monkeypatch):
     composition = create_application()
     assert composition["settings"].profile == "integrated-compass"
     assert composition["model"].use_responses_api
-    assert composition["model"].model_name == "compass-5.6-luna"
-    assert composition["model"].reasoning_effort is None
-    assert composition["memory_model"].model_name == "compass-5.6-sol"
-    assert composition["memory_model"].reasoning_effort == "high"
+    assert composition["model"].model_name == "compass-5.6-terra"
+    assert composition["model"].reasoning_effort == "medium"
+    assert composition["memory_model"].model_name == "compass-5.6-terra"
+    assert composition["memory_model"].reasoning_effort == "medium"
     assert composition["memory_model"].max_output_tokens == 16384
     assert composition["memory_model"].max_retries == 0
     assert composition["model"] is not composition["memory_model"]
@@ -58,7 +60,7 @@ def test_model_key_file_and_missing_configuration(monkeypatch, tmp_path):
     key.write_text("local-router\n")
     monkeypatch.setenv("RETURN_AGENT_MODEL_API_KEY_FILE", str(key))
     assert _configured_model(compass=True).api_key == "local-router"
-    monkeypatch.delenv("RETURN_AGENT_MODEL_NAME")
+    monkeypatch.delenv("RETURN_AGENT_MODEL_BASE_URL")
     with pytest.raises(RuntimeError, match="requires"):
         _configured_model(compass=True)
 
@@ -67,6 +69,23 @@ def configure(monkeypatch):
     monkeypatch.setenv("RETURN_AGENT_MODEL_BASE_URL", "http://compass.test/v1")
     monkeypatch.setenv("RETURN_AGENT_MODEL_NAME", "compass-5.6-luna")
     monkeypatch.setenv("RETURN_AGENT_MODEL_API_KEY", "shared-key")
+
+
+def test_compass_reasoning_effort_overrides_are_independent(monkeypatch):
+    configure(monkeypatch)
+    monkeypatch.setenv("RETURN_AGENT_MODEL_REASONING_EFFORT", "low")
+    monkeypatch.setenv("RETURN_AGENT_MEMORY_REASONING_EFFORT", "high")
+    ordinary = _configured_model(compass=True)
+    memory = _configured_model(compass=True, memory=True)
+    assert ordinary.reasoning_effort == "low"
+    assert memory.reasoning_effort == "high"
+
+
+def test_empty_compose_effort_uses_profile_default(monkeypatch):
+    configure(monkeypatch)
+    monkeypatch.setenv("RETURN_AGENT_MODEL_REASONING_EFFORT", "")
+    assert _configured_model(compass=True).reasoning_effort == "medium"
+    assert _configured_model(compass=False).reasoning_effort is None
 
 
 def test_memory_transport_override_and_credential_free_profile(monkeypatch, tmp_path):
@@ -85,7 +104,7 @@ def test_memory_transport_override_and_credential_free_profile(monkeypatch, tmp_
     ordinary = _configured_model(compass=True)
     assert ordinary.api_key == "shared-key" and ordinary.base_url == "http://compass.test/v1"
     profile = _memory_model_profile(model)
-    assert profile["reasoning_effort"] == "high"
+    assert profile["reasoning_effort"] == "medium"
     assert len(profile["endpoint_hash"]) == 64
     assert not any(secret in str(profile) for secret in ("separate-key", "memory.test", str(key)))
 
@@ -102,6 +121,14 @@ def test_qwen_memory_profile_stays_chat_and_rejects_compass_options(monkeypatch)
     monkeypatch.setenv("RETURN_AGENT_MEMORY_REASONING_EFFORT", "high")
     with pytest.raises(ValueError, match="integrated-compass"):
         _configured_model(compass=False, memory=True)
+
+
+def test_qwen_primary_profile_rejects_compass_reasoning_effort(monkeypatch):
+    configure(monkeypatch)
+    monkeypatch.setenv("RETURN_AGENT_MODEL_NAME", "qwen-test")
+    monkeypatch.setenv("RETURN_AGENT_MODEL_REASONING_EFFORT", "medium")
+    with pytest.raises(ValueError, match="integrated-compass"):
+        _configured_model(compass=False)
 
 
 @pytest.mark.parametrize("name,value", [

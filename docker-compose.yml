@@ -110,7 +110,8 @@ services:
       RETURN_AGENT_INTERNAL_SERVICE_TOKEN_FILE: /run/secrets/internal_service_token
       RETURN_AGENT_MODEL_BASE_URL: "${RETURN_AGENT_MODEL_BASE_URL:-}"
       RETURN_AGENT_MODEL_NAME: "${RETURN_AGENT_MODEL_NAME:-}"
-      # Empty selects the service profile default: Compass Sol/high; Qwen unchanged.
+      RETURN_AGENT_MODEL_REASONING_EFFORT: "${RETURN_AGENT_MODEL_REASONING_EFFORT:-}"
+      # Empty selects the service profile default: Compass Terra/medium; Qwen unchanged.
       RETURN_AGENT_MEMORY_MODEL_NAME: "${RETURN_AGENT_MEMORY_MODEL_NAME:-}"
       RETURN_AGENT_MEMORY_REASONING_EFFORT: "${RETURN_AGENT_MEMORY_REASONING_EFFORT:-}"
       RETURN_AGENT_MEMORY_MODEL_BASE_URL: "${RETURN_AGENT_MEMORY_MODEL_BASE_URL:-}"

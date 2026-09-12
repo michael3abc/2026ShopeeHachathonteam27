@@ -156,7 +156,8 @@ the host router. Keep the existing router bound to loopback.
 ```bash
 RETURN_AGENT_SERVICE_PROFILE=integrated-compass \
 RETURN_AGENT_MODEL_BASE_URL=http://127.0.0.1:8790/v1 \
-RETURN_AGENT_MODEL_NAME=compass-5.6-luna \
+RETURN_AGENT_MODEL_NAME=compass-5.6-terra \
+RETURN_AGENT_MODEL_REASONING_EFFORT=medium \
 RETURN_AGENT_MODEL_API_KEY=local-router \
 RETURN_AGENT_DATABASE_URL=postgresql://return_agent_graph:return_agent_graph@localhost:5433/return_agent_graph \
 RETURN_AGENT_API_BASE_URL=http://localhost:8000 \
@@ -169,7 +170,8 @@ client key above is a non-secret SDK placeholder, not an upstream key. Do not
 copy Compass credentials into this repository. Deployments with client auth must
 supply their actual local credential via the existing key-file setting.
 
-The ordinary model sends no temperature, reasoning effort or Qwen chat-template kwargs.
+The Compass model sends no temperature or Qwen chat-template kwargs and uses
+Responses `reasoning.effort=medium` by default.
 It requires a completed Responses terminal event and valid structured output;
 refusal, incomplete streams and schema errors fail explicitly without a provider
 fallback. The Qwen profile retains its existing parameters. Embedding is unchanged.
@@ -180,29 +182,32 @@ provider must return a finite 1536-dimensional vector. Live calls are opt-in,
 not part of normal pytest. This does not certify complete case resolution or
 Memory processing; graph routing, Human Review and Memory scheduling are unchanged.
 
-### Independent background distillation
+### Unified Terra-medium model profile
 
-`integrated-compass` 使用獨立的 Memory model instance，預設 Sol-high。Resolver、
-Reviewer、Intake、Memory query summary、narration 沿用 `RETURN_AGENT_MODEL_*`；
-embedding 不變。Sol 支援 explicit high effort，見 [OpenAI model docs](https://developers.openai.com/api/docs/models/gpt-5.6-sol)；
-此處使用 gateway 的 `compass-5.6-sol` selector，不將 `sol-high` 當作 model ID。
+`integrated-compass` 的 Intake、Resolver、Reviewer、Memory query summary、
+narration 與 Distiller 全部預設使用 `compass-5.6-terra`／Responses
+`reasoning.effort=medium`。Distiller 仍是獨立 model instance，故 timeout、output
+budget、transport 與 replay profile 邊界不變。Embedding 不變。
 
 | Environment | Compass default | 邊界 |
 | --- | --- | --- |
-| `RETURN_AGENT_MEMORY_MODEL_NAME` | `compass-5.6-sol` | 只影響 Distiller |
-| `RETURN_AGENT_MEMORY_REASONING_EFFORT` | `high` | Responses `reasoning.effort`，不是 prompt 指示 |
+| `RETURN_AGENT_MODEL_NAME` | `compass-5.6-terra` | Intake、Resolver、Reviewer、query summary、narration |
+| `RETURN_AGENT_MODEL_REASONING_EFFORT` | `medium` | 前景與 narration 的 Responses effort |
+| `RETURN_AGENT_MEMORY_MODEL_NAME` | `compass-5.6-terra` | 只影響 Distiller |
+| `RETURN_AGENT_MEMORY_REASONING_EFFORT` | `medium` | Distiller 的 Responses effort |
 | `RETURN_AGENT_MEMORY_MODEL_TIMEOUT_SECONDS` | `180` | 必須有限且大於零 |
 | `RETURN_AGENT_MEMORY_MAX_OUTPUT_TOKENS` | `16384` | reasoning 與可見 output 共用上限 |
 | `RETURN_AGENT_MEMORY_MODEL_BASE_URL` | 共用一般 model URL | 可明示獨立 gateway；Compose 有 pass-through |
 | `RETURN_AGENT_MEMORY_MODEL_API_KEY` / `RETURN_AGENT_MEMORY_MODEL_API_KEY_FILE` | 共用一般 model key | 原生 process 可獨立覆寫；不可輸出 key |
 
-Compose 的 memory name/effort 空值讓 Python 按 profile 選定：Compass 為 Sol/high，
-Qwen 保留自己的 Chat profile。若從 `.env.example` 改用 Qwen，必須移除 Sol/high
-兩個設定；Qwen 配了 Compass model 或 reasoning effort 會明確拒絕，不默默忽略。
+Compose 的 model/memory name/effort 空值讓 Python 按 profile 選定：Compass 為
+Terra/medium，Qwen 保留自己的 Chat profile。若從 `.env.example` 改用 Qwen，
+必須移除兩個 reasoning effort 與 Compass memory model 設定；Qwen 配了 Compass
+memory model 或 reasoning effort 會明確拒絕，不默默忽略。
 獨立 memory credential 在 Compose 需用 override 加入 secret mount 及容器內
 `RETURN_AGENT_MEMORY_MODEL_API_KEY_FILE`；不得直接套用 host file path。
 
-Memory model retries 固定 0；401／429／timeout／schema error 不切回 Luna，
+所有 model retries 固定 0；401／429／timeout／schema error 不切換模型，
 不重跑 customer graph。若 output budget 不足，明確 FAILED，需另行調整設定。
 這是請求設定與契約保證；gateway selector 是否可用須另外做 live preflight。
 

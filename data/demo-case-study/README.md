@@ -67,7 +67,7 @@ Compose secrets 使用 `RETURN_AGENT_MODEL_API_KEY_HOST_FILE`、`RETURN_AGENT_EM
 本機 CLI 另外需要 `RETURN_AGENT_EMBEDDING_API_KEY_FILE` 指向本機可讀 secret；Compose 的容器路徑不適用本機 CLI。
 
 以根目錄 [.env.example](../../.env.example) 建立本機 `.env`；設定 URL 為
-`https://compass.yoyoserver.com/v1`、LLM 為 `compass-5.6-luna`、embedding 為
+`https://compass.yoyoserver.com/v1`、LLM 為 `compass-5.6-terra`（medium）、embedding 為
 `text-embedding-3-large`。Embedding 已是目前預設；LLM/profile 仍應明確指定並核對。
 Public gateway 使用私有 client key 檔 `.secrets/compass_gateway_key`；`local-router` placeholder 無法通過 public gateway 認證。
 內部 API service token 仍需另設 `RETURN_AGENT_INTERNAL_SERVICE_TOKEN_HOST_FILE`，不可拿 gateway key 代替。

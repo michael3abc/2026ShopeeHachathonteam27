@@ -154,7 +154,7 @@ finding_divergence_rate =
 | MM-19 | 模型捏造來源、錯誤 final action、系統缺陷產 candidate | 拒絕提交；case review 不進 embedding | distillation tests |
 | MM-20 | 初始對話、澄清、補件跨 interrupt/resume | 訊息／request ID 能回溯，順序唯一；API transcript 與 command ID 一致；缺失舊回覆明示 SKIP | learning dialogue / API tests |
 | MM-21 | 補件文字、PII、指令注入與過長訊息 | 文字僅供學習；PII 遮蔽附標記，超限不截斷，Resolver payload／裁決不變，Activity 不含對話 | dialogue regression tests |
-| MM-22 | 獨立 Sol-high 與 durable replay | 實際 Responses wire 包含 model／effort／budget；不 fallback，Qwen 不誤套；pending profile 衝突拒絕，舊結果原樣重播 | model profile / migration tests |
+| MM-22 | 全角色 Terra-medium 與 durable replay | 前景與 Distiller 的實際 Responses wire 包含 Terra／medium，Distiller 保有獨立 budget；不 fallback，Qwen 不誤套；pending profile 衝突拒絕，舊結果原樣重播 | model profile / migration tests |
 | MM-20 | 舊 jobs、prompt 更新時 pending、結果發布後重送 | v1/v2 分流；pending prompt 不重解讀；首次結果／event 冪等 | worker tests |
 
 MM-11 是 Adaptive 訴求的唯一直接證據。驗收方式是**對照**：CASE-007 在不注入 memory 時重演 CASE-005 的多輪補件；注入後應在第一次 `assess_case` 就產生包含全部 missing claims 的單一 `EvidenceRequest`。少了對照組，「memory 有效」無法區分於「案件本來就簡單」。

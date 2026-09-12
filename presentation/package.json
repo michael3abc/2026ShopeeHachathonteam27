@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "python3 build.py",
-    "check": "node --check src/app.js && python3 build.py && node verify-content.mjs",
+    "check": "node --check src/app.js && python3 build.py && python3 verify-architecture-sync.py && node verify-content.mjs",
     "test:browser": "node verify-browser.mjs"
   },
   "engines": { "node": ">=20" },

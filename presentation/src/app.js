@@ -35,11 +35,13 @@
     event: "CONTRACT",
   };
   const nav = [
-    ["overview", "作品介紹"],
-    ["trace", "走完一案"],
-    ["architecture", "系統架構"],
-    ["agent", "Agent × 資料"],
-    ["evidence", "驗證與 Code"],
+    ["overview", "系統全貌", "Overview", "01", "1 分鐘"],
+    ["workflow", "沿著案件走", "Workflow", "02", "3 分鐘"],
+    ["architecture", "責任與邊界", "Architecture", "03", "2 分鐘"],
+    ["data", "資料如何流動", "Data flow", "04", "2 分鐘"],
+    ["components", "元件索引", "Components", "05", "1 分鐘"],
+    ["infra", "部署與執行", "Infrastructure", "06", "1 分鐘"],
+    ["code", "從哪裡改起", "Code map", "07", "1 分鐘"],
   ];
   let timer = null;
   let searchReturnFocus = null;
@@ -47,25 +49,64 @@
   let route = readRoute();
 
   function readRoute() {
-    const raw = location.hash.slice(1).split("?");
-    const q = new URLSearchParams(raw[1] || "");
+    const [rawPath, rawQuery = ""] = location.hash.slice(1).split("?");
+    const parts = rawPath.split("/").filter(Boolean).map(decodeURIComponent);
+    const q = new URLSearchParams(rawQuery);
+    let page = parts[0] || "overview";
+    if (page === "component") page = "component";
+    else if (!nav.some(([id]) => id === page)) page = "overview";
     return {
-      page: nav.some(([id]) => id === raw[0]) ? raw[0] : "overview",
-      view: q.get("view") || "",
-      entity: q.get("entity") || "",
+      page,
+      view:
+        page === "architecture"
+          ? parts[1] || "service"
+          : page === "data"
+            ? parts[1] || "sequence"
+            : "",
+      entity:
+        page === "architecture"
+          ? parts[2] || ""
+          : ["component", "code"].includes(page)
+            ? parts[1] || ""
+            : "",
       edge: q.get("edge") || "",
-      scenario: q.get("scenario") || "normal",
-      step: Math.max(0, Number.parseInt(q.get("step") || "0", 10) || 0),
+      scenario:
+        page === "workflow" ? parts[1] || "no_return" : q.get("scenario") || "no_return",
+      step: Math.max(
+        0,
+        Number.parseInt(page === "workflow" ? parts[2] || "0" : q.get("step") || "0", 10) || 0,
+      ),
       group: q.get("group") || "",
       filter: q.get("filter") || "all",
       display: q.get("display") || "graph",
     };
   }
   function link(page, values = {}) {
+    const state = { ...route, ...values, page };
+    const segment = (value) => encodeURIComponent(String(value));
+    let path = page;
+    if (page === "workflow")
+      path += `/${segment(state.scenario || "no_return")}/${Math.max(0, Number(state.step) || 0)}`;
+    if (page === "architecture") {
+      path += `/${segment(state.view || "service")}`;
+      if (state.entity) path += `/${segment(state.entity)}`;
+    }
+    if (page === "data") path += `/${segment(state.view || "sequence")}`;
+    if (["component", "code"].includes(page) && state.entity)
+      path += `/${segment(state.entity)}`;
     const q = new URLSearchParams();
-    for (const [k, v] of Object.entries(values))
+    const queryKeys = ["edge", "group", "filter", "display"];
+    if (page === "data") queryKeys.push("scenario", "step");
+    for (const k of queryKeys) {
+      const v = state[k];
       if (v !== "" && v !== undefined && v !== null) q.set(k, String(v));
-    return `#${page}${q.size ? "?" + q : ""}`;
+    }
+    if (state.filter === "all") q.delete("filter");
+    if (state.display === "graph") q.delete("display");
+    if (!state.edge) q.delete("edge");
+    if (!state.group) q.delete("group");
+    if (page === "data" && state.step === 0) q.delete("step");
+    return `#${path}${q.size ? "?" + q : ""}`;
   }
   function current(values = {}) {
     const { page, ...rest } = route;
@@ -85,10 +126,6 @@
   }
   function scenario() {
     return D.scenarios.find((s) => s.id === route.scenario) || D.scenarios[0];
-  }
-  function selectedStep() {
-    const s = scenario();
-    return s.steps[Math.min(route.step, s.steps.length - 1)];
   }
   const badge = (text = "Source verified", cls = "") =>
     `<span class="pill ${cls}">${esc(text)}</span>`;
@@ -131,7 +168,7 @@
       ${e.foreignKeys?.length ? `<h3>DB FOREIGN KEYS · 非推測關聯</h3>${e.foreignKeys.map((f) => `<p><code>${esc(f.column)} → ${esc(f.target)}</code></p>`).join("")}` : ""}
       <h3>UPSTREAM</h3>${incoming.length ? incoming.map((x) => entityButton(x.from)).join("") : "<p class=muted>此視圖未列出上游。</p>"}
       <h3>DOWNSTREAM / 路由條件</h3>${outgoing.map((x) => `<button class="entity-link" data-edge="${esc(x.id)}">${esc(entities.get(x.to).title)} →<br><small>${esc(x.label)}</small></button>`).join("") || "<p class=muted>沒有列出的下游。</p>"}
-      <div class="actions"><a class="button" href="${esc(link(["node", "llm"].includes(e.type) ? "agent" : "architecture", { view: e.type === "node" ? "exact" : e.type === "llm" ? "llm" : "service", entity: e.id }))}">在架構中定位</a><a class="button" href="${esc(link("evidence", { entity: e.id }))}">Code Map</a></div><h3>固定版本來源</h3>${sourceRefs(e.refs)}
+      <div class="actions"><a class="button" href="${esc(e.type === "node" ? link("architecture", { view: "exact", entity: e.id }) : e.type === "llm" ? link("code", { entity: e.id }) : link("component", { entity: e.id }))}">在架構中定位</a><a class="button" href="${esc(link("code", { entity: e.id }))}">Code Map</a></div><h3>固定版本來源</h3>${sourceRefs(e.refs)}
     </aside>`;
   }
 
@@ -161,6 +198,15 @@
     model: [825, 305],
     activity: [825, 45],
   };
+  const overviewPositions = {
+    web: [25, 55],
+    api: [290, 55],
+    api_db: [555, 55],
+    redis: [290, 190],
+    agent: [25, 325],
+    agent_db: [290, 325],
+    model: [555, 325],
+  };
   const graphPositions = {
     __start__: [30, 30],
     parse_request: [290, 30],
@@ -171,15 +217,17 @@
     retrieve_memory: [30, 375],
     assess_case: [290, 490],
     request_evidence: [560, 490],
-    propose_decision: [290, 605],
-    external_verification: [30, 720],
-    reviewer: [290, 720],
-    record_revision_event: [560, 605],
-    await_human_review: [560, 720],
-    emit_resolution_handoff: [290, 835],
-    enqueue_memory_distillation: [560, 835],
-    terminate_automation: [825, 490],
-    __end__: [290, 960],
+    evaluate_policy: [290, 605],
+    confirm_policy_path: [560, 605],
+    propose_decision: [290, 720],
+    record_revision_event: [560, 720],
+    external_verification: [30, 835],
+    reviewer: [290, 835],
+    await_human_review: [560, 835],
+    emit_resolution_handoff: [290, 950],
+    enqueue_memory_distillation: [560, 950],
+    terminate_automation: [825, 605],
+    __end__: [290, 1065],
   };
   function diagram(positions, kind = "service", height = 540, activeIds = []) {
     const ids = Object.keys(positions),
@@ -284,32 +332,37 @@
   }
 
   function overview() {
-    return `<section class="hero"><div><span class="eyebrow"><span class="dot"></span>TEAM 27 / SYSTEM ARCHITECTURE EXPLORER</span><h1>讓每一次退款，<br>都有<span class="accent">依據。</span></h1><p>從一句商品問題，到一份可追溯的決策。探索退貨 Agent 如何結合政策、證據與人工經驗，讓自動化知道何時處理、何時交接。</p><div class="actions"><a class="button primary" href="#overview?view=intro">2 分鐘認識作品 <span>↗</span></a><a class="button" href="#trace">10 分鐘工程導覽 <span>→</span></a></div><div class="hero-bottom"><span>● 固定版本 source</span><span>◇ 可離線探索</span><span>合成案例 · 模擬退款</span></div></div><div class="hero-visual"><div class="visual-caption"><span class="mono">01 / SYSTEM CONTEXT</span><span>點選元件探索 ↗</span></div>${diagram(contextPositions, "hero", 435)}<div class="visual-note">Frontend 呈現體驗 · API 擁有案件 · Agent 負責推進決策<br>外部模型提供結果，業務授權仍由系統驗證。</div></div></section>
-      <div class="stats"><div class="stat"><strong>06</strong><span>架構視角，逐層理解系統</span></div><div class="stat"><strong>${D.graph ? Object.keys(D.graph.nodes).length : "16"}</strong><span>實際 LangGraph nodes</span></div><div class="stat"><strong>05</strong><span>可逐步探索的示意案例</span></div><div class="stat"><strong>${D.baseline.commit.slice(0, 7)}</strong><span>固定 source commit</span></div></div>
-      <section class="section" id="introduction"><div class="section-head"><div><span class="eyebrow">A CASE, THREE PERSPECTIVES</span><h2>把複雜流程，變成可理解的決定。</h2></div><p>買家需要知道還缺什麼；審核者需要完整依據；工程師需要清楚的責任邊界。</p></div><div class="cards"><article class="card"><span class="number mono">01 / BUYER</span><h3>說明問題，補上關鍵證據。</h3><p>系統辨識申請範圍，將不足的資料轉成具體問題，透過同一案件持續補充。</p><a class="textlink" href="#trace?scenario=evidence">走一次補件流程 →</a></article><article class="card"><span class="number mono">02 / REVIEWER</span><h3>依據完整，才授權執行。</h3><p>Policy、Evidence、Verification 與 Reviewer 各有責任；必要時保存狀態，交由人工裁決。</p><a class="textlink" href="#trace?scenario=human">看看人工如何介入 →</a></article><article class="card"><span class="number mono">03 / ENGINEER</span><h3>從畫面一路找到原始碼。</h3><p>追蹤 request、command、Graph、checkpoint 與 SSE，理解一個操作如何穿過整套系統。</p><a class="textlink" href="#architecture">打開系統架構 →</a></article></div></section>
-      <div class="feature-strip"><div><h3>人留下經驗，系統學會如何更好地取證。</h3><p>Correction 可以進入背景蒸餾；只有經治理核准的 Memory 才可被後續案件檢索。學習效果仍需實跑驗證。</p></div><a class="button" href="#trace?scenario=memory">探索 Memory →</a></div>
-      <section class="section"><div class="section-head"><div><span class="eyebrow">WHAT EXISTS / WHAT IS SIMULATED</span><h2>從可查核的能力開始。</h2></div></div><div class="cards"><article class="card"><h3>Source 可確認</h3><p>LangGraph routing、interrupt / resume、transactional outbox、HTTP Providers、獨立 activity feed 與 Memory workers。</p>${sourceRefs([D.refs.compose], 1)}</article><article class="card"><h3>Demo 的實際界線</h3><p>基準使用 fixture orders / evidence 與模擬 refund application；不是正式平台政策或真實金流。</p>${sourceRefs([D.refs.readme], 1)}</article><article class="card"><h3>成果證據</h3><p>此站提供 source 與測試定義的對照。未載入 live execution、效能 benchmark 或 B→C 學習成功紀錄。</p><a class="textlink" href="#evidence">查看來源與限制 →</a></article></div></section>
+    return `<section class="hero"><div><span class="eyebrow"><span class="dot"></span>RETURN ATLAS / TEAM 27</span><h1>讓每一次退款，<br>都有<span class="accent">依據。</span></h1><p>從一句商品問題，到一份可追溯、可恢復且需通過授權邊界的決策。沿著真實 Service、LangGraph、DB 與 Frontend mapping，看系統何時自動處理、何時等待退回、何時交給人。</p><div class="actions"><a class="button primary" href="${link("workflow", { scenario: "no_return", step: 0 })}">2 分鐘走完一案 <span>↗</span></a><a class="button" href="${link("architecture", { view: "service" })}">10 分鐘工程導覽 <span>→</span></a></div><div class="hero-bottom"><span>● 固定版本 source</span><span>◇ 可離線探索</span><span>Illustrative cases · Demo refund</span></div></div><div class="hero-visual"><div class="visual-caption"><span class="mono">01 / SYSTEM OVERVIEW</span><span>點選元件探索 ↗</span></div>${diagram(overviewPositions, "hero", 430)}<div class="visual-note">Frontend → API → Redis → Agent Service<br>API DB 保存業務狀態；Agent DB 保存 execution；Model Gateway 只產生受 schema 驗證的輸出。</div></div></section>
+      <div class="stats"><div class="stat"><strong>06</strong><span>不同用途的架構視圖</span></div><div class="stat"><strong>${Object.keys(D.graph.nodes).length}</strong><span>實際 LangGraph nodes</span></div><div class="stat"><strong>${D.scenarios.length}</strong><span>可逐步探索的示意案例</span></div><div class="stat"><strong>${D.baseline.commit.slice(0, 7)}</strong><span>固定 source commit</span></div></div>
+      <section class="section" id="introduction"><div class="section-head"><div><span class="eyebrow">A CASE, THREE PERSPECTIVES</span><h2>把複雜流程，變成可理解的決定。</h2></div><p>買家需要知道還缺什麼；審核者需要完整依據；工程師需要清楚的責任邊界。</p></div><div class="cards"><article class="card"><span class="number mono">01 / BUYER</span><h3>補件與 Policy 途徑都有明確 resume。</h3><p>等待狀態、request binding 與 idempotency 都由 Backend 保存，Frontend 不直接改 Graph state。</p><a class="textlink" href="${link("workflow", { scenario: "policy_return", step: 0 })}">走一次 Policy 確認 →</a></article><article class="card"><span class="number mono">02 / REVIEWER</span><h3>模型核准，不等於付款。</h3><p>Reviewer APPROVE 後仍經 monetary／User Risk deterministic gates；需退回時，驗收通過才釋放退款。</p><a class="textlink" href="${link("workflow", { scenario: "human", step: 0 })}">看看人工如何介入 →</a></article><article class="card"><span class="number mono">03 / ENGINEER</span><h3>從畫面一路找到原始碼。</h3><p>追蹤 request、command、Graph、checkpoint、fulfillment 與 SSE，理解一次操作如何穿過整套系統。</p><a class="textlink" href="${link("architecture", { view: "service" })}">打開系統架構 →</a></article></div></section>
+      <div class="feature-strip"><div><h3>Graph END、退款 APPLIED、背景蒸餾、治理核准，是四件事。</h3><p>v2 FULL_REFUND 的 correction 必須等 matching APPLIED 才能排入 Memory job；candidate 也只有經 governance approve 後才可被後續案件檢索。</p></div><a class="button" href="${link("workflow", { scenario: "memory", step: 0 })}">探索 Memory →</a></div>
+      <section class="section"><div class="section-head"><div><span class="eyebrow">WHAT EXISTS / WHAT IS SIMULATED</span><h2>從可查核的能力開始。</h2></div></div><div class="cards"><article class="card"><h3>Source 可確認</h3><p>Policy v2、18-node LangGraph、雙授權 gates、return fulfillment、transactional outbox、兩個 PostgreSQL ownership 與獨立 Memory workers。</p>${sourceRefs([D.refs.compose], 1)}</article><article class="card"><h3>真實 LLM call contract</h3><p>七種 ModelTask、Responses API adapter、structured output 與 image evidence transport 均可追到 source；本站不會實際送出呼叫。</p><a class="textlink" href="${link("code", { entity: "llm:REVIEW" })}">檢查 LLM Calls →</a></article><article class="card"><h3>Demo 的實際界線</h3><p>案例全是 Illustrative；orders / evidence / refund application 為 Demo。沒有 captured response、token、latency 或正式金流。</p><a class="textlink" href="${link("code")}">查看來源與限制 →</a></article></div></section>
       ${route.entity ? `<section class="section workspace"><div>${pageHeading("SELECTED COMPONENT", "你選取的元件", "繼續沿上游、下游或 code map 深入。")}</div>${inspector()}</section>` : ""}`;
   }
   function architecture() {
-    const view = ["context", "service", "ownership"].includes(route.view)
+    const view = ["context", "service", "high", "exact", "ownership"].includes(route.view)
       ? route.view
       : "service";
     let inner;
     if (view === "ownership") inner = ownership();
+    else if (view === "exact") inner = graphView();
+    else if (view === "high")
+      inner = `<div class="callout">High-level 是閱讀用的語意分組，可展開到真實 node ID；本版沒有宣告對應的 LangGraph subgraphs。</div><div class="group-cards">${D.groups.map((g, i) => `<article class="group-card"><span class="count mono">0${i + 1} / ${g.nodes.length} NODES</span><h3>${g.title}</h3>${g.nodes.map((n) => `<code>${esc(n)}</code>`).join("")}<a href="${esc(link("architecture", { view: "exact", group: g.id, entity: g.nodes[0] }))}">展開這個階段 ↗</a></article>`).join("")}</div><div class="canvas-card"><div class="canvas-top"><h3>高階階段之間的實際關係</h3></div>${groupDiagram()}<div class="hint">主要路徑向前；補件、Policy 確認與 revision 會回到前面的階段。Graph 交付 resolution 不等於退款 APPLIED。</div></div>`;
     else {
       const positions =
         view === "context" ? contextPositions : servicePositions;
       inner = `<div class="canvas-card"><div class="canvas-top"><h3>${view === "context" ? "System Context / 對外邊界" : "Service Architecture / 執行與通訊"}</h3>${controls()}</div>${route.display === "list" ? entityList(Object.keys(positions)) : diagram(positions, view, view === "context" ? 435 : 540)}${legend()}<div class="hint">${view === "context" ? "此圖說明使用者、系統入口與外部模型。深入 Service Architecture 查看實際 DB、queue 與 worker。" : "Agent Service 是 queue-driven worker service；API 是 canonical case owner。HTTP Provider 經 API 存取業務資料，Graph checkpoint 則存 Agent DB。Activity 連線是經 transport 的觀察路徑，非瀏覽器直接讀 Graph。"}</div>${relationships(Object.keys(positions))}</div>`;
     }
-    return `${pageHeading("03 / SYSTEM ARCHITECTURE", "每個元件，都有清楚的邊界。", "從 Actors 走進 Services，再找到資料的 owner。點選元件或連線，查看實際實作與契約。")}${tabs(
+    return `${pageHeading("03 / RESPONSIBILITY & BOUNDARIES", "每個元件，都有清楚的邊界。", "System Context、Service、真實 LangGraph 與 Data Ownership 使用同一份 source-backed entities。")} ${tabs(
       [
         ["context", "01 System Context"],
         ["service", "02 Services"],
-        ["ownership", "03 Data Ownership"],
+        ["high", "03 Graph High-level"],
+        ["exact", "04 Graph Exact"],
+        ["ownership", "05 Data Ownership"],
       ],
       view,
-    )}<div class="workspace"><div>${inner}<div class="callout"><strong>部署條件</strong><br>${D.baseline.conditions.map(esc).join("<br>")}</div>${sourceRefs([D.refs.compose_file], 1)}</div>${inspector()}</div>`;
+    )}<div class="workspace"><div>${inner}${view === "service" ? `<div class="callout"><strong>執行條件</strong><br>${D.baseline.conditions.map(esc).join("<br>")}</div>${sourceRefs([D.refs.compose_file], 1)}` : ""}</div>${inspector()}</div>`;
   }
   function ownership() {
     const tables = D.schema.tables;
@@ -327,35 +380,43 @@
           ]),
         );
     }
-    const height = route.group ? 420 : 1065;
-    return `<div class="canvas-card"><div class="canvas-top"><h3>LangGraph Exact View ${route.group ? "/ 階段展開" : ""}</h3>${controls()}</div>${route.group ? `<div class="hint">這是語意階段的 node 子集合，不是實作 subgraph。<a href="#agent?view=exact">回到完整 Graph →</a></div>` : ""}${route.display === "list" ? entityList(Object.keys(positions)) : diagram(positions, "graph", height)}${legend()}<div class="hint">橘點表示 interrupt node。註冊共用 destinations；本圖顯示逐 node 核對的 source-supported routes。曲線只表示轉移，不表示執行時間。API execute_refund 與 MemoryWorker 不屬於這個 Graph。</div>${relationships(Object.keys(positions), true)}</div>`;
+    const height = route.group ? 420 : 1170;
+    return `<div class="canvas-card"><div class="canvas-top"><h3>LangGraph Exact View ${route.group ? "/ 階段展開" : ""}</h3>${controls()}</div>${route.group ? `<div class="hint">這是語意階段的 node 子集合，不是實作 subgraph。<a href="${link("architecture", { view: "exact", group: "", entity: "" })}">回到完整 Graph →</a></div>` : ""}${route.display === "list" ? entityList(Object.keys(positions)) : diagram(positions, "graph", height)}${legend()}<div class="hint">18 個真實 node 加 START / END boundary。橘點表示 interrupt；本圖只畫逐 node 核對的 50 條 source-supported routes。API refund、return fulfillment 與 MemoryWorker 都在 Graph 外。</div>${relationships(Object.keys(positions), true)}</div>`;
   }
-  function agentPage() {
-    const view = ["overview", "exact", "sequence", "ui", "llm"].includes(
-      route.view,
-    )
+  function dataPage() {
+    const view = ["sequence", "ui", "hitl", "fulfillment"].includes(route.view)
       ? route.view
-      : "overview";
-    let inner = "";
-    if (view === "overview")
-      inner = `<div class="callout">High-level 是閱讀用的語意分組，可展開到真實 nodes。本版沒有宣告對應的 LangGraph subgraphs。</div><div class="group-cards">${D.groups.map((g, i) => `<article class="group-card"><span class="count mono">0${i + 1} / ${g.nodes.length} NODES</span><h3>${g.title}</h3>${g.nodes.map((n) => `<code>${esc(n)}</code>`).join("")}<a href="${esc(link("agent", { view: "exact", group: g.id, entity: g.nodes[0] }))}">展開這個階段 ↗</a></article>`).join("")}</div><div class="canvas-card"><div class="canvas-top"><h3>高階階段之間的實際關係</h3></div>${groupDiagram()}<div class="hint">主要路徑向前；補件與修正會回到前面的階段。交接包含 resolution 與 terminate，不等於退款已完成。</div></div><div class="workspace section"><div class="card"><h3>三種狀態，三個 owner。</h3><p>Graph 保存 execution state 與 counters；API 保存案件狀態與授權；Frontend 將 CaseDetail 與 activity 轉成可見畫面。</p><div class="actions"><a class="button" href="#agent?view=sequence">追蹤跨服務互動 →</a><a class="button" href="#agent?view=llm">看實際 LLM 呼叫 →</a></div></div>${inspector()}</div>`;
-    if (view === "exact")
-      inner = `<div class="workspace"><div>${graphView()}</div>${inspector()}</div>`;
-    if (view === "sequence")
-      inner = `${scenarioTabs()}<div class="workspace"><div class="canvas-card"><div class="canvas-top"><h3>Frontend × Agent × DB / Sequence</h3><small>ILLUSTRATIVE / 因果步驟示意</small></div>${sequence(scenario().steps)}<div class="hint">點擊 sequence 步驟，可進入對應案例回放。此時間線沒有宣稱跨服務全域時間或真實 latency。checkpoint commit 的精確時刻未記錄。</div></div>${inspector()}</div>`;
+      : "sequence";
+    let inner;
     if (view === "ui")
-      inner = `<div class="workspace"><div class="canvas-card"><div class="canvas-top"><h3>Backend State → Frontend UI</h3><small>不是 Graph state 的直接鏡像</small></div><div class="table-scroll"><table><thead><tr><th>BACKEND STATUS</th><th>畫面 / COMPONENT</th><th>ACTION → RESUME</th></tr></thead><tbody>${D.uiMappings.map((m) => `<tr><td><code>${m.status}</code></td><td>${esc(m.screen)}<br><code>${esc(m.component)}</code></td><td>${esc(m.action)}<br><code>${esc(m.next)}</code>${sourceRefs(m.refs, 1)}</td></tr>`).join("")}</tbody></table></div><div class="hint">case events 的 projection event 觸發 CaseDetail refresh；useCaseActivities 使用自己的分頁與 SSE cursor。graphProgress 依 next_node，不能只靠 seq 推斷 edge。</div></div>${inspector()}</div>`;
-    if (view === "llm") inner = llmView();
-    return `${pageHeading("04 / AGENT × DATA", "看懂 Agent，如何真正運作。", "從高階階段展開到原始 node，再追蹤 LLM、API、checkpoint 與前端呈現。")}${tabs(
-      [
-        ["overview", "01 高階 Graph"],
-        ["exact", "02 真實 Graph"],
-        ["llm", "03 LLM Calls"],
-        ["sequence", "04 跨服務 Sequence"],
-        ["ui", "05 UI Mapping"],
-      ],
+      inner = `<div class="workspace"><div class="canvas-card"><div class="canvas-top"><h3>Backend state / event → Frontend UI</h3><small>不是 Graph state 的直接鏡像</small></div><div class="table-scroll"><table><thead><tr><th>BACKEND STATUS</th><th>畫面 / COMPONENT</th><th>ACTION → COMMAND / EVENT</th></tr></thead><tbody>${D.uiMappings.map((m) => `<tr><td><code>${m.status}</code></td><td>${esc(m.screen)}<br><code>${esc(m.component)}</code></td><td>${esc(m.action)}<br><code>${esc(m.next)}</code>${sourceRefs(m.refs, 1)}</td></tr>`).join("")}</tbody></table></div><div class="hint">11 個 CaseStatus 全數映射。case events 觸發 CaseDetail refresh；activity stream 有自己的 cursor。Frontend 不直接訂閱完整 LangGraph state。</div></div>${inspector()}</div>`;
+    else if (view === "hitl")
+      inner = `<div class="callout"><strong>三種可恢復等待</strong><br>澄清／補件使用 <code>POST /messages</code>；Policy path 使用 <code>POST /policy-confirmations</code>；人工結果使用 <code>POST /review</code>。每一條都先由 API 驗證 active state、保存 command，再以同一 <code>thread_id</code> resume。</div><div class="cards"><article class="card"><h3>Evidence resume</h3><p>checkpoint 保存 pending interrupt；API 投影 AWAITING_EVIDENCE，artifact refs 經 provider 解析後回到 Graph。</p><a class="textlink" href="${link("workflow", { scenario: "evidence", step: 0 })}">播放補件路徑 →</a></article><article class="card"><h3>Policy path resume</h3><p>request_ref、selection_version、requirement hash 與 idempotency key 綁定買家確認。</p><a class="textlink" href="${link("workflow", { scenario: "policy_return", step: 0 })}">播放途徑確認 →</a></article><article class="card"><h3>Human authorization</h3><p>monetary／User Risk gate 在 Reviewer APPROVE 後 deterministic routing；人工結果透過 persisted dossier 再讀回。</p><a class="textlink" href="${link("workflow", { scenario: "human", step: 0 })}">播放人工授權 →</a></article></div><div class="workspace section"><div class="canvas-card"><div class="canvas-top"><h3>目前案例的 Human-in-the-loop sequence</h3></div>${scenarioTabs()}${sequence(scenario().steps)}<div class="hint">Resume 重新進入 interrupt node；request_evidence 合併 refs，await_human_review 再 fetch persisted result，confirm_policy_path 驗證 confirmation 後回 retrieve_policy。</div></div>${inspector()}</div>`;
+    else if (view === "fulfillment") {
+      const selected = D.scenarios.find((s) => s.id === "policy_return");
+      inner = `<div class="callout"><strong>Reviewer APPROVE ≠ Refund APPLIED</strong><br><code>AWAITING_RETURN_CONFIRMATION → AWAITING_RETURN → AWAITING_RETURN_INSPECTION → EXECUTING</code>。只有合法免退或綁定的 INSPECTION_PASSED 才能通過 release check；DISPUTE／OVERDUE 轉 ESCALATED。</div><div class="workspace"><div class="canvas-card"><div class="canvas-top"><h3>Policy path、退回與退款釋放</h3><small>ILLUSTRATIVE / SOURCE-BACKED CONTRACT</small></div>${sequence(selected.steps)}<div class="hint">release 再驗證 authorization、buyer consent、item binding、arrival / inspection receipts、reservations 與 config hashes。Demo application APPLIED 不代表正式平台金流。</div></div>${inspector()}</div>`;
+    } else
+      inner = `${scenarioTabs()}<div class="workspace"><div class="canvas-card"><div class="canvas-top"><h3>Cross-Service Sequence</h3><small>User / Frontend / API / Redis / Worker / Graph / DB / Model</small></div>${sequence(scenario().steps)}<div class="hint">同步與非同步依 step kind 區分；highlight 是目前選取的教學步驟，不宣稱跨服務同時發生或量測 latency。</div></div>${inspector()}</div>`;
+    return `${pageHeading("04 / DATA FLOW", "資料如何流動，也決定誰能改變它。", "沿著 REST、SSE、command、event、checkpoint 與 DB transaction 追蹤同一案件。")} ${tabs(
+      [["sequence", "01 Cross-Service"], ["ui", "02 UI Mapping"], ["hitl", "03 Interrupt / Resume"], ["fulfillment", "04 Fulfillment"]],
       view,
     )}${inner}`;
+  }
+  function componentsPage() {
+    const groups = [
+      ["Services & Runtime", ["web", "api", "agent", "worker", "runtime", "providers"]],
+      ["Business Capabilities", ["policy", "evidence", "verification", "user_risk", "fulfillment", "refund", "memory", "governance"]],
+      ["Persistence & Transport", ["api_db", "agent_db", "redis", "outbox", "checkpoint", "activity", "memory_worker"]],
+      ["External", ["model", "embedding"]],
+    ];
+    return `${pageHeading("05 / COMPONENT INDEX", "先找責任，再找程式。", "所有視圖共用 stable entity ID；點選元件查看 ownership、I/O、failure、上下游與固定 SHA source。")}<div class="component-groups">${groups.map(([title, ids]) => `<section><span class="eyebrow">${title}</span><div class="list-grid">${ids.map((id) => { const e = entities.get(id); return `<button class="list-item" data-entity="${esc(id)}"><strong>${esc(e.title)}</strong><small><code>${esc(id)}</code><br>${esc(e.summary)}</small></button>`; }).join("")}</div></section>`).join("")}</div>`;
+  }
+  function componentPage() {
+    return `${pageHeading("05 / COMPONENT DETAIL", "元件責任與邊界。", "沿上游、下游、資料 owner 與 source references 繼續探索。")}<div class="component-detail">${inspector()}</div>`;
+  }
+  function infraPage() {
+    const ids = ["web", "api", "api_db", "redis", "agent", "agent_db", "model"];
+    return `${pageHeading("06 / DEPLOYMENT & RUNTIME", "兩個服務、兩個 DB，一條可恢復的執行鏈。", "本頁描述固定 baseline 的 integrated-demo / integrated-compass profile，不把預設 compose health 當成相同能力。")}<div class="infra-banner"><span class="eyebrow">RUNTIME PROFILE</span><h2>${esc(D.baseline.profiles.api)} + ${esc(D.baseline.profiles.agent)}</h2><p>Compass <code>compass-5.6-terra</code> · reasoning_effort <code>medium</code> · Responses API · PostgreSQL · Redis Streams</p></div><div class="workspace"><div><div class="canvas-card"><div class="canvas-top"><h3>Deployment topology</h3>${controls(false)}</div>${diagram(overviewPositions, "infra", 430)}${legend()}</div><div class="cards section">${D.baseline.conditions.map((c, i) => `<article class="card"><span class="number mono">0${i + 1}</span><p>${esc(c)}</p></article>`).join("")}</div>${sourceRefs([D.refs.compose_file, D.refs.compose])}</div>${inspector()}</div><div class="hint">網站本身完全靜態：不依賴上述 runtime、沒有 CDN、沒有 API key，也不會發出 LLM / Backend request。</div>`;
   }
   function groupDiagram() {
     const groupFor = (n) => D.groups.find((g) => g.nodes.includes(n))?.id;
@@ -440,15 +501,15 @@
       Object.assign(previous, item.patch);
     const after = { ...previous, ...step.patch };
     const llm = (D.llmCalls || []).filter((c) => c.node === step.node);
-    return `${pageHeading("02 / FOLLOW A CASE", "一個案件，走過整套系統。", "選一條路徑，逐步觀察畫面、服務與資料如何改變。每個 highlight 都指向目前選中的教學步驟。")}${scenarioTabs()}<div class="trace-layout"><aside class="timeline" aria-label="案例步驟"><ol>${s.steps.map((t, i) => `<li><button data-step="${i}" class="${i === index ? "current" : i < index ? "visited" : ""}" ${i === index ? 'aria-current="step"' : ""}><span>${i + 1}</span>${esc(t.title)}</button></li>`).join("")}</ol></aside><div><div class="canvas-card"><div class="trace-head">${badge(s.provenance, "illustrative")} <small class="muted">不是 live execution · 精確耗時未記錄</small><h2>${esc(step.title)}</h2><p>${esc(step.detail)}</p></div><div class="trace-controls"><button class="button" data-play="prev" ${index === 0 ? "disabled" : ""}>← Previous</button><button class="button primary" data-play="toggle">${timer ? "Ⅱ Pause" : "▷ Play"}</button><button class="button" data-play="next" ${index === s.steps.length - 1 ? "disabled" : ""}>Next →</button><button class="button" data-play="restart">↺ Restart</button><span class="position mono">${String(index + 1).padStart(2, "0")} / ${s.steps.length}</span></div><div class="progress-track"><div class="progress-fill" style="width:${((index + 1) / s.steps.length) * 100}%"></div></div>
-      <div class="trace-split"><div class="mini-ui"><div class="mini-ui-head"><strong>RETURN CASE</strong><span>UI 示意 · 非截圖</span></div><div class="mini-ui-body"><div class="bubble buyer">收到的藍牙喇叭有裂痕，我希望退貨退款。</div><div class="bubble">${esc(step.ui)}</div><div class="ui-status">${esc(step.status)}</div><small class="muted">畫面由 Backend status 與觀察事件形成，不直接讀 checkpoint。</small></div></div><div class="state-block"><h3>這一步的責任與資料</h3>${entityButton(step.from)}<p>↓ ${esc(step.kind)}</p>${entityButton(step.to)}<h3>DB / PERSISTENCE</h3><p>${esc(step.db)}</p><h3>GRAPH NODE</h3>${step.node ? entityButton(step.node) : "<p>此步驟在 Graph 之外。</p>"}${llm.map((c) => `<h3>LLM TASK · SOURCE</h3>${entityButton(c.id)}`).join("")}</div></div>
-      <div class="canvas-top"><h3>服務定位 / 同步 highlight</h3><small>只標示目前步驟，不代表同時執行</small></div>${diagram(servicePositions, "trace", 530, step.entities)}${legend()}<div class="canvas-top"><h3>鄰近步驟 / 通訊順序</h3><a class="textlink" href="${esc(link("agent", { view: "sequence", scenario: s.id, step: index }))}">完整 Sequence ↗</a></div>${sequence(s.steps, true)}<div class="trace-split"><div><h3>Before · 部分示意 state</h3><pre>${esc(Object.keys(previous).length ? JSON.stringify(previous, null, 2) : "未記錄完整 state；本示意尚無列出的 patch。")}</pre></div><div><h3>Patch → After · 部分示意 state</h3><pre>${esc(JSON.stringify({ patch: step.patch, after }, null, 2))}</pre><small class="muted">未列出的欄位不是空值；沒有完整 execution snapshot。</small></div></div><div class="hint">${s.note}</div></div><section class="section workspace"><div><h3>這一步的來源</h3>${sourceRefs(step.refs)}<h3>對照的測試定義 · 本輪未執行業務測試</h3>${sourceRefs([s.test])}</div>${inspector()}</section></div></div>`;
+    return `${pageHeading("02 / FOLLOW A CASE", "一個案件，走過整套系統。", "六條 source-backed 教學路徑，逐步對照 UI、服務、Graph、DB 與退款／Memory 邊界。")}${scenarioTabs()}<div class="trace-layout"><aside class="timeline" aria-label="案例步驟"><ol>${s.steps.map((t, i) => `<li><button data-step="${i}" class="${i === index ? "current" : i < index ? "visited" : ""}" ${i === index ? 'aria-current="step"' : ""}><span>${i + 1}</span>${esc(t.title)}</button></li>`).join("")}</ol></aside><div><div class="canvas-card"><div class="trace-head">${badge(s.provenance, "illustrative")} <small class="muted">不是 live execution · 精確耗時未記錄</small><h2>${esc(step.title)}</h2><p>${esc(step.detail)}</p></div><div class="trace-controls"><button class="button" data-play="prev" ${index === 0 ? "disabled" : ""}>← Previous</button><button class="button primary" data-play="toggle">${timer ? "Ⅱ Pause" : "▷ Play"}</button><button class="button" data-play="next" ${index === s.steps.length - 1 ? "disabled" : ""}>Next →</button><button class="button" data-play="restart">↺ Restart</button><span class="position mono">${String(index + 1).padStart(2, "0")} / ${s.steps.length}</span></div><div class="progress-track"><div class="progress-fill" style="width:${((index + 1) / s.steps.length) * 100}%"></div></div>
+      <div class="trace-split"><div class="mini-ui"><div class="mini-ui-head"><strong>RETURN CASE</strong><span>UI 示意 · 非截圖</span></div><div class="mini-ui-body"><div class="bubble buyer">我想針對這筆訂單申請退貨退款。</div><div class="bubble">${esc(step.ui)}</div><div class="ui-status">${esc(step.status)}</div><small class="muted">畫面由 Backend status 與觀察事件形成，不直接讀 checkpoint。</small></div></div><div class="state-block"><h3>這一步的責任與資料</h3>${entityButton(step.from)}<p>↓ ${esc(step.kind)}</p>${entityButton(step.to)}<h3>DB / PERSISTENCE</h3><p>${esc(step.db)}</p><h3>GRAPH NODE</h3>${step.node ? entityButton(step.node) : "<p>此步驟在 Graph 之外。</p>"}${llm.map((c) => `<h3>LLM TASK · SOURCE</h3>${entityButton(c.id)}`).join("")}</div></div>
+      <div class="canvas-top"><h3>服務定位 / 同步 highlight</h3><small>只標示目前步驟，不代表同時執行</small></div>${diagram(servicePositions, "trace", 530, step.entities)}${legend()}<div class="canvas-top"><h3>鄰近步驟 / 通訊順序</h3><a class="textlink" href="${esc(link("data", { view: "sequence", scenario: s.id, step: index }))}">完整 Sequence ↗</a></div>${sequence(s.steps, true)}<div class="trace-split"><div><h3>Before · 部分示意 state</h3><pre>${esc(Object.keys(previous).length ? JSON.stringify(previous, null, 2) : "未記錄完整 state；本示意尚無列出的 patch。")}</pre></div><div><h3>Patch → After · 部分示意 state</h3><pre>${esc(JSON.stringify({ patch: step.patch, after }, null, 2))}</pre><small class="muted">未列出的欄位不是空值；沒有完整 execution snapshot。</small></div></div><div class="hint">${s.note}</div></div><section class="section workspace"><div><h3>這一步的來源</h3>${sourceRefs(step.refs)}<h3>對照的測試定義 · 本輪未執行業務測試</h3>${sourceRefs([s.test])}</div>${inspector()}</section></div></div>`;
   }
   function llmView() {
     const calls = D.llmCalls || [];
     const call = calls.find((c) => c.id === route.entity);
     const detail = call
-      ? `<section class="section"><span class="eyebrow">SOURCE CALL INSPECTOR / ${esc(call.task)}</span><h2>${esc(call.title)}</h2><div class="card"><h3>01 呼叫者 → adapter → 驗證</h3>${entityButton(call.node)}<p><code>model.generate → with_structured_output → invoke → TypeAdapter.validate_python</code></p><h3>02 Payload 組裝 · 真實 source expression</h3><pre>${esc(call.payloadExpression)}</pre><h3>03 Request 結構 · 非 captured HTTP body</h3><pre>${esc(JSON.stringify(call.requestShape, null, 2))}</pre><h3>04 System Prompt · 固定版本原文</h3><details><summary>展開 ${esc(call.task)} prompt</summary><pre>${esc(call.promptText)}</pre></details><h3>05 Output Schema / 回應驗證</h3><p><code>${esc(call.schema)}</code></p><p>${esc(call.response)}</p>${sourceRefs(call.refs)}</div></section>`
+      ? `<section class="section"><span class="eyebrow">SOURCE CALL INSPECTOR / ${esc(call.task)}</span><h2>${esc(call.title)}</h2><div class="card"><h3>01 呼叫者 → adapter → 驗證</h3>${entityButton(call.node)}<p><code>model.generate → with_structured_output → invoke → TypeAdapter.validate_python</code></p><h3>02 Payload 組裝 · 真實 source expression</h3><pre>${esc(call.payloadExpression)}</pre><h3>03 Request 結構 · 非 captured HTTP body</h3><pre>${esc(JSON.stringify(call.requestShape, null, 2))}</pre><h3>04 Image evidence</h3><p>${esc(call.imageFlow || "此呼叫不載入 image attachments。")}</p><h3>05 System Prompt · 固定版本原文</h3><details><summary>展開 ${esc(call.task)} prompt</summary><pre>${esc(call.promptText)}</pre></details><h3>06 Output Schema / 回應驗證</h3><p><code>${esc(call.schema)}</code></p><p>${esc(call.response)}</p>${sourceRefs(call.refs)}</div></section>`
       : "";
     return `<div class="callout">模型呼叫存在於 source，不等於本網站正在呼叫模型。此處展示實際 task、payload 組裝、schema 與 adapter；未記錄 live HTTP response、token usage 或 latency。</div><div class="workspace"><div><div class="canvas-card"><div class="canvas-top"><h3>Node → ModelTask → Adapter → Structured Output</h3><small>LLM / EMBEDDING / BACKGROUND 分開呈現</small></div><div class="list-grid">${calls.map((c) => `<button class="list-item ${route.entity === c.id ? "selected" : ""}" data-entity="${c.id}"><strong>${esc(c.title)}</strong><small>${esc(c.scope)}<br><code>${esc(c.task)}</code><br>${esc(c.schema)}</small></button>`).join("")}</div><div class="hint">單一高階 node 不一定呼叫模型。Verification、gate、resume、DB projection 等使用 Python 與 providers。即使多個 task 共用 adapter，也不代表它們共用相同 prompt 或 output schema。</div></div>${detail}<div class="section"><h3>實際呼叫協定</h3><p class="muted">${esc(D.llmTransport?.summary || "")}</p>${sourceRefs(D.llmTransport?.refs || [])}<h3>失敗與驗證</h3><p class="muted">${esc(D.llmTransport?.failure || "")}</p></div></div>${inspector()}</div>`;
   }
@@ -460,6 +521,8 @@
       "policy",
       "evidence",
       "verification",
+      "user_risk",
+      "fulfillment",
       "refund",
       "memory",
       "worker",
@@ -467,7 +530,7 @@
       "activity",
       "model",
     ];
-    return `${pageHeading("05 / EVIDENCE & CODE MAP", "每一個說明，都能找到來源。", "這裡區分 source、測試定義與實跑結果。網站建置驗證不會被當成業務系統的 E2E 驗收。")}<div class="validation-grid"><div class="card"><h3>內容基準</h3><p><code>${esc(D.baseline.commit)}</code></p><p>${esc(D.baseline.branch)} · 分析 ${esc(D.baseline.analyzedAt)}<br>API ${esc(D.baseline.profiles.api)}<br>Agent ${esc(D.baseline.profiles.agent)}</p>${badge("Source verified")} <p class="muted">${Object.keys(D.sources).length} 份 source references；${D.entities.length} 個可探索 entities。每個來源連結固定於同一 commit。</p></div><div class="card"><h3>驗證結果的界線</h3><p>所有情境：${badge("Illustrative", "illustrative")}</p><p>已有 test definitions 可查；沒有載入 Recorded execution。沒有宣稱 benchmark、B→C 學習改善或 10 分鐘讀者測試已通過。</p><p class="muted">網站 build / browser 驗證結果見交付目錄 VERIFICATION.md 與 verification-artifacts。</p></div></div>
+    return `${pageHeading("07 / CODE MAP", "每一個說明，都能找到來源。", "Component → Module → File → Symbol；同時區分 source、測試定義、Illustrative trace 與未記錄的 live 結果。")} ${llmView()}<div class="validation-grid"><div class="card"><h3>內容基準</h3><p><code>${esc(D.baseline.commit)}</code></p><p>${esc(D.baseline.branch)} · 分析 ${esc(D.baseline.analyzedAt)}<br>API ${esc(D.baseline.profiles.api)}<br>Agent ${esc(D.baseline.profiles.agent)}</p>${badge("Source verified")} <p class="muted">${Object.keys(D.sources).length} 份 source references；${D.entities.length} 個可探索 entities。每個來源連結固定於同一 commit。</p></div><div class="card"><h3>驗證結果的界線</h3><p>所有情境：${badge("Illustrative", "illustrative")}</p><p>七種 ModelTask 與 embedding call 是 source-backed 呼叫契約；沒有 captured live response、token usage、latency、benchmark 或 10 分鐘讀者量測。</p><p class="muted">網站 build / browser 驗證結果見交付目錄 VERIFICATION.md 與 verification-artifacts。</p></div></div>
       <section class="section"><span class="eyebrow">IF YOU WANT TO CHANGE SOMETHING</span><h2>從責任，找到修改入口。</h2><div class="codemap">${mapIds
         .map((id) => {
           const e = entities.get(id),
@@ -479,33 +542,41 @@
   }
   function render() {
     const focus = document.activeElement?.dataset?.play;
-    $("#header").innerHTML =
-      `<a class="brand" href="#overview" aria-label="Return Resolve 首頁"><span class="brandmark">↗</span><span>return / resolve<small>TEAM 27 · ENGINEERING EXPLORER</small></span></a><nav class="nav" aria-label="主要導覽">${nav.map(([id, label]) => `<a href="#${id}" ${route.page === id ? 'aria-current="page"' : ""}>${label}</a>`).join("")}</nav><button class="icon-button" data-search>⌕ 搜尋 <span class="mono">/</span></button>`;
-    const crumb = `<div class="breadcrumb"><a href="#overview">Explorer</a><span>/</span><span>${nav.find(([id]) => id === route.page)[1]}</span>${route.view ? `<span>/</span><span>${esc(route.view)}</span>` : ""}${route.group ? `<span>/</span><span>${esc(route.group)}</span>` : ""}${route.entity ? `<span>/</span><span>${esc(entities.get(route.entity)?.title || route.entity)}</span>` : ""}${route.page !== "overview" ? '<button class="icon-button" data-back>← 返回</button>' : ""}</div>`;
+    const activePage = route.page === "component" ? "components" : route.page;
+    const section = nav.find(([id]) => id === activePage) || nav[0];
+    $("#rail").innerHTML = `<a class="brand" href="#overview" aria-label="Return Atlas 首頁"><span class="brandmark">r<span>↗</span></span><span>return atlas<small>SYSTEM EXPLORER</small></span></a><div class="rail-label">理解系統，從這裡開始</div><nav class="rail-nav" aria-label="主要導覽">${nav.map(([id, label, english, num, time]) => `<a class="nav-item ${activePage === id ? "active" : ""}" href="#${id}" ${activePage === id ? 'aria-current="page"' : ""}><small>${num}</small><span>${label}<em>${english} · ${time}</em></span></a>`).join("")}</nav><div class="rail-bottom"><span class="live-dot"></span> 原始碼對照版<small>${D.baseline.commit.slice(0, 7)} · ${esc(D.baseline.profiles.agent)}</small><p>一條案件主線。<br>七個理解視角。</p></div>`;
+    const crumb = `<div class="breadcrumb"><a href="#overview">Return Atlas</a><span>/</span><span>${section[1]}</span>${route.view ? `<span>/</span><span>${esc(route.view)}</span>` : ""}${route.group ? `<span>/</span><span>${esc(route.group)}</span>` : ""}${route.entity ? `<span>/</span><span>${esc(entities.get(route.entity)?.title || route.entity)}</span>` : ""}${route.page !== "overview" ? '<button class="icon-button" data-back>← 返回</button>' : ""}</div>`;
+    $("#header").innerHTML = `${crumb}<button class="search-open" data-search>⌕ <span>搜尋元件、API、事件</span><kbd>/</kbd></button>`;
     const content = {
       overview,
-      trace: tracePage,
+      workflow: tracePage,
       architecture,
-      agent: agentPage,
-      evidence: evidencePage,
+      data: dataPage,
+      components: componentsPage,
+      component: componentPage,
+      infra: infraPage,
+      code: evidencePage,
     }[route.page]();
-    $("#main").innerHTML = `<div class="page">${crumb}${content}</div>`;
+    $("#main").innerHTML = `<div class="page">${content}</div>`;
     $("#main").dataset.route = location.hash;
     $("#footer").innerHTML =
       `<span>RETURN / RESOLVE · TEAM 27<br>系統與教學案例依固定 source 編寫，使用合成資料與模擬退款。</span><span class="mono">${D.baseline.commit.slice(0, 7)} · ${D.baseline.profiles.api} / ${D.baseline.profiles.agent}<br><a href="${D.baseline.repository}/tree/${D.baseline.commit}" target="_blank" rel="noopener noreferrer">View source snapshot ↗</a></span>`;
-    document.title = `${nav.find(([id]) => id === route.page)[1]} — Return / Resolve`;
+    document.title = `${section[1]} — Return Atlas`;
     if (focus)
       document
         .querySelector(`[data-play="${focus}"]`)
         ?.focus({ preventScroll: true });
     attachPan();
-    if (route.page === "overview" && route.view === "intro")
-      $("#introduction")?.scrollIntoView({ block: "start" });
   }
   function pickEntity(id) {
     stop();
     if (!entities.has(id)) return;
-    go(current({ entity: id, edge: "" }));
+    const e = entities.get(id);
+    if (route.page === "architecture" && e.type === "node")
+      go(link("architecture", { view: "exact", entity: id, edge: "" }));
+    else if (route.page === "code" && e.type === "llm")
+      go(link("code", { entity: id }));
+    else go(link("component", { entity: id }));
     setTimeout(() => {
       const el = $(".inspector");
       if (el && innerWidth < 801) el.scrollIntoView({ block: "start" });
@@ -596,12 +667,14 @@
       return go(current({ edge: t.dataset.edge, entity: "" }));
     }
     if (t.dataset.group !== undefined)
-      return go(link("agent", { view: "exact", group: t.dataset.group }));
+      return go(link("architecture", { view: "exact", group: t.dataset.group }));
     if (t.dataset.step !== undefined) {
       stop();
       return go(
-        link("trace", { scenario: scenario().id, step: t.dataset.step }),
-        route.page === "trace",
+        route.page === "workflow"
+          ? link("workflow", { scenario: scenario().id, step: t.dataset.step })
+          : link("data", { view: route.view || "sequence", scenario: scenario().id, step: t.dataset.step }),
+        route.page === "workflow",
       );
     }
     if (t.dataset.play) {
@@ -616,13 +689,11 @@
     if (t.dataset.searchEntity !== undefined) {
       const e = entities.get(t.dataset.searchEntity);
       closeSearch();
-      return go(
-        link(e.type === "node" || e.type === "llm" ? "agent" : "architecture", {
-          view:
-            e.type === "node" ? "exact" : e.type === "llm" ? "llm" : "service",
-          entity: e.id,
-        }),
-      );
+      return go(e.type === "node"
+        ? link("architecture", { view: "exact", entity: e.id })
+        : e.type === "llm"
+          ? link("code", { entity: e.id })
+          : link("component", { entity: e.id }));
     }
     if (t.hasAttribute("data-back")) {
       if (history.length > 1) history.back();

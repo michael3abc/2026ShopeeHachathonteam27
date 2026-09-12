@@ -30,6 +30,14 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
         "enqueue": ref(agent + "memory_enqueue_worker.py", "MemoryEnqueueWorker"),
         "replay": ref(agent + "memory_replay.py", "SqlAlchemyMemoryReplayStore"),
         "refund": ref(api + "capabilities/refund.py"),
+        "fulfillment": ref(api + "capabilities/fulfillment.py", "register_authorization"),
+        "return_event": ref(api + "capabilities/fulfillment.py", "accept_return_event"),
+        "release": ref(api + "capabilities/fulfillment.py", "check_release"),
+        "policy_confirm": ref(api + "policy_routes.py", "confirm_policy"),
+        "return_confirm": ref(api + "policy_routes.py", "confirm_return"),
+        "return_ingress": ref(api + "policy_routes.py", "return_event"),
+        "risk": ref(api + "capabilities/user_risk.py", "SqlAlchemyUserRiskProvider"),
+        "risk_api": ref(api + "app.py", "prepare_user_risk_snapshot"),
         "safety": ref(api + "capabilities/safety.py"),
         "human": ref(api + "capabilities/human_review.py"),
         "evidence": ref(api + "capabilities/evidence.py"),
@@ -37,6 +45,7 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
         "ui": ref(web + "components/case-workspace.tsx", "function ConversationPanel"),
         "review_ui": ref(web + "components/case-workspace.tsx", "function ReviewerPanel"),
         "client": ref(web + "lib/api.ts"),
+        "fulfillment_ui": ref(web + "components/case-workspace.tsx", "function FulfillmentPanel"),
         "progress": ref(web + "lib/graph-progress.mjs", "export function graphProgress"),
         "activity": ref(web + "lib/use-case-activities.ts", "export function useCaseActivities"),
         "activities": ref(api + "activities.py", "ActivityRepository"),
@@ -56,6 +65,9 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
         "test_human": ref("packages/agent_runtime/tests/test_interrupt_resume.py", "test_human_review_submit_once_and_poll_until_result"),
         "test_failure": ref("packages/agent_runtime/tests/test_revision_and_failures.py", "test_policy_status_and_provider_exceptions_fail_closed"),
         "test_memory": ref("packages/agent_runtime/tests/test_revision_and_failures.py", "test_closed_revision_prepares_and_distills_memory_candidate"),
+        "test_policy_confirm": ref("packages/agent_runtime/tests/test_policy_v2_runtime.py"),
+        "test_fulfillment": ref("apps/api/tests/test_policy_v2_fulfillment.py", "test_approval_is_not_payment_and_inspection_releases_once"),
+        "test_risk": ref("apps/api/tests/test_user_risk_v2.py", "test_high_risk_human_authorization_still_requires_inspection"),
         "test_outbox": ref("apps/api/tests/test_agent_bridge.py", "test_case_and_command_outbox_share_one_transaction"),
         "test_idempotent": ref("apps/api/tests/test_agent_bridge.py", "test_projector_is_idempotent_for_duplicate_events"),
     }
@@ -88,9 +100,11 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
     entity("policy", "Policy RAG", "capability", "依案件條件找適用版本與條款，保留檢索依據。", "正式 Policy documents、clauses、retrieval records", "由 Memory 新增 eligibility", "case context / order / reason / item scope", "PolicyBundle", ["policy", "spec"], failure="NOT_FOUND / AMBIGUOUS 使 Graph 轉人工接手；不讓模型補造政策。")
     entity("evidence", "Evidence Provider", "capability", "解析 opaque artifact reference，交付結構化 evidence metadata。", "EvidenceItem 與 artifact reference 對照", "把 artifact bytes 塞進 Graph state", "artifact_ref", "EvidenceItem", ["evidence", "readme"])
     entity("verification", "Verification", "capability", "獨立驗證提案的 scope、政策、金額與契約。", "權威驗證規則與 persisted verification", "Reviewer verdict", "ProposedDecisionHandoff", "PASS / FAIL / UNAVAILABLE", ["safety", "spec"])
-    entity("refund", "Refund Execution", "capability", "API 驗證授權後執行退款；基準 profile 使用模擬 application。", "refund execution records、idempotency 與執行結果", "LangGraph node 或自行改寫 Reviewer 結論", "ResolutionHandoff 與 persisted authorization", "refund record / case terminal state", ["refund", "bridge", "readme"], failure="未配置 executor 時可能停在 EXECUTING；Graph 完成不等於退款完成。")
+    entity("user_risk", "User Risk Gate", "capability", "在 Reviewer APPROVE 後，以 immutable cutoff snapshot 做 deterministic authorization routing。", "risk snapshot、risk gate 與 config fingerprint", "影響 Policy eligibility、改寫 Reviewer verdict 或向買家暴露 risk facts", "case_ref / reason_code / case_opened_at", "PASS / HUMAN_REVIEW_REQUIRED", ["risk", "risk_api", "gate"], failure="snapshot 不可用或 UNKNOWN 必須轉人工；monetary gate 原因優先，但 dossier 保留兩個 gate。")
+    entity("fulfillment", "Return Fulfillment", "capability", "將已核准決策轉成退回同意、到貨、驗收與付款釋放的 durable lifecycle。", "return authorization、confirmation、immutable receipts 與 fulfillment projection", "把 Reviewer APPROVE 當成付款完成，或擴張退款品項", "ResolutionHandoff / ReturnFulfillmentEvent", "AWAITING_RETURN_* / EXECUTING / ESCALATED", ["fulfillment", "return_event", "return_confirm"], failure="倒序、錯案、錯授權、錯品項、重放變更、DISPUTE 或 OVERDUE 均 fail closed；後兩者轉 ESCALATED。")
+    entity("refund", "Refund Execution", "capability", "API 在 fulfillment release condition 成立後驗證授權並執行退款；基準 profile 使用模擬 application。", "refund execution records、item reservations、idempotency 與 APPLIED ledger", "LangGraph node、自行改寫 Reviewer 結論，或在驗收前付款", "ResolutionHandoff 與 persisted authorization / receipts", "APPLIED ledger / case terminal state", ["refund", "fulfillment", "release", "bridge", "readme"], failure="未配置 executor 或 application 結果未知時不得偽裝成功；Graph END、Reviewer APPROVE 與 APPLIED 是不同事實。")
     entity("memory", "Operational Memory", "capability", "只檢索符合 scope 且已核准的操作經驗，協助取證與提案。", "candidate / approved memory 與 governance events", "正式 Policy 或自動修改資格規則", "scoped semantic query / candidate", "approved hits / submission result", ["memory", "governance", "spec"], failure="Optional retrieval 失敗記 UNAVAILABLE；新 candidate 不自動視為 approved。")
-    entity("memory_worker", "Memory Workers", "worker", "独立消費 Agent terminal event，準備 job、蒸餾、提交或 SKIP。", "非同步蒸餾、結果 replay 與重試", "延後使用者退款結果直到學習結束", "AgentResolvedEvent / MemoryDistillationInput", "MemoryCandidateOutput / MemorySkipOutput", ["enqueue", "memory_worker", "replay"], failure="獨立 retry supervision；candidate 生成與治理核准是不同步驟。")
+    entity("memory_worker", "Memory Workers", "worker", "獨立消費 Agent terminal event，準備 job、蒸餾、提交或 SKIP；source_event_refs 只能逐字取自 payload 提供的 allowed_source_event_refs。", "非同步蒸餾、結果 replay、來源 provenance 與重試", "延後使用者退款結果直到學習結束，或讓模型自行重建 event ID", "AgentResolvedEvent / MemoryDistillationInput / allowed source event refs", "MemoryCandidateOutput / MemorySkipOutput", ["enqueue", "memory_worker", "replay"], failure="獨立 retry supervision；需要的 event 不在 closed set 時必須 SKIP；candidate 生成與治理核准是不同步驟。")
     entity("governance", "Memory Governance", "capability", "使用治理 service 核准可重用經驗，留下 lifecycle event。", "Memory admission 與狀態轉移", "人工同意退款即自動同意 Memory", "candidate ID / governance action", "approved memory / audit event", ["governance", "demo"])
     entity("activity", "Activity Projection", "module", "獨立接收 node / tool / model activity，保存後供前端回放。", "case_activities、seq、narration outbox", "以接收順序推斷因果或決定 business status", "ActivityEmission / narration result", "ActivityPage / activity SSE", ["activities", "activity_bridge", "activity", "progress"], failure="activity 可能缺漏，UI 明示 unavailable；case events 與 activity feed cursor 分離。")
     entity("outbox", "Command Outbox", "module", "案件寫入與待發 command 共享 API DB transaction。", "agent_command_outbox 與 publish lease", "宣稱 Redis publish 與 SQL 是同一 transaction", "START / RESUME command", "Redis command publication", ["outbox", "api", "test_outbox"], failure="publish 失敗保留 pending；租約與去重處理重送。")
@@ -111,7 +125,7 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
         "request_evidence": ("等待補件", "interrupt 後解析 artifact_refs，驗證並合併 evidence。", "evidence_bundle", "evidence"),
         "propose_decision": ("建立或修正提案", "Resolver 提出 draft 或補件；Graph 推導金額、ID 與 counters。", "propose_round evidence_round pending_evidence_request current_handoff proposal_history pending_review_result verification_feedback", "model"),
         "external_verification": ("驗證提案", "驗證成功交 Reviewer；失敗在 budget 內回提案修正。", "verification_feedback verification_round", "verification"),
-        "reviewer": ("獨立審核與授權 gate", "Reviewer 僅 APPROVE / REVISE；APPROVE 後 Python gate 決定人工授權。", "review_history review_gate review_routing_reason human_review_ref human_review_result pending_review_result", "model"),
+        "reviewer": ("獨立審核與雙授權 gate", "Reviewer 僅 APPROVE / REVISE；APPROVE 後 Python 依序計算 monetary gate 與 immutable User Risk gate，再決定自動授權或人工入口。", "review_history review_gate user_risk_snapshot user_risk_gate review_routing_reason human_review_ref human_review_result pending_review_result", "model providers user_risk"),
         "record_revision_event": ("記錄修正原因", "保留 structured revision event，再回提案節點。", "revision_events revision_round", ""),
         "await_human_review": ("等待人工審核", "先保存 review_ref 並 self-loop；fetch 無結果才 interrupt，resume 後再 fetch。", "human_review_ref human_review_result", "providers"),
         "emit_resolution_handoff": ("交付決策", "建立 ResolutionHandoff；有 correction 時準備後續 Memory input。", "resolution_handoff", ""),
@@ -144,8 +158,8 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
         ("external_verification", "reviewer"): "Verification PASS",
         ("external_verification", "propose_decision"): "Verification FAIL 且尚有重提 budget",
         ("reviewer", "record_revision_event"): "REVISE 且 revision_round 未達上限",
-        ("reviewer", "await_human_review"): "REVISE budget 耗盡，或 APPROVE 後 monetary gate 要求人審",
-        ("reviewer", "emit_resolution_handoff"): "APPROVE 且 gate 不要求人審",
+        ("reviewer", "await_human_review"): "REVISE budget 耗盡，或 APPROVE 後 monetary／User Risk 任一 gate 要求人審；monetary 原因優先",
+        ("reviewer", "emit_resolution_handoff"): "APPROVE 且 monetary 與 User Risk gates 均 PASS",
         ("record_revision_event", "propose_decision"): "structured correction 已記錄",
         ("await_human_review", "await_human_review"): "首次 submit 保存 review_ref；或合法 poll resume 後再 fetch",
         ("await_human_review", "emit_resolution_handoff"): "取得並驗證人工結果",
@@ -163,7 +177,7 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
         entity(name, title, "node", summary, "Graph state patch 與 routing", "API canonical business state",
                ", ".join(node["reads"]), ", ".join(field_writes), [node["source"], schema["source"]],
                reads=node["reads"], writes=field_writes, providers=providers.split(),
-               interrupt=name in {"request_clarification", "request_evidence", "await_human_review"},
+               interrupt=name in {"request_clarification", "confirm_policy_path", "request_evidence", "await_human_review"},
                failure="展開下方所有路由；來源中的 _fail 轉 terminate_automation。" if "terminate_automation" in node["routes"] else "依來源處理；此節點沒有共用 _fail route。")
         for dest, lines in node["routes"].items():
             label = "contract/provider error 或該節點 budget 耗盡；詳細條件見 source" if dest == "terminate_automation" else conditions[(name, dest)]
@@ -194,6 +208,10 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
         ("api", "evidence", "call", "resolve artifact_ref", ["evidence"]),
         ("api", "verification", "call", "驗證 handoff", ["safety"]),
         ("api", "refund", "call", "授權後執行 demo application", ["refund", "bridge"]),
+        ("api", "user_risk", "call", "immutable snapshot / deterministic risk gate", ["risk", "risk_api"]),
+        ("api", "fulfillment", "call", "authorization / return consent / trusted event ingress", ["fulfillment", "policy_confirm", "return_ingress"]),
+        ("fulfillment", "refund", "call", "release only after AUTHORIZED_NO_RETURN or accepted inspection", ["release", "refund"]),
+        ("fulfillment", "api_db", "db", "authorizations / confirmations / immutable receipts", ["fulfillment", "return_event"]),
         ("policy", "api_db", "db", "policy_documents / clauses / retrievals", ["policy"]),
         ("policy", "model", "http", "embedding provider", ["policy"]),
         ("refund", "api_db", "db", "refund_executions / reservations", ["refund"]),
@@ -212,9 +230,17 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
     edge("api", "agent", "command", "START / RESUME 經 outbox → Redis → worker（高階聚合）", ["bridge", "worker"], contextOnly=True)
     edge("agent", "api", "event", "AgentServiceEvent 經 Redis → API projection（高階聚合）", ["worker", "bridge"], contextOnly=True)
     edge("agent", "runtime", "composition", "Agent Service 組裝並呼叫 Runtime", ["compose"], contextOnly=True)
+    edge("api", "redis", "command", "outbox 發布 START / RESUME（高階聚合）", ["outbox", "bridge"], contextOnly=True)
+    edge("redis", "agent", "command", "Agent workers 消費 commands（高階聚合）", ["broker", "worker"], contextOnly=True)
+    edge("agent", "redis", "event", "發布 AgentServiceEvent（高階聚合）", ["worker", "streams"], contextOnly=True)
+    edge("agent", "agent_db", "db", "checkpoint / journal / completion join（高階聚合）", ["compose", "journal"], contextOnly=True)
+    edge("agent", "model", "http", "Responses API / embedding（高階聚合）", ["compose"], contextOnly=True)
 
     # Expose every actual API route and DTO identifier without hand-invented paths.
-    for path in (api + "app.py", api + "activities.py"):
+    for path in (
+        api + "app.py", api + "activities.py", api + "attachments.py",
+        api + "auth.py", api + "policy_routes.py",
+    ):
         for fn in ast.walk(ast.parse(read(path))):
             if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
@@ -231,6 +257,8 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
 
     llm_calls = []
     adapter_ref = ref(runtime + "model.py", "OpenAIStructuredOutputModel")
+    generate_ref = ref(runtime + "model.py", "generate")
+    image_ref = ref("apps/contracts/src/return_agent_contracts/image_adapter.py", "HttpEvidenceImageProvider")
     config_ref = ref(agent + "main.py", "_configured_model")
     call_specs = [
         ("parse_request", "INTAKE", "INTAKE_SCHEMA", "IntakeResult", "intake", "案件 Graph"),
@@ -262,8 +290,12 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
         title = f"{task} / 模型呼叫"
         record = {"id": eid, "title": title, "node": node_id, "task": task, "schema": schema_name + " → " + model_type,
                   "scope": scope, "payloadExpression": ast.unparse(payload_expr), "promptText": prompt_text,
-                  "refs": [call_ref, prompt_ref, output_ref, adapter_ref, config_ref],
-                  "requestShape": {"SystemMessage": "下方的真實 packaged prompt", "HumanMessage": {"task_mode": task, "input": "由下方 source expression 組装的 payload", "required_output_schema": "TypeAdapter.json_schema()；本 profile 注入 prompt"}},
+                  "refs": [call_ref, prompt_ref, output_ref, adapter_ref, generate_ref, config_ref, image_ref],
+                  "imageAttachments": task in {"ASSESS", "PROPOSE_OR_REVISE", "REVIEW"},
+                  "imageFlow": ("從 evidence_bundle 篩選 artifact://upload/*；HttpEvidenceImageProvider 以 service token 讀取 bytes，"
+                                "轉成 high-detail data URL 加到同一個 HumanMessage；失敗拒絕 text-only evaluation。")
+                               if task in {"ASSESS", "PROPOSE_OR_REVISE", "REVIEW"} else "此 ModelTask 不載入 image attachments。",
+                  "requestShape": {"SystemMessage": "下方的真實 packaged prompt", "HumanMessage": {"task_mode": task, "input": "由下方 source expression 組裝的 payload"}, "StructuredOutput": "TypeAdapter.json_schema() 傳給 with_structured_output；Compass profile 不把 schema 注入 HumanMessage"},
                   "response": "未載入實跑 raw response；adapter 先 structured parse，再做 TypeAdapter.validate_python，最後由 node 做語意驗證。"}
         llm_calls.append(record)
         entity(eid, title, "llm", f"{scope}：{node_id} 的實際 model.generate 呼叫。", "生成符合 output schema 的結果", "直接持久化 business state 或授權退款", ast.unparse(payload_expr), model_type, record["refs"],
@@ -304,7 +336,7 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
                     db="Graph checkpoint 由 Agent PostgreSQL 保存；精確提交時間未記錄。", **kw)
 
     start = [
-        step("買家送出申請", "示意案件：收到的藍牙喇叭外殼有裂痕，希望退貨退款。這不是實際案件紀錄。", "buyer", "web", "interaction", ["client"], ui="送出申請"),
+        step("買家送出申請", "示意案件入口；各 scenario 分別教學免退、補件、替代 Policy path、人工授權或失敗交接。這不是實際案件紀錄。", "buyer", "web", "interaction", ["client"], ui="送出退貨退款申請"),
         step("建立案件與待發 command", "POST /cases；CaseRecord 與 AgentStartCommand outbox 共用 transaction，commit 後回 case_ref。", "web", "api", "http", ["api", "test_outbox"], db="API DB：cases + agent_command_outbox 同一 transaction", extra=("api_db", "outbox", "api:post:/cases")),
         step("發布 START", "Outbox dispatcher 將 pending command 發往 return-agent.commands.v1；publish 與標記完成不是跨系統原子交易。", "outbox", "redis", "command", ["bridge", "streams"], db="published_at / lease，依 dispatcher 處理"),
         step("Worker claim 與啟動", "消費 command、claim command_id，使用同一 thread_id 呼叫 astart。", "redis", "worker", "command", ["worker", "journal"], db="Agent DB：agent_command_journal", extra=("agent", "agent_db")),
@@ -312,14 +344,24 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
         nstep("prepare_memory_query"), nstep("retrieve_memory"),
     ]
     decision = [nstep("assess_case"), nstep("evaluate_policy"), nstep("propose_decision", patch={"propose_round": 1}), nstep("external_verification"), nstep("reviewer")]
-    end = [
+    graph_end = [
         nstep("emit_resolution_handoff"),
         nstep("enqueue_memory_distillation"),
-        step("Graph END", "這次 Graph 到達終點，API 尚須投影結果與執行退款。", "runtime", "worker", "call", [graph["source"], "worker"], node="__end__"),
+        step("Graph END", "這次 Graph 到達終點；這只代表決策交付完成，不代表退回、退款 APPLIED 或 Memory 完成。", "runtime", "worker", "call", [graph["source"], "worker"], node="__end__"),
         step("發布決策結果", "AgentResolvedEvent 送至事件 stream，由 API consumer 投影。", "worker", "redis", "event", ["worker", "streams"]),
-        step("API 接收並驗證", "API 驗證事件與 persisted authorization，執行 demo refund application。", "redis", "api", "event", ["bridge", "refund"], status="EXECUTING", ui="退款執行中", db="API DB：projection / refund records", extra=("api_db", "refund")),
-        step("模擬退款完成", "本場景假設 demo application 成功；無真實金流，也不是測量紀錄。", "refund", "api_db", "db", ["refund", "bridge"], status="RESOLVED", ui="結果：模擬案件已結束", db="API DB：refund_executions / cases / case events"),
-        step("畫面更新", "case events SSE 觸發 CaseDetail refresh；activity feed 獨立呈現執行進度。", "api", "web", "observation", ["web", "activity"], status="RESOLVED", ui="顯示決策與案件結果", extra=("activity",)),
+    ]
+    no_return_completion = [
+        step("建立免退 authorization", "API 重新驗證 proposal、Policy evaluation、monetary gate、User Risk snapshot／gate、scope 與 config hashes；AUTHORIZED_NO_RETURN 可直接進 EXECUTING。", "api", "fulfillment", "call", ["fulfillment", "risk", "gate"], status="EXECUTING", ui="免退授權已確認，退款執行中", db="API DB：return_authorizations + refund ledger / item reservation", extra=("api_db", "user_risk")),
+        step("模擬 application APPLIED", "本場景只示意 integrated-demo 的 deterministic application 成功；APPLIED 不是正式金流或 live execution 紀錄。", "refund", "api_db", "db", ["refund", "release"], status="RESOLVED", ui="退款已套用（Demo）", db="API DB：refund_executions / successful item ledger / completion outbox"),
+        step("畫面更新", "case events SSE 觸發 CaseDetail refresh；activity feed 使用獨立 cursor，Memory 仍可稍後進行。", "api", "web", "observation", ["web", "activity"], status="RESOLVED", ui="顯示決策、免退依據與 Demo 結果", extra=("activity",)),
+    ]
+    return_completion = [
+        step("建立退回 authorization", "Reviewer APPROVE 或人工授權不是付款。API 驗證完整 lineage 後，缺少綁定的買家同意就進 AWAITING_RETURN_CONFIRMATION。", "api", "fulfillment", "call", ["fulfillment", "risk", "gate"], status="AWAITING_RETURN_CONFIRMATION", ui="請確認退回要求", db="API DB：return_authorizations / refund ledger reservation", extra=("api_db", "user_risk")),
+        step("買家同意退回", "POST /return-confirmations 綁 authorization_ref、return_requirement_hash 與 idempotency_key；接受後進 AWAITING_RETURN。", "web", "api", "http", ["return_confirm", "client"], status="AWAITING_RETURN", ui="等待商品退回", db="API DB：confirmation payload + case transition", extra=("fulfillment", "api_db")),
+        step("可信到貨事件", "allowlisted producer 送 RETURN_ARRIVED；API 驗證 case、authorization、line item、timestamp 與 immutable event identity。", "api", "fulfillment", "call", ["return_ingress", "return_event"], status="AWAITING_RETURN_INSPECTION", ui="商品已到貨，等待驗收", db="API DB：return_receipts / arrived_event_id", extra=("api_db",)),
+        step("驗收通過", "INSPECTION_PASSED 必須引用已接受且同品項的 RETURN_ARRIVED，通過後才轉 EXECUTING。DISPUTE 或 OVERDUE 會轉 ESCALATED，且不付款。", "fulfillment", "api", "event", ["return_event", "test_fulfillment"], status="EXECUTING", ui="驗收通過，退款執行中", db="API DB：immutable inspection receipt / fulfillment state", extra=("api_db",)),
+        step("release check 與 APPLIED", "Refund executor 再核對 authorization、consent、arrival／inspection、reservation ownership 與 config hashes；本示意假設 Demo application APPLIED。", "fulfillment", "refund", "call", ["release", "refund"], status="RESOLVED", ui="退款已套用（Demo）", db="API DB：refund ledger APPLIED + completion outbox", extra=("api_db",)),
+        step("畫面更新", "case SSE 更新 CaseDetail；Graph END、fulfillment、APPLIED 與背景 Memory 在 UI 中分開呈現。", "api", "web", "observation", ["web", "fulfillment_ui", "activity"], status="RESOLVED", ui="退回驗收與 Demo 退款完成", extra=("activity",)),
     ]
     evidence = [
         nstep("assess_case", patch={"evidence_round": 1}),
@@ -343,19 +385,30 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
         step("發布人工 RESUME", "相同 thread_id，payload 是 poll signal，不把未驗證的前端裁決直接當 Graph state。", "outbox", "redis", "command", ["review"]),
         step("恢復待審節點", "aresume 重新進入 interrupt node；再由 self-loop 取得 provider 保存的人工結果。", "worker", "runtime", "call", ["runtime", "worker"], extra=("agent_db",)),
         nstep("await_human_review"), nstep("emit_resolution_handoff"), nstep("enqueue_memory_distillation"),
-        *end[2:],
+        *graph_end[2:],
     ]
     background = [
-        step("獨立 terminal-event consumer", "MemoryEnqueueWorker 依 thread_id 讀 checkpoint 的 input，case UI 不等待此流程。此排列只是可能的非同步順序。", "redis", "memory_worker", "event", ["enqueue"], status="RESOLVED", db="Agent DB checkpoint read", extra=("agent_db",)),
-        step("排入 Memory job", "以 handoff_id 關聯 job，發布 return-agent.memory-jobs.v1。", "memory_worker", "redis", "command", ["enqueue", "streams"], status="RESOLVED"),
-        step("蒸餾與提交", "示意選擇 candidate 分支；實際也可能 SKIP。背景 Worker 透過 API provider 提交候選經驗。", "memory_worker", "api", "http", ["memory_worker", "compose"], status="RESOLVED", db="Agent replay / API candidate persistence", extra=("memory", "api_db", "agent_db")),
+        step("等待 matching APPLIED", "v2 FULL_REFUND 的 correction trace 與 RefundAppliedEvent 以 authorization／resolution reference/hash 寫入 Agent DB durable join；任一先到都不提前蒸餾。", "redis", "memory_worker", "event", ["enqueue", "memory_worker"], status="RESOLVED", db="Agent DB：memory_completion_joins", extra=("agent_db", "refund")),
+        step("排入 Memory job", "matching APPLIED 與 correction 已收斂後，以 handoff_id 關聯唯一 logical job，發布 return-agent.memory-jobs.v1。", "memory_worker", "redis", "command", ["enqueue", "streams"], status="RESOLVED"),
+        step("蒸餾與提交", "示意選擇 candidate 分支；實際也可能 SKIP。Memory Distiller 只能從 allowed_source_event_refs 逐字複製來源 ID，不可重建或改寫；背景 Worker 再透過 API provider 提交候選經驗。", "memory_worker", "api", "http", ["memory_worker", "compose"], status="RESOLVED", db="Agent replay / API candidate persistence", extra=("memory", "api_db", "agent_db")),
         step("明確治理核准", "這是獨立 governance service 操作示意，不是本版 UI 自動行為。沒有 B→C 實跑證據。", "governance", "memory", "call", ["governance", "demo"], status="RESOLVED", db="API DB：operational_memory_events / approved status", extra=("api_db",)),
     ]
+    policy_confirmation = [
+        nstep("assess_case"), nstep("evaluate_policy"),
+        nstep("confirm_policy_path", ui="Graph pause，等待買家確認替代 Policy path"),
+        step("投影途徑確認", "AgentInterruptedEvent 的 kind=POLICY_CONFIRMATION 讓 API 保存 request 並轉 AWAITING_POLICY_CONFIRMATION。", "redis", "api", "event", ["bridge", "policy_confirm"], status="AWAITING_POLICY_CONFIRMATION", ui="選擇一般退貨途徑，並確認需退回驗收", db="API DB：policy_confirmations / case status", extra=("api_db",)),
+        step("買家接受替代途徑", "POST /policy-confirmations 驗證 request_ref、selection_version、active interrupt 與 idempotency_key，原子保存 response 與 RESUME outbox。", "web", "api", "http", ["policy_confirm", "client"], status="OBSERVING", ui="已確認途徑，恢復同一 execution", db="API DB：policy confirmation + command outbox", extra=("outbox", "api_db")),
+        step("恢復原 thread", "Worker 以 PolicyConfirmationResume 恢復 checkpoint；confirm_policy_path 驗證綁定後路由回 retrieve_policy。", "worker", "runtime", "call", ["runtime", "policy_confirm"], status="OBSERVING", ui="重新載入已確認的 Policy path", extra=("checkpoint", "agent_db")),
+        nstep("retrieve_policy"), nstep("prepare_memory_query"), nstep("retrieve_memory"),
+        nstep("assess_case"), nstep("evaluate_policy"), nstep("propose_decision", patch={"propose_round": 1}),
+        nstep("external_verification"), nstep("reviewer"),
+    ]
     scenarios = [
-        {"id": "normal", "title": "01 正常處理", "summary": "政策、證據與提案一致，通過審核並完成模擬退款。", "test": refs["test_happy"], "steps": start + decision + end},
-        {"id": "evidence", "title": "02 補件後繼續", "summary": "觀察 checkpoint、等待狀態、REST 補件與原 thread resume。", "test": refs["test_resume"], "steps": start + evidence + decision + end},
-        {"id": "human", "title": "03 人工授權與修正", "summary": "示意 APPROVE 後 monetary gate 要求人工，人工 EDIT 後回 Graph。", "test": refs["test_human"], "steps": start + decision + human},
-        {"id": "failure", "title": "04 政策缺失交接", "summary": "NOT_FOUND 中止自動化，產生可追溯的人工接手結果。", "test": refs["test_failure"], "steps": start[:6] + [
+        {"id": "no_return", "title": "01 免退退款", "summary": "未交付等合法免退路徑；雙 gate 通過後進 EXECUTING，Demo application 才產生 APPLIED。", "test": refs["test_fulfillment"], "steps": start + decision + graph_end + no_return_completion},
+        {"id": "evidence", "title": "02 補件 Resume", "summary": "checkpoint、AWAITING_EVIDENCE、REST 補件與同一 thread resume。", "test": refs["test_resume"], "steps": start + evidence + decision + graph_end + no_return_completion},
+        {"id": "policy_return", "title": "03 Policy 確認與退回", "summary": "AWAITING_POLICY_CONFIRMATION → resume → 退回同意 → 到貨 → 驗收 → APPLIED。", "test": refs["test_policy_confirm"], "steps": start + policy_confirmation + graph_end + return_completion},
+        {"id": "human", "title": "04 人工授權", "summary": "Reviewer APPROVE 後 monetary 或 User Risk deterministic gate 要求人審；人工結果仍受退回履約限制。", "test": refs["test_risk"], "steps": start + decision + human + return_completion},
+        {"id": "failure", "title": "05 失敗終止", "summary": "Policy NOT_FOUND 中止自動化，產生可追溯的人工接手結果。", "test": refs["test_failure"], "steps": start[:6] + [
             nstep("retrieve_policy", patch={"escalation_reason": "POLICY_NOT_FOUND"}),
             nstep("terminate_automation"),
             step("Graph END", "ManualEscalationHandoff 已交付；不是人工處理已完成。", "runtime", "worker", "call", [graph["source"]], node="__end__"),
@@ -363,7 +416,7 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
             step("API 投影交接", "API 將案件轉 ESCALATED。", "redis", "api", "event", ["bridge"], status="ESCALATED", db="API DB：cases / events", ui="需要人工接手"),
             step("交接畫面", "Frontend 顯示交接結果，不提供捏造的自動退款。", "api", "web", "observation", ["web"], status="ESCALATED", ui="自動化已停止，等待後續處理")
         ]},
-        {"id": "memory", "title": "05 案後經驗治理", "summary": "人工 correction → background job → candidate / SKIP → 獨立核准。", "test": refs["test_memory"], "steps": start + decision + human + background},
+        {"id": "memory", "title": "06 Memory 背景流程", "summary": "Graph correction 與 API APPLIED durable join → background job → candidate / SKIP → 獨立治理核准。", "test": refs["test_memory"], "steps": start + decision + human + return_completion + background},
     ]
     for scenario in scenarios:
         scenario["provenance"] = "Illustrative"
@@ -373,11 +426,15 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
 
     mappings = [
         ("OBSERVING", "CaseWorkspace / ConversationPanel", "處理進度；activity 表示觀察到的 node 狀態", "檢視進度", "GET case + events / activities", "web"),
+        ("AWAITING_POLICY_CONFIRMATION", "FulfillmentPanel", "顯示替代 Policy path 與退回要求", "同意／不同意此途徑", "POST /policy-confirmations → PolicyConfirmationResume → retrieve_policy", "policy_confirm"),
+        ("AWAITING_RETURN_CONFIRMATION", "FulfillmentPanel", "已授權但尚未付款；等待買家接受退回要求", "同意退回／交專責", "POST /return-confirmations → AWAITING_RETURN / ESCALATED", "return_confirm"),
+        ("AWAITING_RETURN", "FulfillmentPanel", "等待可信物流到貨事件", "Demo operator 可模擬 ARRIVED／OVERDUE", "POST /demo/.../return-simulation → RETURN_ARRIVED / RETURN_OVERDUE", "fulfillment_ui"),
+        ("AWAITING_RETURN_INSPECTION", "FulfillmentPanel", "商品已到貨，尚未釋放退款", "Demo operator 可模擬 PASS／DISPUTE／OVERDUE", "trusted event → EXECUTING / ESCALATED", "fulfillment_ui"),
         ("AWAITING_CLARIFICATION", "ConversationPanel", "澄清問題與輸入欄位", "補充申請", "POST /messages → ClarificationResume → parse_request", "messages"),
         ("AWAITING_EVIDENCE", "ConversationPanel", "待補件問題與 artifact reference 欄位", "提交補件", "POST /messages → EvidenceResume → prepare_memory_query", "messages"),
         ("AWAITING_HUMAN_REVIEW", "ReviewerPanel", "人工審核 dossier 與操作", "APPROVE / EDIT / REJECT", "POST /review → HumanReviewPollResume → fetch_result", "review"),
-        ("EXECUTING", "CaseWorkspace / withRefundWait", "Graph 結束後，API 退款仍待執行", "檢視處理狀態", "等待 Backend execution / projection", "progress"),
-        ("RESOLVED", "CaseWorkspace", "案件結果；Memory activity 仍可能稍後抵達", "檢視結果與歷史", "CaseDetail / done；activity feed 獨立", "web"),
+        ("EXECUTING", "CaseWorkspace / withRefundWait", "release condition 已成立，API refund application 仍待 APPLIED／REJECTED", "檢視處理狀態", "等待 Backend execution / projection", "progress"),
+        ("RESOLVED", "CaseWorkspace / FulfillmentPanel", "案件終態；FULL_REFUND 成功須能對應 APPLIED，Memory activity 仍可能稍後抵達", "檢視結果與歷史", "CaseDetail / done；activity 與 Memory lifecycle 獨立", "fulfillment_ui"),
         ("ESCALATED", "CaseWorkspace", "自動處理終止，顯示人工交接", "檢視交接資訊", "ManualEscalationHandoff → done", "bridge"),
     ]
     discrepancies = [
@@ -385,16 +442,16 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
         {"title": "UI 案件圖不是 Graph 原圖", "detail": "case-graph.mjs 加入 API execute_refund，且未列出所有失敗與 self-loop；Exact View 由 graph.py 與 reviewed routes 建立。", "refs": [ref(web + "lib/case-graph.mjs"), graph["source"]]},
         {"title": "Graph registration 共用 destinations", "detail": "全域 path map 是註冊上限；本網站逐 node / helper 核對 _route，並檢查 curated 路由集與 AST inventory。這不是任意 Python 程式的可達性證明。", "refs": [graph["source"]]},
         {"title": "Deployment profile 改變可用能力", "detail": "Compose 預設 API unconfigured、Agent demo。本網站專門描述 integrated-demo + integrated-compass；Compass 使用 Terra/medium 與 Responses API。不要把預設 compose healthy 當成相同功能。", "refs": [refs["compose_file"], refs["compose"], refs["readme"]]},
-        {"title": "實跑證據尚未載入", "detail": "五個回放均為 Illustrative。來源中存在相關 test definitions，但本網站不沿用其他 repo 或舊分支的測試通過數。", "refs": [refs["test_happy"], refs["test_resume"], refs["test_human"]]},
+        {"title": "實跑證據尚未載入", "detail": "六個回放均為 Illustrative。來源中存在相關 test definitions，但本網站不沿用其他 repo、舊分支或未納入 manifest 的 artifacts 作為實跑證據。", "refs": [refs["test_happy"], refs["test_resume"], refs["test_fulfillment"]]},
         {"title": "Agent checkpoint 實體 tables 未由本 repo 定義", "detail": "AsyncPostgresSaver.setup() 交由依賴建立 schema。此網站呈現 checkpoint 邏輯資料，不捏造依賴版本的實體欄位與 foreign keys。", "refs": [refs["compose"], refs["runtime"]]},
         {"title": "次序、恢復與 exactly-once 的界線", "detail": "activity seq 是接收順序；journal / event 去重不代表所有外部 side effects exactly-once。Crash 在 node side effect 與 checkpoint 之間的完整保證仍須逐 provider 驗證。", "refs": [refs["progress"], refs["journal"], refs["runtime"]]},
     ]
     # Include deployment / schema / migration / fixture entrypoints in the audited manifest.
-    for path in ["apps/api/README.md", "apps/agent_service/README.md", "apps/web/README.md", "apps/contracts/README.md", "packages/agent_runtime/README.md", "apps/api/alembic/versions/0003_policy_rag.py", "apps/agent_service/src/return_agent_service/settings.py", "data/policy.json.example", "apps/api/tests/test_integrated_demo.py"]:
+    for path in ["apps/api/README.md", "apps/agent_service/README.md", "apps/web/README.md", "apps/contracts/README.md", "packages/agent_runtime/README.md", "apps/api/alembic/versions/0003_policy_rag.py", "apps/api/alembic/versions/0015_user_risk_authorization.py", "apps/api/alembic/versions/0016_policy_v2_fulfillment.py", "apps/api/alembic/versions/0017_image_attachments.py", "apps/agent_service/src/return_agent_service/settings.py", "data/policy.json.example", "config/reviewer-gates.json", "config/user-risk.json", "apps/api/tests/test_integrated_demo.py"]:
         ref(path)
     return {"entities": entities, "edges": edges, "groups": groups, "graph": graph, "schema": schema,
             "llmCalls": llm_calls,
-            "llmTransport": {"summary": "integrated-compass：main._configured_model → OpenAIStructuredOutputModel → OpenAI Responses API structured output。預設模型為 compass-5.6-terra、reasoning_effort=medium、timeout=180s、max_retries=0、streaming=True；Compass 不注入 JSON schema 到 prompt，亦不使用 Qwen 的 temperature/enable_thinking 參數。組裝會注入 HttpEvidenceImageProvider，ASSESS、PROPOSE_OR_REVISE、REVIEW 的 evidence 可帶 image attachments。模型名稱、base_url、credential 與實際 endpoint 均由環境配置；本網站未讀取 secrets、未送出 live request，也沒有 captured response。", "failure": "response 先 structured parse，再由 Pydantic TypeAdapter 與 node domain validation 驗證。SDK streaming 不等於把 raw model tokens 或 hidden reasoning 推給 Frontend；UI 依 case events 與 activity projection。Narration timeout/error 是觀察流程，不能當成案件失敗。", "refs": [adapter_ref, config_ref, ref(agent + "composition.py", "compose_integrated_service"), embed_ref, ref(agent + "activity_workers.py", "NarrationWorker")]},
+            "llmTransport": {"summary": "integrated-compass：main._configured_model → OpenAIStructuredOutputModel → OpenAI Responses API structured output。預設模型為 compass-5.6-terra、reasoning_effort=medium、timeout=180s、max_retries=0、streaming=True；Compass 不注入 JSON schema 到 prompt，亦不使用 Qwen 的 temperature/enable_thinking 參數。組裝會注入 HttpEvidenceImageProvider，ASSESS、PROPOSE_OR_REVISE、REVIEW 從各自實際 payload 的 evidence_bundle 載入 artifact://upload/*，以 service-token HTTP 取得 image bytes，再以 high-detail data URL 附在同一個 HumanMessage。模型名稱、base_url、credential 與實際 endpoint 均由環境配置；本網站未讀取 secrets、未送出 live request，也沒有 captured response。", "failure": "有 image attachment 卻未配置 provider 時拒絕 text-only evaluation；影像 request error 不把 bytes 放入 worker error。Response 先 structured parse，再由 Pydantic TypeAdapter 與 node domain validation 驗證。SDK streaming 不等於把 raw model tokens 或 hidden reasoning推給 Frontend；UI 依 case events 與 activity projection。Narration timeout/error 是觀察流程，不能當成案件失敗。", "refs": [adapter_ref, generate_ref, image_ref, config_ref, ref(agent + "composition.py", "compose_integrated_service"), embed_ref, ref(agent + "activity_workers.py", "NarrationWorker")]},
             "scenarios": scenarios, "statuses": statuses, "refs": refs, "discrepancies": discrepancies,
             "uiMappings": [{"status": s, "component": c, "screen": d, "action": a, "next": n, "refs": [refs[r], refs["status"]]} for s, c, d, a, n, r in mappings],
             "designReferences": [{"title": "Collect UI", "url": "https://collectui.com/"}, {"title": "S5-Style", "url": "https://www.s5-style.com/"}],

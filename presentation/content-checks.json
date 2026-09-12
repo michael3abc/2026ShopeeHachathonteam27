@@ -1,13 +1,13 @@
 {
-  "sourceCommit": "e0787068e832962ce65254fae4c70517ef6133d4",
-  "entities": 103,
+  "sourceCommit": "586c3aa0cce63bc6100f63f9335162d32bd968d1",
+  "entities": 118,
   "graphNodes": 18,
   "graphEdges": 50,
-  "sources": 142,
-  "scenarios": 5,
+  "sources": 170,
+  "scenarios": 6,
   "checks": [
     "fixed-commit source references",
-    "unique entity IDs",
+    "unique entity and edge IDs",
     "reviewed routes match AST inventory",
     "state fields exist",
     "high-level groups partition real nodes",

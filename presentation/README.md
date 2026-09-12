@@ -1,6 +1,6 @@
 # Return / Resolve — System Architecture Explorer
 
-Team 27 的互動式系統介紹網站，提供作品介紹、案件回放、六種架構視圖、實際 LLM 呼叫、UI mapping 與 Code Map。主要語言為繁體中文。
+Team 27 的 Return Atlas 互動式系統介紹網站。以固定左側 rail 串起七個區域：系統全貌、沿著案件走、責任與邊界、資料如何流動、元件索引、部署與執行、從哪裡改起。主要語言為繁體中文。
 
 主要閱讀與驗收目標為桌面瀏覽器；保留基本響應式布局，不以手機版作為後續優化重點。
 
@@ -15,11 +15,11 @@ Team 27 的互動式系統介紹網站，提供作品介紹、案件回放、六
 
 ## 版本與能力基準
 
-`baseline.json` 固定於 `main@e0787068e832962ce65254fae4c70517ef6133d4`，描述 API `integrated-demo` 與 Agent `integrated-compass` 的組裝。此 profile 預設以 `compass-5.6-terra`、`reasoning_effort=medium` 走 Responses API；image evidence 的 HTTP adapter 在 service composition 注入。
+`baseline.json` 固定於 `main@586c3aa0cce63bc6100f63f9335162d32bd968d1`，描述 API `integrated-demo` 與 Agent `integrated-compass` 的組裝。此 profile 預設以 `compass-5.6-terra`、`reasoning_effort=medium` 走 Responses API；image evidence 的 HTTP adapter 在 service composition 注入。
 
 內容分析只透過 `git show <SHA>:<path>` 讀取 committed source；不混用未提交文件、其他 worktree 或未合併功能。分支名稱是基準記錄，不會在 build 時追蹤最新分支。
 
-五個案例均為 **Illustrative**，用 source 與 test definitions 設計，沒有載入 live execution。Graph、退款與 Memory 的生命週期分開。完整 `Before / After`、token usage、真實 latency 與學習效果均未記錄。
+六個案例均為 **Illustrative**：免退退款、補件 resume、Policy path 確認與退回履約、人工授權、失敗終止、Memory 背景流程。它們依 source 與 test definitions 設計，沒有載入 live execution。Graph END、退回履約、退款 `APPLIED`、背景蒸餾與治理核准分開呈現；完整 `Before / After`、token usage、真實 latency 與學習效果均未記錄。
 
 本網站的 LLM Calls 可展開七種 ModelTask 的實際呼叫點、payload expression、packaged prompt、output type 與 adapter；embedding 單獨呈現。它呈現 source-backed 的真實 LLM call contract，但不送出 live call，也不把 SDK request shape 冒充為 captured request。
 
@@ -29,6 +29,7 @@ Team 27 的互動式系統介紹網站，提供作品介紹、案件回放、六
 
 ```bash
 python3 presentation/build.py
+python3 presentation/verify-architecture-sync.py
 node --check presentation/src/app.js
 node presentation/verify-content.mjs
 ```
@@ -61,7 +62,7 @@ PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs node presentation/verif
 | `build.py` | 固定版本讀取、AST inventory、引用驗證與兩種 build |
 | `src/` | HTML template、CSS 與無外部請求的瀏覽器 JavaScript |
 | `architecture-data.json` | 生成的共用內容模型；所有視圖使用同一份資料 |
-| `source-manifest.json` | 固定 SHA、路徑、symbol、行號、source checksum 與離線 excerpt |
+| `source-manifest.json` | 固定 SHA、路徑、symbol、行號、source checksum、architecture sync scope 與離線 excerpt |
 | `content-checks.json` | 內容一致性檢查結果 |
 | `VERIFICATION.md` | 本輪驗證結果與限制 |
 
@@ -85,6 +86,8 @@ JSON 生成檔供檢視與重現；請修改 Python source，再重新 build，�
 4. 執行 build 與內容驗證；source symbol 或路由不一致會明確失敗。
 5. 執行 browser tests，查看截圖，更新 `VERIFICATION.md` 後提交。
 
+`verify-architecture-sync.py` 會比較 baseline 與目前 `HEAD`。只要 manifest 涵蓋的 Graph、API、contracts、DB migration、Frontend mapping 或 deployment source 在 baseline 後改變，CI 就會失敗，直到 Explorer 重新分析並固定到新的 committed baseline。只改 presentation 本身不會造成假陽性。
+
 既有 docs/spec 是 Agent 契約；網站不是替代其 ownership 的新 source of truth。
 
 ## 發布 GitHub Pages
@@ -95,10 +98,10 @@ GitHub Actions workflow 會在 `main` 的 `presentation/**` 更新後發布；�
 
 Checkout 必須包含 baseline commit（例如設定 `fetch-depth: 0`），因為 build 從固定歷史 SHA 讀取 source，而不是使用目前工作目錄內容。缺少該 Git object 時 build 會明確失敗。
 
-入口頁位於 artifact 根目錄的 `index.html`；所有內容均內嵌，deep links 使用 `#agent?view=llm&entity=llm%3AREVIEW` 等形式，因此無須 server rewrite。
+入口頁位於 artifact 根目錄的 `index.html`；所有內容均內嵌。主要 deep links 使用 `#workflow/policy_return/12`、`#architecture/exact/reviewer`、`#data/fulfillment`、`#component/fulfillment`、`#code/llm%3AREVIEW` 等 path-style hash，因此無須 server rewrite。
 
 ## 設計
 
-暖白底、深綠灰字、橘色重點、原生 SVG 與分層 detail panel。已讀取 [Collect UI](https://collectui.com/) 與 [S5-Style](https://www.s5-style.com/) 首頁；動態 gallery 素材沒有完整取得，不宣稱複製或逐頁比對其設計。
+UI shell、暖白／深綠／lime 色彩、固定左 rail、editorial typography、cards 與 diagram language 依 `reference/github_page` 的 Return Atlas 格式移植；架構結論與內容資料不沿用 reference 的過期 `content.js`。原生 SVG 與 detail inspector 均直接消費目前 `architecture-data.json`。
 
 自製圖形和示意案件畫面皆標示用途，不冒充實際應用程式截圖。Browser screenshots 僅是本 Explorer 的驗證 artifact。

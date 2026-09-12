@@ -3,6 +3,21 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  presentation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: presentation/package-lock.json
+      - run: npm ci
+        working-directory: presentation
+      - run: npm run check
+        working-directory: presentation
   deterministic:
     runs-on: ubuntu-latest
     services:

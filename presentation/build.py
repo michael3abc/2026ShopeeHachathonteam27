@@ -177,6 +177,8 @@ def schema_inventory() -> dict[str, Any]:
 def validate(data: dict[str, Any]) -> dict[str, Any]:
     ids = [e["id"] for e in data["entities"]]
     assert len(ids) == len(set(ids)), "Duplicate entity ID"
+    edge_ids = [e["id"] for e in data["edges"]]
+    assert len(edge_ids) == len(set(edge_ids)), "Duplicate edge ID"
     entities = {e["id"]: e for e in data["entities"]}
     actual = data["graph"]["nodes"]
     edges = {(e["from"], e["to"]) for e in data["edges"] if e["kind"] == "graph"}
@@ -213,7 +215,7 @@ def validate(data: dict[str, Any]) -> dict[str, Any]:
                 last_node = step["node"]
     return {"sourceCommit": SHA, "entities": len(ids), "graphNodes": len(actual),
             "graphEdges": len(expected), "sources": len(SOURCES), "scenarios": len(data["scenarios"]),
-            "checks": ["fixed-commit source references", "unique entity IDs", "reviewed routes match AST inventory",
+            "checks": ["fixed-commit source references", "unique entity and edge IDs", "reviewed routes match AST inventory",
                        "state fields exist", "high-level groups partition real nodes", "trace node transitions exist",
                        "scenario references and statuses resolve", "illustrative patches belong to their node"],
             "limits": "Source catalogue checks; not a runtime reachability proof or a business E2E test."}
@@ -235,7 +237,20 @@ def build() -> None:
         target.mkdir(exist_ok=True)
         (target / "index.html").write_text(html)
     (HERE / "dist/.nojekyll").write_text("")
-    (HERE / "source-manifest.json").write_text(json.dumps({"baseline": BASELINE, "sources": SOURCES}, ensure_ascii=False, indent=2) + "\n")
+    architecture_prefixes = (
+        "packages/agent_runtime/src/", "apps/api/src/", "apps/api/alembic/",
+        "apps/agent_service/src/", "apps/contracts/src/", "apps/web/src/",
+    )
+    architecture_paths = sorted({source["path"] for source in SOURCES.values()
+        if source["path"].startswith(architecture_prefixes)
+        or source["path"] in {"docker-compose.yml", "apps/web/next.config.ts",
+                              "config/reviewer-gates.json", "config/user-risk.json"}})
+    (HERE / "source-manifest.json").write_text(json.dumps({
+        "baseline": BASELINE,
+        "architecturePaths": architecture_paths,
+        "syncRule": "CI fails when a manifest-covered architecture source changes after baseline.",
+        "sources": SOURCES,
+    }, ensure_ascii=False, indent=2) + "\n")
     (HERE / "architecture-data.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
     (HERE / "content-checks.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
     print(json.dumps({**report, "htmlBytes": len(html.encode()), "targets": ["dist/index.html", "offline/index.html"]}, ensure_ascii=False))

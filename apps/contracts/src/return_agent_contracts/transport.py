@@ -10,6 +10,24 @@ from pydantic import Field
 
 from .base import ContractModel, OpaqueRef, PositiveInt
 from .enums import ClaimId, ReasonCode
+from .base import UTCDateTime
+from .user_risk import UserRiskSnapshot
+from .policy_v2 import PolicyPathId
+
+
+class PrepareUserRiskSnapshotParams(ContractModel):
+    case_ref: OpaqueRef
+    reason_code: ReasonCode
+    as_of: UTCDateTime
+
+
+class PrepareUserRiskSnapshotRequest(ContractModel):
+    method: Literal["UserRiskProvider.prepare_snapshot"]
+    params: PrepareUserRiskSnapshotParams
+
+
+class PrepareUserRiskSnapshotResponse(ContractModel):
+    result: UserRiskSnapshot
 from .models import (
     CaseContext,
     CaseContextLoadResult,
@@ -40,6 +58,7 @@ class LoadCaseContextResponse(ContractModel):
 
 
 class RetrievePolicyParams(ContractModel):
+    selected_path_id: PolicyPathId | None = Field(default=None, exclude_if=lambda v: v is None)
     case_context: CaseContext
     order_snapshot: OrderSnapshot
     reason_code: ReasonCode
@@ -58,7 +77,8 @@ class RetrievePolicyResponse(ContractModel):
 class QueryApprovedMemoryParams(MemoryQuerySummary):
     market: OpaqueRef
     reason_code: ReasonCode
-    required_claim_ids: list[ClaimId] = Field(min_length=1)
+    required_claim_ids: list[ClaimId]
+    policy_path_id: PolicyPathId | None = Field(default=None,exclude_if=lambda v: v is None)
     categories: list[OpaqueRef] = Field(default_factory=list)
     policy_versions: list[OpaqueRef] = Field(min_length=1)
     claim_registry_major: PositiveInt
@@ -150,6 +170,7 @@ PROVIDER_REQUEST_MODELS = (
     SubmitHumanReviewRequest,
     FetchHumanReviewRequest,
     SubmitMemoryCandidateRequest,
+    PrepareUserRiskSnapshotRequest,
 )
 
 PROVIDER_RESPONSE_MODELS = (
@@ -161,4 +182,5 @@ PROVIDER_RESPONSE_MODELS = (
     SubmitHumanReviewResponse,
     FetchHumanReviewResponse,
     SubmitMemoryCandidateResponse,
+    PrepareUserRiskSnapshotResponse,
 )

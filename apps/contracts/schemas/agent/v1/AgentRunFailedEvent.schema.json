@@ -39,6 +39,8 @@
     },
     "GraphNodeName": {
       "enum": [
+        "evaluate_policy",
+        "confirm_policy_path",
         "parse_request",
         "request_clarification",
         "load_case_context",

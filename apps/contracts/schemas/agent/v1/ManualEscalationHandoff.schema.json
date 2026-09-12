@@ -50,6 +50,8 @@
     },
     "EscalationReason": {
       "enum": [
+        "SPECIALIST_REQUIRED",
+        "POLICY_CONFIRMATION_DECLINED",
         "CLARIFICATION_BUDGET_EXCEEDED",
         "EVIDENCE_BUDGET_EXCEEDED",
         "VERIFICATION_BUDGET_EXCEEDED",

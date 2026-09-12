@@ -1,0 +1,96 @@
+{
+  "$defs": {
+    "ReasonCode": {
+      "enum": [
+        "ITEM_DAMAGED",
+        "ITEM_NOT_AS_DESCRIBED",
+        "MISSING_ITEM",
+        "WRONG_ITEM",
+        "QUALITY_ISSUE",
+        "CHANGED_MIND"
+      ],
+      "title": "ReasonCode",
+      "type": "string"
+    },
+    "UserRiskSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "account_age_days": {
+          "minimum": 0,
+          "title": "Account Age Days",
+          "type": "integer"
+        },
+        "as_of": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "As Of",
+          "type": "string"
+        },
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Created At",
+          "type": "string"
+        },
+        "orders_90d": {
+          "minimum": 0,
+          "title": "Orders 90D",
+          "type": "integer"
+        },
+        "reason_code": {
+          "$ref": "#/$defs/ReasonCode"
+        },
+        "refunded_orders_90d": {
+          "minimum": 0,
+          "title": "Refunded Orders 90D",
+          "type": "integer"
+        },
+        "same_reason_claims_90d": {
+          "minimum": 0,
+          "title": "Same Reason Claims 90D",
+          "type": "integer"
+        },
+        "snapshot_ref": {
+          "minLength": 1,
+          "title": "Snapshot Ref",
+          "type": "string"
+        },
+        "user_ref": {
+          "minLength": 1,
+          "title": "User Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot_ref",
+        "case_ref",
+        "user_ref",
+        "reason_code",
+        "as_of",
+        "account_age_days",
+        "orders_90d",
+        "same_reason_claims_90d",
+        "refunded_orders_90d",
+        "created_at"
+      ],
+      "title": "UserRiskSnapshot",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "result": {
+      "$ref": "#/$defs/UserRiskSnapshot"
+    }
+  },
+  "required": [
+    "result"
+  ],
+  "title": "PrepareUserRiskSnapshotResponse",
+  "type": "object"
+}

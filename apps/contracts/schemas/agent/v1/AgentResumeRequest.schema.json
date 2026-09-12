@@ -100,6 +100,116 @@
       ],
       "title": "HumanReviewPollResume",
       "type": "object"
+    },
+    "PolicyConfirmation": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "confirmation_ref": {
+          "minLength": 1,
+          "title": "Confirmation Ref",
+          "type": "string"
+        },
+        "confirmed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Confirmed At",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/PolicyConfirmationRequest"
+        }
+      },
+      "required": [
+        "confirmation_ref",
+        "request",
+        "accepted",
+        "confirmed_at"
+      ],
+      "title": "PolicyConfirmation",
+      "type": "object"
+    },
+    "PolicyConfirmationRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "original_path_id": {
+          "$ref": "#/$defs/PolicyPathId"
+        },
+        "original_scope_hash": {
+          "title": "Original Scope Hash",
+          "type": "string"
+        },
+        "path_id": {
+          "$ref": "#/$defs/PolicyPathId"
+        },
+        "request_ref": {
+          "minLength": 1,
+          "title": "Request Ref",
+          "type": "string"
+        },
+        "return_required": {
+          "title": "Return Required",
+          "type": "boolean"
+        },
+        "return_requirement_hash": {
+          "title": "Return Requirement Hash",
+          "type": "string"
+        },
+        "selection_version": {
+          "minimum": 1,
+          "title": "Selection Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "request_ref",
+        "case_ref",
+        "original_scope_hash",
+        "original_path_id",
+        "path_id",
+        "selection_version",
+        "return_required",
+        "return_requirement_hash"
+      ],
+      "title": "PolicyConfirmationRequest",
+      "type": "object"
+    },
+    "PolicyConfirmationResume": {
+      "additionalProperties": false,
+      "properties": {
+        "confirmation": {
+          "$ref": "#/$defs/PolicyConfirmation"
+        },
+        "kind": {
+          "const": "POLICY_CONFIRMATION",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "confirmation"
+      ],
+      "title": "PolicyConfirmationResume",
+      "type": "object"
+    },
+    "PolicyPathId": {
+      "enum": [
+        "COOLING_OFF",
+        "DAMAGED_ON_ARRIVAL",
+        "WRONG_ITEM",
+        "UNDELIVERED_ITEM"
+      ],
+      "title": "PolicyPathId",
+      "type": "string"
     }
   },
   "additionalProperties": false,
@@ -109,7 +219,8 @@
         "mapping": {
           "CLARIFICATION": "#/$defs/ClarificationResume",
           "EVIDENCE_REQUEST": "#/$defs/EvidenceResume",
-          "HUMAN_REVIEW": "#/$defs/HumanReviewPollResume"
+          "HUMAN_REVIEW": "#/$defs/HumanReviewPollResume",
+          "POLICY_CONFIRMATION": "#/$defs/PolicyConfirmationResume"
         },
         "propertyName": "kind"
       },
@@ -122,6 +233,9 @@
         },
         {
           "$ref": "#/$defs/HumanReviewPollResume"
+        },
+        {
+          "$ref": "#/$defs/PolicyConfirmationResume"
         }
       ],
       "title": "Payload"

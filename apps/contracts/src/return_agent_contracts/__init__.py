@@ -1,5 +1,9 @@
 """Version 1 executable contracts for the Adaptive Return Resolution Agent."""
 
+from .user_risk import UserRiskConfig, UserRiskSnapshot, UserRiskGateResult
+from .interfaces import UserRiskProvider
+from .http_adapters import HttpUserRiskProvider
+
 from .enums import (
     ClaimId,
     ClaimStatus,
@@ -153,6 +157,7 @@ from .validation import (
 )
 
 __all__ = [
+    "UserRiskConfig", "UserRiskSnapshot", "UserRiskGateResult", "UserRiskProvider", "HttpUserRiskProvider",
     "AGENT_COMMAND_DLQ_STREAM",
     "AGENT_COMMAND_STREAM",
     "AGENT_EVENT_STREAM",

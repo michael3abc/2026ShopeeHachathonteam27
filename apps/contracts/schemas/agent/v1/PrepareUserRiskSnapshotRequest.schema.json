@@ -1,0 +1,59 @@
+{
+  "$defs": {
+    "PrepareUserRiskSnapshotParams": {
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "As Of",
+          "type": "string"
+        },
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "reason_code": {
+          "$ref": "#/$defs/ReasonCode"
+        }
+      },
+      "required": [
+        "case_ref",
+        "reason_code",
+        "as_of"
+      ],
+      "title": "PrepareUserRiskSnapshotParams",
+      "type": "object"
+    },
+    "ReasonCode": {
+      "enum": [
+        "ITEM_DAMAGED",
+        "ITEM_NOT_AS_DESCRIBED",
+        "MISSING_ITEM",
+        "WRONG_ITEM",
+        "QUALITY_ISSUE",
+        "CHANGED_MIND"
+      ],
+      "title": "ReasonCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "method": {
+      "const": "UserRiskProvider.prepare_snapshot",
+      "title": "Method",
+      "type": "string"
+    },
+    "params": {
+      "$ref": "#/$defs/PrepareUserRiskSnapshotParams"
+    }
+  },
+  "required": [
+    "method",
+    "params"
+  ],
+  "title": "PrepareUserRiskSnapshotRequest",
+  "type": "object"
+}

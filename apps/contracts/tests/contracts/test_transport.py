@@ -44,8 +44,8 @@ from .fixtures import (
 
 
 def test_all_nine_provider_requests_are_modelled() -> None:
-    assert len(PROVIDER_REQUEST_MODELS) == 8
-    assert len(PROVIDER_RESPONSE_MODELS) == 8
+    assert len(PROVIDER_REQUEST_MODELS) == 9
+    assert len(PROVIDER_RESPONSE_MODELS) == 9
     requests = [
         LoadCaseContextRequest(
             method="CaseContextProvider.load_case_context",
@@ -130,7 +130,7 @@ def test_external_interface_json_examples_match_transport_contracts() -> None:
         json.loads(block)
         for block in re.findall(r"```json\n(.*?)\n```", text, flags=re.DOTALL)
     ]
-    assert len(payloads) == 16
+    assert len(payloads) == 18
     for index, (request_model, response_model) in enumerate(
         zip(PROVIDER_REQUEST_MODELS, PROVIDER_RESPONSE_MODELS, strict=True)
     ):

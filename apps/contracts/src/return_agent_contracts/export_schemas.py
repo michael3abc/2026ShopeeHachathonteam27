@@ -10,6 +10,9 @@ from typing import Any, TypeAlias
 from pydantic import TypeAdapter
 
 from .activity import ActivityEmission, NarrationJob
+from .completion import RefundAppliedEvent
+from .fulfillment import ReturnFulfillmentEvent, ReturnEventReceipt, ReturnSimulationInput, PolicyConfirmationInput, ReturnConfirmationInput
+from .policy_v2 import PolicyEvaluation, PolicySelection, PolicyConfirmation
 from .base import ContractModel
 from .models import (
     ManualEscalationHandoff,
@@ -46,6 +49,15 @@ from .transport import PROVIDER_REQUEST_MODELS, PROVIDER_RESPONSE_MODELS
 SchemaSource: TypeAlias = type[ContractModel] | Any
 
 SCHEMA_MODELS: dict[str, SchemaSource] = {
+    "RefundAppliedEvent.schema.json":RefundAppliedEvent,
+    "ReturnFulfillmentEvent.schema.json":ReturnFulfillmentEvent,
+    "ReturnEventReceipt.schema.json":ReturnEventReceipt,
+    "ReturnSimulationInput.schema.json":ReturnSimulationInput,
+    "PolicyConfirmationInput.schema.json":PolicyConfirmationInput,
+    "ReturnConfirmationInput.schema.json":ReturnConfirmationInput,
+    "PolicyEvaluation.schema.json":PolicyEvaluation,
+    "PolicySelection.schema.json":PolicySelection,
+    "PolicyConfirmation.schema.json":PolicyConfirmation,
     "ActivityEmission.schema.json": ActivityEmission,
     "NarrationJob.schema.json": NarrationJob,
     **{f"{model.__name__}.schema.json": model for model in PROVIDER_REQUEST_MODELS},

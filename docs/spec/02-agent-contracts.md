@@ -1,5 +1,15 @@
 # Agent Contracts
 
+## Policy v2 增補（獨立 worktree）
+
+新案由 API 依可信 scenario 固定 `policy_schema_version`，v1 DTO 的未使用 v2 欄位不輸出，保留歷史 hash。v2 使用 `DEMO-TW-RETURNS:v2.0`、`claim-registry:2.0` 與 `handoff_version=2.0`，未知 discriminator 或混版資料直接拒絕。
+
+`PolicyEvaluation` 綁 case／snapshot／bundle／registry／evidence hash／findings hash／selection；Assessment、Reviewer、Human 各有自己的結果。`PolicySelection` 與 `PolicyConfirmation` 保存途徑版本、原 scope hash、退回要求 hash；只有持久化同意可授權切換。完整規則見 [Policy v2](09-policy-v2-integration.md)。
+
+`UserRiskSnapshot` 是 API 持久化的 cutoff facts；`UserRiskGateResult` 只決定 Reviewer APPROVE 後的自動授權或人審入口，不影響政策資格。LOW／MEDIUM 放行，HIGH／UNKNOWN 人審，金額 gate 路由優先且 dossier 保留兩 gate。設定與 evaluator 見 `user_risk.py` 及 [User Risk SPEC](../USER_RISK_SPEC.md)。
+
+核准的 resolution 不等於退款完成。`RefundReleaseCondition` 分驗收通過／合法免退，API 保存 authorization、consent、receipts 與 execution。`RefundAppliedEvent` 只從 APPLIED 成功交易產生；Agent 以 resolution reference 與 hash 關聯 correction trace 後才建立 Memory job。
+
 本文件描述 Agent 需要產生或消費的**語意契約**。所有跨組 contract 的唯一可執行來源是 [`apps/contracts`](../../apps/contracts/README.md)：Python 使用 [`return_agent_contracts`](../../apps/contracts/src/return_agent_contracts/__init__.py)，Pydantic DTO 見 [`models.py`](../../apps/contracts/src/return_agent_contracts/models.py)，非 Python 消費者使用 [Agent v1 JSON Schema](../../apps/contracts/schemas/agent/v1/)。文件保留欄位歸屬、語意、routing 與可讀範例；實際 transport、API endpoint 與資料庫 schema 由 integration owner 決定，介面簽章見 [External Interfaces](08-external-interfaces.md)。所有時間使用 ISO 8601 UTC，wire value 只能以 `Z` 或 `+00:00` 結尾；所有 `*_ref` 都是 opaque identifier。所有 `claim_id` 必須存在於 [Claim Registry](07-claim-registry.md)。
 
 金額在 Python 內使用 `Decimal`，JSON 一律使用非負 decimal string（例如 `"1200"`、`"12.50"`）；禁止 JSON number、負數、前置零與 exponent notation。`currency` 為 ISO 4217 三碼大寫字母。

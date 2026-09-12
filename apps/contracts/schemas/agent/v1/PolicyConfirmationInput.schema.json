@@ -1,0 +1,32 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "accept": {
+      "title": "Accept",
+      "type": "boolean"
+    },
+    "idempotency_key": {
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "request_ref": {
+      "minLength": 1,
+      "title": "Request Ref",
+      "type": "string"
+    },
+    "selection_version": {
+      "minimum": 1,
+      "title": "Selection Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "request_ref",
+    "selection_version",
+    "accept",
+    "idempotency_key"
+  ],
+  "title": "PolicyConfirmationInput",
+  "type": "object"
+}

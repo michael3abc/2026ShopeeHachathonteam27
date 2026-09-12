@@ -1,0 +1,10 @@
+{
+  "version": "user-risk:1.0",
+  "low_max_score": 39,
+  "medium_max_score": 59,
+  "rules": {
+    "repeated_same_reason_claims": {"same_reason_claims_90d_gte": 3, "points": 40},
+    "high_refund_rate": {"minimum_orders_90d": 5, "refund_rate_gte": "0.40", "points": 25},
+    "new_account_repeated_claims": {"account_age_days_lte": 30, "same_reason_claims_90d_gte": 2, "points": 30}
+  }
+}

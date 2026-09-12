@@ -1,0 +1,26 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "idempotency_key": {
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "intent": {
+      "enum": [
+        "ARRIVED",
+        "PASS",
+        "DISPUTE",
+        "OVERDUE"
+      ],
+      "title": "Intent",
+      "type": "string"
+    }
+  },
+  "required": [
+    "intent",
+    "idempotency_key"
+  ],
+  "title": "ReturnSimulationInput",
+  "type": "object"
+}

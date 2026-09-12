@@ -9,6 +9,8 @@ from .review_gates import HumanReviewRoutingReason
 from .review_gates import ReviewGateResult
 
 from .models import ReviewResult
+from .policy_v2 import PolicyConfirmationRequest, PolicyEvaluation
+from .fulfillment import FulfillmentProjection
 
 from enum import StrEnum
 from typing import Annotated, Literal, TypeAlias
@@ -68,6 +70,10 @@ class CaseStatus(StrEnum):
     """Backend-owned status displayed by the UI, not Agent graph state."""
 
     OBSERVING = "OBSERVING"
+    AWAITING_POLICY_CONFIRMATION = "AWAITING_POLICY_CONFIRMATION"
+    AWAITING_RETURN_CONFIRMATION = "AWAITING_RETURN_CONFIRMATION"
+    AWAITING_RETURN = "AWAITING_RETURN"
+    AWAITING_RETURN_INSPECTION = "AWAITING_RETURN_INSPECTION"
     AWAITING_CLARIFICATION = "AWAITING_CLARIFICATION"
     AWAITING_EVIDENCE = "AWAITING_EVIDENCE"
     AWAITING_HUMAN_REVIEW = "AWAITING_HUMAN_REVIEW"
@@ -177,13 +183,19 @@ class EvidenceInterruptPayload(ContractModel):
 
 class HumanReviewInterruptPayload(ContractModel):
     interrupt_kind: Literal[InterruptKind.HUMAN_REVIEW]
-    review: HumanReviewPayload
+    review: HumanReviewPayload | None = None
+
+
+class PolicyConfirmationInterruptPayload(ContractModel):
+    interrupt_kind: Literal[InterruptKind.POLICY_CONFIRMATION]
+    request: PolicyConfirmationRequest
 
 
 InterruptPayload: TypeAlias = Annotated[
     ClarificationInterruptPayload
     | EvidenceInterruptPayload
-    | HumanReviewInterruptPayload,
+    | HumanReviewInterruptPayload
+    | PolicyConfirmationInterruptPayload,
     Field(discriminator="interrupt_kind"),
 ]
 
@@ -346,6 +358,10 @@ class CaseDetail(ContractModel):
     order_ref: OpaqueRef
     user_ref: OpaqueRef
     status: CaseStatus
+    policy_schema_version: Literal["v1","v2"] = "v1"
+    policy_confirmation_request: PolicyConfirmationRequest | None = None
+    policy_evaluation: PolicyEvaluation | None = None
+    fulfillment: FulfillmentProjection | None = None
     clarification_request: ClarificationRequest | None = None
     human_review: HumanReviewPayload | None = None
     human_review_result: HumanReviewResult | None = None

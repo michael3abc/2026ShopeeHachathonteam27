@@ -4,6 +4,10 @@
       "description": "Backend-owned status displayed by the UI, not Agent graph state.",
       "enum": [
         "OBSERVING",
+        "AWAITING_POLICY_CONFIRMATION",
+        "AWAITING_RETURN_CONFIRMATION",
+        "AWAITING_RETURN",
+        "AWAITING_RETURN_INSPECTION",
         "AWAITING_CLARIFICATION",
         "AWAITING_EVIDENCE",
         "AWAITING_HUMAN_REVIEW",

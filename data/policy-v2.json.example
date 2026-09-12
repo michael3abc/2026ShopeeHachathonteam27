@@ -1,0 +1,214 @@
+[
+  {
+    "policy_family": "DEMO-TW-RETURNS",
+    "version": "v2.0",
+    "source_ref": "synthetic://team27/policy-v2",
+    "active": true,
+    "paths": [
+      {
+        "path_id": "COOLING_OFF",
+        "policy_version": "DEMO-TW-RETURNS:v2.0",
+        "clause_refs": [
+          "DEMO-TW-RETURNS:v2.0#P01"
+        ],
+        "required_claim_ids": [],
+        "system_predicates": [
+          "TRANSACTION_IN_SCOPE",
+          "SINGLE_REFUNDABLE_ITEM",
+          "NO_EXCEPTION_ESTABLISHED",
+          "WITHIN_PATH_WINDOW",
+          "PAYMENT_SCOPE_AVAILABLE",
+          "RECEIPT_CONFIRMED"
+        ],
+        "entry_reasons": [
+          "CHANGED_MIND"
+        ],
+        "return_policy": "REQUIRED",
+        "effective_from": "2026-01-01T00:00:00Z",
+        "source_refs": [
+          "synthetic://team27/policy-v2",
+          "https://help.shopee.tw/portal/4/article/77275"
+        ],
+        "interpretation_hash": "7643303309d8d1316249b5f256b50c81862043ec4a490394e4cd1eb6c4065d2e"
+      },
+      {
+        "path_id": "DAMAGED_ON_ARRIVAL",
+        "policy_version": "DEMO-TW-RETURNS:v2.0",
+        "clause_refs": [
+          "DEMO-TW-RETURNS:v2.0#P02"
+        ],
+        "required_claim_ids": [
+          "ITEM_PHYSICALLY_DAMAGED",
+          "DAMAGE_PRESENT_ON_ARRIVAL"
+        ],
+        "system_predicates": [
+          "TRANSACTION_IN_SCOPE",
+          "SINGLE_REFUNDABLE_ITEM",
+          "NO_EXCEPTION_ESTABLISHED",
+          "WITHIN_PATH_WINDOW",
+          "PAYMENT_SCOPE_AVAILABLE"
+        ],
+        "entry_reasons": [
+          "ITEM_DAMAGED"
+        ],
+        "return_policy": "MODEL_JUDGMENT",
+        "effective_from": "2026-01-01T00:00:00Z",
+        "source_refs": [
+          "synthetic://team27/policy-v2",
+          "https://help.shopee.tw/portal/4/article/77275"
+        ],
+        "interpretation_hash": "ad4b95bd7d8392ef7014ec01ab45b0f4472b6285db409a5a0951dea24f25a471"
+      },
+      {
+        "path_id": "WRONG_ITEM",
+        "policy_version": "DEMO-TW-RETURNS:v2.0",
+        "clause_refs": [
+          "DEMO-TW-RETURNS:v2.0#P03"
+        ],
+        "required_claim_ids": [
+          "WRONG_ITEM_RECEIVED"
+        ],
+        "system_predicates": [
+          "TRANSACTION_IN_SCOPE",
+          "SINGLE_REFUNDABLE_ITEM",
+          "NO_EXCEPTION_ESTABLISHED",
+          "WITHIN_PATH_WINDOW",
+          "PAYMENT_SCOPE_AVAILABLE",
+          "PURCHASE_SPEC_AVAILABLE"
+        ],
+        "entry_reasons": [
+          "WRONG_ITEM"
+        ],
+        "return_policy": "REQUIRED",
+        "effective_from": "2026-01-01T00:00:00Z",
+        "source_refs": [
+          "synthetic://team27/policy-v2",
+          "https://help.shopee.tw/portal/4/article/77275"
+        ],
+        "interpretation_hash": "f9bfef4c9cb58625dc3a7f3eec967866d620e26a14c98ab73da968e189dd9be9"
+      },
+      {
+        "path_id": "UNDELIVERED_ITEM",
+        "policy_version": "DEMO-TW-RETURNS:v2.0",
+        "clause_refs": [
+          "DEMO-TW-RETURNS:v2.0#P04"
+        ],
+        "required_claim_ids": [
+          "ITEM_CONFIRMED_UNDELIVERED"
+        ],
+        "system_predicates": [
+          "TRANSACTION_IN_SCOPE",
+          "SINGLE_REFUNDABLE_ITEM",
+          "NO_EXCEPTION_ESTABLISHED",
+          "WITHIN_PATH_WINDOW",
+          "PAYMENT_SCOPE_AVAILABLE",
+          "NONDELIVERY_CONFIRMED",
+          "NO_PENDING_SPLIT_DELIVERY"
+        ],
+        "entry_reasons": [
+          "MISSING_ITEM"
+        ],
+        "return_policy": "NOT_REQUIRED",
+        "effective_from": "2026-01-01T00:00:00Z",
+        "source_refs": [
+          "synthetic://team27/policy-v2",
+          "https://help.shopee.tw/portal/4/article/77275"
+        ],
+        "interpretation_hash": "d23beb1213dc8987575d1bce5ee1114f5c1f476274a0de8247642b1287f97ef6"
+      }
+    ],
+    "clauses": [
+      {
+        "clause_id": "DEMO-TW-RETURNS:v2.0#P01",
+        "path_id": "COOLING_OFF",
+        "effective_from": "2026-01-01T00:00:00Z",
+        "applicable_conditions": {
+          "markets": [
+            "TW"
+          ],
+          "reason_codes": [
+            "CHANGED_MIND"
+          ],
+          "categories": []
+        },
+        "required_claim_ids": [],
+        "allowed_actions": [
+          "FULL_REFUND",
+          "DECLINE"
+        ],
+        "return_policy": "REQUIRED",
+        "text": "一般猶豫期：可信交易、收受、期限與例外均符合才適用；必要拆封不直接失格。須退回驗收後退款。"
+      },
+      {
+        "clause_id": "DEMO-TW-RETURNS:v2.0#P02",
+        "path_id": "DAMAGED_ON_ARRIVAL",
+        "effective_from": "2026-01-01T00:00:00Z",
+        "applicable_conditions": {
+          "markets": [
+            "TW"
+          ],
+          "reason_codes": [
+            "ITEM_DAMAGED"
+          ],
+          "categories": []
+        },
+        "required_claim_ids": [
+          "ITEM_PHYSICALLY_DAMAGED",
+          "DAMAGE_PRESENT_ON_ARRIVAL"
+        ],
+        "allowed_actions": [
+          "FULL_REFUND",
+          "DECLINE"
+        ],
+        "return_policy": "MODEL_JUDGMENT",
+        "text": "到貨實體損壞：目前損壞與到貨時點分開判斷。UNSUPPORTED 需補件，不是反證。預設退回；免退必須有處置依據，不能只因損壞成立。"
+      },
+      {
+        "clause_id": "DEMO-TW-RETURNS:v2.0#P03",
+        "path_id": "WRONG_ITEM",
+        "effective_from": "2026-01-01T00:00:00Z",
+        "applicable_conditions": {
+          "markets": [
+            "TW"
+          ],
+          "reason_codes": [
+            "WRONG_ITEM"
+          ],
+          "categories": []
+        },
+        "required_claim_ids": [
+          "WRONG_ITEM_RECEIVED"
+        ],
+        "allowed_actions": [
+          "FULL_REFUND",
+          "DECLINE"
+        ],
+        "return_policy": "REQUIRED",
+        "text": "寄錯商品：核對不可變成交 SKU／規格及實收證據；缺可信訂單資料交專責。須退回錯寄實物，驗收後退款。"
+      },
+      {
+        "clause_id": "DEMO-TW-RETURNS:v2.0#P04",
+        "path_id": "UNDELIVERED_ITEM",
+        "effective_from": "2026-01-01T00:00:00Z",
+        "applicable_conditions": {
+          "markets": [
+            "TW"
+          ],
+          "reason_codes": [
+            "MISSING_ITEM"
+          ],
+          "categories": []
+        },
+        "required_claim_ids": [
+          "ITEM_CONFIRMED_UNDELIVERED"
+        ],
+        "allowed_actions": [
+          "FULL_REFUND",
+          "DECLINE"
+        ],
+        "return_policy": "NOT_REQUIRED",
+        "text": "獨立品項未交付：可信逐品項調查確認未交付，排除在途分批、取消、已退款及 reservation 衝突。不退回，仍須獨立授權。"
+      }
+    ]
+  }
+]

@@ -1,5 +1,16 @@
 # External Interfaces
 
+## Policy v2／User Risk 增補
+
+- PolicyProvider 可收 `selected_path_id`，只適用固定版本的 v2 context；原 reason 不因途徑切換改寫，回傳完整四路徑包。
+- Memory query 增 `policy_path_id`；v2 必須 exact Policy／registry／path，相容 P01 空 claims。v1 呼叫保留原欄位與 major 比對。
+- `POST /internal/v1/user-risk/snapshot` 使用 service token、case_ref／reason_code／as_of；as_of 必等於 v2 case_opened_at，排除 current case，重送讀取同一 immutable snapshot。
+- 買家 `POST /cases/{case_ref}/policy-confirmations`、`return-confirmations`；operator `POST /demo/cases/{case_ref}/return-simulation`；可信 producer `POST /internal/v2/return-events`。各自驗 role／owner 或 service token，版本與要求 hash 不符回 409。
+- `POST /auth/login` 使用後端配置之個人憑證，發不透明 HttpOnly cookie；瀏覽器不能提交可信 role。狀態變更要求配置的同源 Origin。
+- API APPLIED transaction 寫入 `refund_completion_outbox`，發至 `return-agent.refund-completions.v2`。Agent DB 的 correction／APPLIED join 使用原 resolution_ref、authorization_ref、resolution_hash；任意到達順序及重送只建立一個 logical job。
+
+上述為跨組邊界；履約等待不重跑 Reviewer。詳細限制與驗收見 [Policy v2](09-policy-v2-integration.md)、[User Risk](../USER_RISK_SPEC.md)。
+
 本文件是 Agent 團隊遞交給其他團隊的**介面需求**。它定義 Agent 需要什麼，不規範對方如何實作。
 
 Ownership 與 interface 是兩件事：退貨期限幾天由 Policy owner 決定（ownership），但條款必須以什麼欄位交付給 Agent 由 Agent 團隊決定（interface）。本文件只涵蓋後者。
@@ -835,3 +846,13 @@ API 與 Memory 使用相同 embedding provider；部署目標統一 Compass text
 Agent node EXIT 的 memory_retrieval 透過既有 NODE_OBSERVED envelope 傳到 Redis。API 同 transaction 投影 node_exit 與 memory_retrieval SSE，沿用 event ID/index replay 去重。
 UI 消費 status/query_summary/hits/error_code，依 seq 只保留最新整批結果，cosine 不等於 candidate confidence。
 切換與回填順序見 [Memory runbook](04-operational-memory.md#遷移與切換-runbook)，舊工作與暫停 checkpoint 先排空／協調，不做即時相容 fallback。
+
+### User Risk snapshot envelope
+
+```json
+{"method":"UserRiskProvider.prepare_snapshot","params":{"case_ref":"CASE-PV2","reason_code":"ITEM_DAMAGED","as_of":"2026-09-12T00:00:00Z"}}
+```
+
+```json
+{"result":{"snapshot_ref":"user-risk-snapshot:example","case_ref":"CASE-PV2","user_ref":"USER-NORMAL","reason_code":"ITEM_DAMAGED","as_of":"2026-09-12T00:00:00Z","created_at":"2026-09-12T00:00:01Z","account_age_days":720,"orders_90d":15,"same_reason_claims_90d":1,"refunded_orders_90d":1}}
+```

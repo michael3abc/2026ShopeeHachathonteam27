@@ -3,6 +3,13 @@
 
 # 開發進度
 
+## Policy v2＋User Risk（2026-09-12，進行中）
+
+- 獨立分支 `feat/policy-v2-user-risk`，基底 `main@c70351e`，worktree `2026ShopeeHachathonteam27-policy-v2-user-risk`；保留來源 SPEC 與現有服務。
+- Contracts：固定四路徑 evaluator、registry v2、版本／scope／findings／consent binding、Decimal risk config／snapshot／gate、履約與 APPLIED event DTO。`make contracts` 與 96 個 contracts 測試通過。
+- API／Runtime／Web 尚在整合；目前新增 9 個履約測試通過，涵蓋核准未驗收零付款、合法免退、事件 binding／倒序／重送、config 改变與原 execution key 恢復。這不代表全部 PV2-AT 驗收完成。
+- 尚需補齊真模型 A–F／risk persona、瀏覽器、隔離 PostgreSQL／Redis migration 與多 worker 恢復證據。最終結果於本節續記；不更新固定 reconstruction 快照。
+
 此文件追蹤功能里程碑、測試結果與未完成項目。
 
 | 任務 | 狀態 | 證據／未完成 |

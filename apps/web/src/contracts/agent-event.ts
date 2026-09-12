@@ -13,6 +13,8 @@ export type AgentEvent =
   | ErrorEvent;
 export type CaseRef = string;
 export type GraphNodeName =
+  | "evaluate_policy"
+  | "confirm_policy_path"
   | "parse_request"
   | "request_clarification"
   | "load_case_context"
@@ -88,6 +90,7 @@ export type RecommendedBehavior = string;
 export type RetrievalSummary = string;
 export type Categories = string[];
 export type ClaimId =
+  | "ITEM_CONFIRMED_UNDELIVERED"
   | "DELIVERY_CONFIRMED"
   | "ORDER_WITHIN_RETURN_WINDOW"
   | "SHIPMENT_SEAL_INTACT"
@@ -100,6 +103,7 @@ export type ClaimId =
   | "ITEM_UNUSED";
 export type ClaimIds = ClaimId[];
 export type Market = string;
+export type PolicyPathId = "COOLING_OFF" | "DAMAGED_ON_ARRIVAL" | "WRONG_ITEM" | "UNDELIVERED_ITEM";
 export type ReasonCode =
   "ITEM_DAMAGED" | "ITEM_NOT_AS_DESCRIBED" | "MISSING_ITEM" | "WRONG_ITEM" | "QUALITY_ISSUE" | "CHANGED_MIND";
 export type ReasonCodes = ReasonCode[];
@@ -115,7 +119,11 @@ export type Seq5 = number;
 export type Ts5 = string;
 export type Type5 = "memory_retrieval";
 export type CaseRef6 = string;
-export type Payload = ClarificationInterruptPayload | EvidenceInterruptPayload | HumanReviewInterruptPayload;
+export type Payload =
+  | ClarificationInterruptPayload
+  | EvidenceInterruptPayload
+  | HumanReviewInterruptPayload
+  | PolicyConfirmationInterruptPayload;
 export type CaseRef7 = string;
 export type InterruptKind = "CLARIFICATION";
 export type ClarificationQuestion = string;
@@ -144,7 +152,7 @@ export type PolicyRefs = [string, ...string[]];
 export type RequestId1 = string;
 export type UserMessage = string;
 export type InterruptKind2 = "HUMAN_REVIEW";
-export type Review = FullRefundHumanReviewPayload | DeclineHumanReviewPayload;
+export type Review = (FullRefundHumanReviewPayload | DeclineHumanReviewPayload) | null;
 export type Action = "FULL_REFUND";
 export type Amount1 = string;
 export type CaseRef9 = string;
@@ -157,7 +165,7 @@ export type ClaimedLineItemIds = [string, ...string[]];
 export type AlreadyRefundedAmount = string;
 export type CapturedAt = string;
 export type Currency2 = string;
-export type DeliveredAt = string;
+export type DeliveredAt = string | null;
 /**
  * @minItems 1
  */
@@ -170,6 +178,33 @@ export type SkuRef = string;
 export type Title = string;
 export type OrderRef = string;
 export type OrderSnapshotRef = string;
+export type CrossBorder = boolean | null;
+export type Cancelled = boolean | null;
+export type DeadlineAt = string;
+export type RuleSourceRef = string;
+export type RuleSourceVersion = string;
+export type Timezone = "Asia/Taipei";
+export type Deadlines = PathDeadline[];
+export type DeliveryStatus = "RECEIVED" | "CONFIRMED_UNDELIVERED" | "IN_TRANSIT" | "UNKNOWN";
+export type Exception = "NONE_CONFIRMED" | "ESTABLISHED" | "UNKNOWN" | "DISPUTED";
+export type ExceptionSourceRef = string | null;
+export type InvestigationRef = string | null;
+export type IsBundle = boolean | null;
+export type LineItemId1 = string;
+export type PendingSplitDelivery = boolean | null;
+export type ReceivedAt = string | null;
+export type Refunded = boolean | null;
+export type ReservationCaseRef = string | null;
+export type ReturnableQuantity = number | null;
+export type ShipmentRefs = string[];
+export type SourceRef = string;
+export type TransactionVersion = string | null;
+export type WaiverBasisRefs = string[];
+export type Items = ItemPolicyFacts[];
+export type Platform = "SHOPEE_TW" | "OTHER" | "UNKNOWN";
+export type ProductType = "GENERAL_PHYSICAL" | "SPECIAL" | "UNKNOWN";
+export type SellerType = "BUSINESS" | "MALL" | "PERSONAL" | "UNKNOWN";
+export type SourceRef1 = string;
 export type RefundableAmountMax = string;
 export type SnapshotVersion = number;
 /**
@@ -184,21 +219,55 @@ export type ClauseId = string;
 export type EffectiveFrom = string;
 export type EffectiveTo = string | null;
 export type PolicyVersion1 = string;
-/**
- * @minItems 1
- */
-export type RequiredClaimIds = [ClaimId, ...ClaimId[]];
+export type RequiredClaimIds = ClaimId[];
 export type ReturnPolicy = "REQUIRED" | "NOT_REQUIRED" | "MODEL_JUDGMENT";
 export type Text1 = string;
 export type Clauses = PolicyClause[];
+export type CommonConstraints = string[];
+/**
+ * @minItems 1
+ */
+export type ClauseRefs = [string, ...string[]];
+export type EffectiveFrom1 = string;
+export type EffectiveTo1 = string | null;
+/**
+ * @minItems 1
+ */
+export type EntryReasons = [ReasonCode, ...ReasonCode[]];
+export type InterpretationHash = string;
+export type PolicyVersion2 = "DEMO-TW-RETURNS:v2.0";
+export type RequiredClaimIds1 = ClaimId[];
+/**
+ * @minItems 1
+ */
+export type SourceRefs = [string, ...string[]];
+export type SystemPredicate =
+  | "TRANSACTION_IN_SCOPE"
+  | "SINGLE_REFUNDABLE_ITEM"
+  | "NO_EXCEPTION_ESTABLISHED"
+  | "WITHIN_PATH_WINDOW"
+  | "RECEIPT_CONFIRMED"
+  | "PURCHASE_SPEC_AVAILABLE"
+  | "NONDELIVERY_CONFIRMED"
+  | "NO_PENDING_SPLIT_DELIVERY"
+  | "PAYMENT_SCOPE_AVAILABLE";
+export type SystemPredicates = SystemPredicate[];
+export type Paths = PolicyPath[];
 export type PolicyBundleVersion = string;
 export type RetrievalStatus = "OK" | "AMBIGUOUS" | "NOT_FOUND";
 export type RetrievedAt = string;
+export type SchemaVersion = "v1" | "v2";
+export type PolicyBundleHistory = PolicyBundle[];
 /**
  * @minItems 1
  */
 export type ProposalHistory = [ProposedDecisionHandoff, ...ProposedDecisionHandoff[]];
 export type AgentPromptVersion = string;
+export type AssessmentFindings = ClaimFinding[] | null;
+export type Explanation = string;
+export type ClaimStatus = "SUPPORTED" | "UNSUPPORTED" | "CONTRADICTED";
+export type Subject1 = string;
+export type SupportingEvidenceRefs = string[];
 export type CaseRef10 = string;
 export type ClaimRegistryVersion2 = string;
 export type ArtifactRef = string;
@@ -206,12 +275,46 @@ export type CollectedAt = string;
 export type EvidenceId = string;
 export type ExtractedSummary = string;
 export type EvidenceSource = "USER" | "ORDER_TOOL" | "LOGISTICS_TOOL" | "SYSTEM";
-export type Subject1 = string;
+export type Subject2 = string;
 export type EvidenceBundle = EvidenceItem[];
 export type HandoffId = string;
-export type HandoffVersion = "1.0";
+export type HandoffVersion = "1.0" | "2.0";
 export type OrderSnapshotRef1 = string;
 export type PolicyBundleVersion1 = string;
+export type Accepted = boolean;
+export type ConfirmationRef = string;
+export type ConfirmedAt = string;
+export type CaseRef11 = string;
+export type OriginalScopeHash = string;
+export type RequestRef = string;
+export type ReturnRequired = boolean;
+export type ReturnRequirementHash = string;
+export type SelectionVersion = number;
+export type CaseRef12 = string;
+export type ClaimRegistryVersion3 = "claim-registry:2.0";
+export type EvaluatedAt = string;
+export type EvaluationHash = string;
+export type EvaluationRef = string;
+export type EvaluatorVersion = "policy-evaluator:2.0";
+export type EvidenceBundleHash = string;
+export type FindingsRef = string;
+/**
+ * @minItems 1
+ */
+export type ItemEvaluations = [ItemPolicyEvaluation, ...ItemPolicyEvaluation[]];
+export type ClaimRefs = ClaimId[];
+export type ClauseRefs1 = string[];
+export type LineItemId2 = string;
+export type SourceRef2 = string | null;
+export type Status3 = "PASS" | "FAIL" | "UNKNOWN";
+export type Predicates = PredicateFinding[];
+export type ReasonCodes2 = string[];
+export type Status4 = "ELIGIBLE" | "INELIGIBLE" | "NEEDS_INFORMATION" | "SPECIALIST_REQUIRED";
+export type OrderSnapshotRef2 = string;
+export type PolicyBundleVersion2 = string;
+export type ConfirmationRef1 = string | null;
+export type RequestedAction = "REFUND" | "RETURN_AND_REFUND" | "EXCHANGE" | "UNSPECIFIED";
+export type SelectionVersion1 = number;
 /**
  * @minItems 1
  */
@@ -231,12 +334,18 @@ export type PolicyRefs2 = [string, ...string[]];
 export type LineItemIds = [string, ...string[]];
 export type ReturnDecision = PolicyReturnDecision | ModelJudgmentReturnDecision;
 export type Requirement = RequiredReturnRequirement | WaivedReturnRequirement;
-export type RequiredReturnReasonCode = "RESALE_VALUE_RETAINED" | "RETURN_REQUIRED_FOR_INSPECTION";
+export type RequiredReturnReasonCode =
+  "POLICY_RETURN_REQUIRED" | "RESALE_VALUE_RETAINED" | "RETURN_REQUIRED_FOR_INSPECTION";
 export type Required = true;
 export type WaivedReturnReasonCode =
-  "ITEM_UNSALVAGEABLE" | "HYGIENE_RISK" | "RETURN_UNECONOMICAL" | "EVIDENCE_SUFFICIENT_WITHOUT_RETURN";
+  | "ITEM_NOT_RECEIVED"
+  | "ITEM_UNSALVAGEABLE"
+  | "HYGIENE_RISK"
+  | "RETURN_UNECONOMICAL"
+  | "EVIDENCE_SUFFICIENT_WITHOUT_RETURN";
 export type Required1 = false;
 export type Source = "POLICY";
+export type BasisRefs = string[];
 export type Requirement1 = RequiredReturnRequirement | WaivedReturnRequirement;
 export type Source1 = "MODEL_JUDGMENT";
 export type Action2 = "DECLINE";
@@ -261,14 +370,7 @@ export type ReviewHistory = [
   ...(ApprovedReviewResult | RevisedReviewResult)[]
 ];
 export type ReviewedAt = string;
-/**
- * @minItems 1
- */
-export type ReviewerClaimFindings = [ClaimFinding, ...ClaimFinding[]];
-export type Explanation = string;
-export type ClaimStatus = "SUPPORTED" | "UNSUPPORTED" | "CONTRADICTED";
-export type Subject2 = string;
-export type SupportingEvidenceRefs = string[];
+export type ReviewerClaimFindings = ClaimFinding[];
 export type ReviewerPromptVersion = string;
 /**
  * @maxItems 0
@@ -276,10 +378,7 @@ export type ReviewerPromptVersion = string;
 export type RevisionReasons = [];
 export type Verdict = "APPROVE";
 export type ReviewedAt1 = string;
-/**
- * @minItems 1
- */
-export type ReviewerClaimFindings1 = [ClaimFinding, ...ClaimFinding[]];
+export type ReviewerClaimFindings1 = ClaimFinding[];
 export type ReviewerPromptVersion1 = string;
 /**
  * @minItems 1
@@ -300,14 +399,39 @@ export type PolicyRefs4 = string[];
 export type RequiredChange = string;
 export type Subject3 = string;
 export type Verdict1 = "REVISE";
-export type CaseRef11 = string;
+export type ReviewerEvaluations = PolicyEvaluation[];
+export type CaseRef13 = string;
 export type CreatedAt = string;
 export type EventId = string;
 export type HandoffBeforeRef = string;
 export type ReviewResult = ApprovedReviewResult | RevisedReviewResult;
 export type RevisionRound1 = number;
 export type RevisionEvents = DecisionRevisionEvent[];
-export type RoutingReason = "REVISION_BUDGET_EXCEEDED" | "HIGH_VALUE_ITEM" | "CURRENCY_THRESHOLD_UNCONFIGURED";
+export type RoutingReason =
+  | "REVISION_BUDGET_EXCEEDED"
+  | "HIGH_VALUE_ITEM"
+  | "CURRENCY_THRESHOLD_UNCONFIGURED"
+  | "HIGH_USER_RISK"
+  | "USER_RISK_UNAVAILABLE";
+export type ConfigHash1 = string;
+export type ConfigVersion1 = string;
+export type MatchedRules = string[];
+export type Reason1 = ("HIGH_USER_RISK" | "USER_RISK_UNAVAILABLE") | null;
+export type UserRiskLevel = "LOW" | "MEDIUM" | "HIGH" | "UNKNOWN";
+export type Score = number;
+export type SnapshotRef = string | null;
+export type Status5 = "PASS" | "HUMAN_REQUIRED" | "NOT_APPLICABLE";
+export type RiskTag = "REPEATED_SAME_REASON_CLAIMS" | "HIGH_REFUND_RATE" | "NEW_ACCOUNT_REPEATED_CLAIMS";
+export type Tags = RiskTag[];
+export type AccountAgeDays = number;
+export type AsOf = string;
+export type CaseRef14 = string;
+export type CreatedAt1 = string;
+export type Orders90D = number;
+export type RefundedOrders90D = number;
+export type SameReasonClaims90D = number;
+export type SnapshotRef1 = string;
+export type UserRef = string;
 export type ArtifactRef1 = string;
 export type Caption = string;
 export type EvidenceId1 = string;
@@ -317,17 +441,22 @@ export type HandoffId1 = string;
 export type MemoriesUsed = string[];
 export type ClauseId1 = string;
 export type Excerpt = string;
-export type PolicyVersion2 = string;
+export type PolicyVersion3 = string;
 export type Relevance = number | null;
 export type Title1 = string | null;
 export type PolicyHits = PolicyDisplayRef[];
 export type RationaleSummary1 = string;
 export type ReturnDecision1 = PolicyReturnDecision | ModelJudgmentReturnDecision;
 export type ReviewResult1 = ApprovedReviewResult | RevisedReviewResult;
-export type RoutingReason1 = "REVISION_BUDGET_EXCEEDED" | "HIGH_VALUE_ITEM" | "CURRENCY_THRESHOLD_UNCONFIGURED";
+export type RoutingReason1 =
+  | "REVISION_BUDGET_EXCEEDED"
+  | "HIGH_VALUE_ITEM"
+  | "CURRENCY_THRESHOLD_UNCONFIGURED"
+  | "HIGH_USER_RISK"
+  | "USER_RISK_UNAVAILABLE";
 export type Action3 = "DECLINE";
 export type Amount4 = string;
-export type CaseRef12 = string;
+export type CaseRef15 = string;
 export type Currency5 = string;
 export type EvidenceRefs4 = EvidenceDisplayRef[];
 export type HandoffId2 = string;
@@ -335,33 +464,43 @@ export type MemoriesUsed1 = string[];
 export type PolicyHits1 = PolicyDisplayRef[];
 export type RationaleSummary2 = string;
 export type ReviewResult2 = ApprovedReviewResult | RevisedReviewResult;
-export type RoutingReason2 = "REVISION_BUDGET_EXCEEDED" | "HIGH_VALUE_ITEM" | "CURRENCY_THRESHOLD_UNCONFIGURED";
+export type RoutingReason2 =
+  | "REVISION_BUDGET_EXCEEDED"
+  | "HIGH_VALUE_ITEM"
+  | "CURRENCY_THRESHOLD_UNCONFIGURED"
+  | "HIGH_USER_RISK"
+  | "USER_RISK_UNAVAILABLE";
+export type InterruptKind3 = "POLICY_CONFIRMATION";
 export type Seq6 = number;
 export type Ts6 = string;
 export type Type6 = "interrupt";
-export type CaseRef13 = string;
+export type CaseRef16 = string;
 /**
  * Backend-owned status displayed by the UI, not Agent graph state.
  */
 export type CaseStatus =
   | "OBSERVING"
+  | "AWAITING_POLICY_CONFIRMATION"
+  | "AWAITING_RETURN_CONFIRMATION"
+  | "AWAITING_RETURN"
+  | "AWAITING_RETURN_INSPECTION"
   | "AWAITING_CLARIFICATION"
   | "AWAITING_EVIDENCE"
   | "AWAITING_HUMAN_REVIEW"
   | "EXECUTING"
   | "RESOLVED"
   | "ESCALATED";
-export type Reason1 = string;
+export type Reason2 = string;
 export type Seq7 = number;
 export type Ts7 = string;
 export type Type7 = "state_change";
-export type CaseRef14 = string;
-export type Status3 = "RESOLVED" | "ESCALATED";
+export type CaseRef17 = string;
+export type Status6 = "RESOLVED" | "ESCALATED";
 export type TerminalRef = string;
 export type Seq8 = number;
 export type Ts8 = string;
 export type Type8 = "done";
-export type CaseRef15 = string;
+export type CaseRef18 = string;
 export type Code = string;
 export type Message1 = string;
 export type Retryable = boolean;
@@ -475,6 +614,7 @@ export interface MemoryScope {
   categories?: Categories;
   claim_ids?: ClaimIds;
   market: Market;
+  policy_path_id?: PolicyPathId | null;
   reason_codes?: ReasonCodes;
 }
 export interface InterruptEvent {
@@ -517,7 +657,7 @@ export interface MissingClaim {
 }
 export interface HumanReviewInterruptPayload {
   interrupt_kind: InterruptKind2;
-  review: Review;
+  review?: Review;
 }
 export interface FullRefundHumanReviewPayload {
   action: Action;
@@ -543,11 +683,15 @@ export interface HumanReviewDossier {
   claimed_line_item_ids: ClaimedLineItemIds;
   order_snapshot: OrderSnapshot;
   policy_bundle: PolicyBundle;
+  policy_bundle_history?: PolicyBundleHistory;
   proposal_history: ProposalHistory;
   review_gate?: ReviewGateResult | null;
   review_history: ReviewHistory;
+  reviewer_evaluations?: ReviewerEvaluations;
   revision_events?: RevisionEvents;
   routing_reason?: RoutingReason;
+  user_risk_gate?: UserRiskGateResult | null;
+  user_risk_snapshot?: UserRiskSnapshot | null;
 }
 export interface OrderSnapshot {
   already_refunded_amount: AlreadyRefundedAmount;
@@ -557,6 +701,7 @@ export interface OrderSnapshot {
   line_items: LineItems;
   order_ref: OrderRef;
   order_snapshot_ref: OrderSnapshotRef;
+  policy_facts?: OrderPolicyFacts | null;
   refundable_amount_max: RefundableAmountMax;
   snapshot_version: SnapshotVersion;
 }
@@ -568,11 +713,53 @@ export interface OrderLineItem {
   sku_ref: SkuRef;
   title: Title;
 }
+export interface OrderPolicyFacts {
+  cross_border?: CrossBorder;
+  items: Items;
+  platform?: Platform;
+  product_type?: ProductType;
+  seller_type?: SellerType;
+  source_ref: SourceRef1;
+}
+export interface ItemPolicyFacts {
+  cancelled?: Cancelled;
+  deadlines?: Deadlines;
+  delivery_status?: DeliveryStatus;
+  exception?: Exception;
+  exception_source_ref?: ExceptionSourceRef;
+  investigation_ref?: InvestigationRef;
+  is_bundle?: IsBundle;
+  line_item_id: LineItemId1;
+  pending_split_delivery?: PendingSplitDelivery;
+  purchased_spec?: PurchasedSpec;
+  received_at?: ReceivedAt;
+  refunded?: Refunded;
+  reservation_case_ref?: ReservationCaseRef;
+  returnable_quantity?: ReturnableQuantity;
+  shipment_refs?: ShipmentRefs;
+  source_ref: SourceRef;
+  transaction_version?: TransactionVersion;
+  waiver_basis_refs?: WaiverBasisRefs;
+}
+export interface PathDeadline {
+  deadline_at: DeadlineAt;
+  policy_path_id: PolicyPathId;
+  rule_source_ref: RuleSourceRef;
+  rule_source_version: RuleSourceVersion;
+  timezone?: Timezone;
+}
+export interface PurchasedSpec {
+  [k: string]: string;
+}
 export interface PolicyBundle {
   clauses?: Clauses;
+  common_constraints?: CommonConstraints;
+  paths?: Paths;
   policy_bundle_version: PolicyBundleVersion;
   retrieval_status: RetrievalStatus;
   retrieved_at: RetrievedAt;
+  schema_version?: SchemaVersion;
+  selected_path_id?: PolicyPathId | null;
 }
 export interface PolicyClause {
   allowed_actions: AllowedActions;
@@ -580,6 +767,7 @@ export interface PolicyClause {
   clause_id: ClauseId;
   effective_from: EffectiveFrom;
   effective_to?: EffectiveTo;
+  path_id?: PolicyPathId | null;
   policy_version: PolicyVersion1;
   required_claim_ids: RequiredClaimIds;
   return_policy: ReturnPolicy;
@@ -590,8 +778,22 @@ export interface ApplicableConditions {
   markets?: Markets;
   reason_codes?: ReasonCodes1;
 }
+export interface PolicyPath {
+  clause_refs: ClauseRefs;
+  effective_from: EffectiveFrom1;
+  effective_to?: EffectiveTo1;
+  entry_reasons: EntryReasons;
+  interpretation_hash: InterpretationHash;
+  path_id: PolicyPathId;
+  policy_version?: PolicyVersion2;
+  required_claim_ids: RequiredClaimIds1;
+  return_policy: ReturnPolicy;
+  source_refs: SourceRefs;
+  system_predicates: SystemPredicates;
+}
 export interface ProposedDecisionHandoff {
   agent_prompt_version: AgentPromptVersion;
+  assessment_findings?: AssessmentFindings;
   case_ref: CaseRef10;
   claim_registry_version: ClaimRegistryVersion2;
   evidence_bundle?: EvidenceBundle;
@@ -599,10 +801,20 @@ export interface ProposedDecisionHandoff {
   handoff_version: HandoffVersion;
   order_snapshot_ref: OrderSnapshotRef1;
   policy_bundle_version: PolicyBundleVersion1;
+  policy_confirmation?: PolicyConfirmation | null;
+  policy_evaluation?: PolicyEvaluation | null;
   policy_refs: PolicyRefs1;
+  policy_selection?: PolicySelection | null;
   proposed_decision: ProposedDecision;
   rationale_summary: RationaleSummary;
   revision_round: RevisionRound;
+}
+export interface ClaimFinding {
+  claim_id: ClaimId;
+  explanation: Explanation;
+  status: ClaimStatus;
+  subject: Subject1;
+  supporting_evidence_refs?: SupportingEvidenceRefs;
 }
 export interface EvidenceItem {
   artifact_ref: ArtifactRef;
@@ -610,8 +822,58 @@ export interface EvidenceItem {
   evidence_id: EvidenceId;
   extracted_summary: ExtractedSummary;
   source: EvidenceSource;
-  subject: Subject1;
+  subject: Subject2;
   type: EvidenceType;
+}
+export interface PolicyConfirmation {
+  accepted: Accepted;
+  confirmation_ref: ConfirmationRef;
+  confirmed_at: ConfirmedAt;
+  request: PolicyConfirmationRequest;
+}
+export interface PolicyConfirmationRequest {
+  case_ref: CaseRef11;
+  original_path_id: PolicyPathId;
+  original_scope_hash: OriginalScopeHash;
+  path_id: PolicyPathId;
+  request_ref: RequestRef;
+  return_required: ReturnRequired;
+  return_requirement_hash: ReturnRequirementHash;
+  selection_version: SelectionVersion;
+}
+export interface PolicyEvaluation {
+  case_ref: CaseRef12;
+  claim_registry_version?: ClaimRegistryVersion3;
+  evaluated_at: EvaluatedAt;
+  evaluation_hash: EvaluationHash;
+  evaluation_ref: EvaluationRef;
+  evaluator_version?: EvaluatorVersion;
+  evidence_bundle_hash: EvidenceBundleHash;
+  findings_ref: FindingsRef;
+  item_evaluations: ItemEvaluations;
+  order_snapshot_ref: OrderSnapshotRef2;
+  policy_bundle_version: PolicyBundleVersion2;
+  selection: PolicySelection;
+}
+export interface ItemPolicyEvaluation {
+  claim_refs: ClaimRefs;
+  clause_refs: ClauseRefs1;
+  line_item_id: LineItemId2;
+  path_id: PolicyPathId;
+  predicates: Predicates;
+  reason_codes: ReasonCodes2;
+  status: Status4;
+}
+export interface PredicateFinding {
+  predicate: SystemPredicate;
+  source_ref: SourceRef2;
+  status: Status3;
+}
+export interface PolicySelection {
+  confirmation_ref?: ConfirmationRef1;
+  original_requested_action: RequestedAction;
+  selected_path_id: PolicyPathId;
+  selection_version: SelectionVersion1;
 }
 /**
  * Graph-completed refund decision included in a handoff.
@@ -642,6 +904,7 @@ export interface WaivedReturnRequirement {
   required: Required1;
 }
 export interface ModelJudgmentReturnDecision {
+  basis_refs?: BasisRefs;
   requirement: Requirement1;
   source: Source1;
 }
@@ -664,13 +927,6 @@ export interface ApprovedReviewResult {
   revision_reasons?: RevisionReasons;
   verdict: Verdict;
 }
-export interface ClaimFinding {
-  claim_id: ClaimId;
-  explanation: Explanation;
-  status: ClaimStatus;
-  subject: Subject2;
-  supporting_evidence_refs?: SupportingEvidenceRefs;
-}
 export interface RevisedReviewResult {
   reviewed_at: ReviewedAt1;
   reviewer_claim_findings: ReviewerClaimFindings1;
@@ -687,12 +943,35 @@ export interface RevisionReason {
   subject: Subject3;
 }
 export interface DecisionRevisionEvent {
-  case_ref: CaseRef11;
+  case_ref: CaseRef13;
   created_at: CreatedAt;
   event_id: EventId;
   handoff_before_ref: HandoffBeforeRef;
   review_result: ReviewResult;
   revision_round: RevisionRound1;
+}
+export interface UserRiskGateResult {
+  config_hash: ConfigHash1;
+  config_version: ConfigVersion1;
+  matched_rules: MatchedRules;
+  reason: Reason1;
+  risk_level: UserRiskLevel;
+  score: Score;
+  snapshot_ref: SnapshotRef;
+  status: Status5;
+  tags: Tags;
+}
+export interface UserRiskSnapshot {
+  account_age_days: AccountAgeDays;
+  as_of: AsOf;
+  case_ref: CaseRef14;
+  created_at: CreatedAt1;
+  orders_90d: Orders90D;
+  reason_code: ReasonCode;
+  refunded_orders_90d: RefundedOrders90D;
+  same_reason_claims_90d: SameReasonClaims90D;
+  snapshot_ref: SnapshotRef1;
+  user_ref: UserRef;
 }
 /**
  * Reference-only evidence view; signed URLs stay in the Backend/UI layer.
@@ -707,14 +986,14 @@ export interface EvidenceDisplayRef {
 export interface PolicyDisplayRef {
   clause_id: ClauseId1;
   excerpt: Excerpt;
-  policy_version: PolicyVersion2;
+  policy_version: PolicyVersion3;
   relevance?: Relevance;
   title?: Title1;
 }
 export interface DeclineHumanReviewPayload {
   action: Action3;
   amount: Amount4;
-  case_ref: CaseRef12;
+  case_ref: CaseRef15;
   currency: Currency5;
   dossier?: HumanReviewDossier | null;
   evidence_refs?: EvidenceRefs4;
@@ -726,8 +1005,12 @@ export interface DeclineHumanReviewPayload {
   review_result: ReviewResult2;
   routing_reason?: RoutingReason2;
 }
+export interface PolicyConfirmationInterruptPayload {
+  interrupt_kind: InterruptKind3;
+  request: PolicyConfirmationRequest;
+}
 export interface StateChangeEvent {
-  case_ref: CaseRef13;
+  case_ref: CaseRef16;
   node: GraphNodeName;
   payload: StateChangePayload;
   seq: Seq7;
@@ -736,11 +1019,11 @@ export interface StateChangeEvent {
 }
 export interface StateChangePayload {
   from_status?: CaseStatus | null;
-  reason: Reason1;
+  reason: Reason2;
   to_status: CaseStatus;
 }
 export interface DoneEvent {
-  case_ref: CaseRef14;
+  case_ref: CaseRef17;
   node: GraphNodeName;
   payload: DonePayload;
   seq: Seq8;
@@ -748,11 +1031,11 @@ export interface DoneEvent {
   type: Type8;
 }
 export interface DonePayload {
-  status: Status3;
+  status: Status6;
   terminal_ref: TerminalRef;
 }
 export interface ErrorEvent {
-  case_ref: CaseRef15;
+  case_ref: CaseRef18;
   node: GraphNodeName;
   payload: ErrorPayload;
   seq: Seq9;

@@ -59,7 +59,102 @@ async function routeActivities(page: Page, activities: object[] = []) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await page.route("**/backend/auth/config", route => route.fulfill({ json: { enabled: false } }));
   await routeActivities(page);
+});
+
+async function signedRole(page: Page, role: "buyer" | "reviewer" | "operator") {
+  await page.route("**/backend/auth/config", route => route.fulfill({ json: { enabled: true } }));
+  await page.route("**/backend/auth/session", route => route.fulfill({ json: { user_ref: `USER-${role}`, role } }));
+  await page.route("**/backend/cases/CASE-BROWSER/events", route =>
+    route.fulfill({ contentType: "text/event-stream", body: ": heartbeat\n\n" }));
+}
+
+test("v2 buyer confirms a persisted path without review or logistics controls", async ({ page }) => {
+  await signedRole(page, "buyer");
+  await routeActivities(page, [
+    { schema_version: "1.0", event_id: "POLICY-1", case_ref: humanCase.case_ref, run_id: "RUN-1", scope: "CASE",
+      node: "evaluate_policy", operation_id: "POLICY-OP-1", attempt_id: "POLICY-A1", occurred_at: humanCase.created_at, seq: 1,
+      payload: { type: "node_summary", facts: { next_node: "confirm_policy_path" } } },
+    { schema_version: "1.0", event_id: "POLICY-2", case_ref: humanCase.case_ref, run_id: "RUN-1", scope: "CASE",
+      node: "confirm_policy_path", operation_id: "POLICY-OP-2", attempt_id: "POLICY-C1", occurred_at: humanCase.created_at, seq: 2,
+      payload: { type: "node", name: "confirm_policy_path", phase: "PAUSED" } },
+  ]);
+  let detail: CaseDetail = { ...humanCase, user_ref: "USER-buyer", human_review: null,
+    policy_schema_version: "v2", status: "AWAITING_POLICY_CONFIRMATION",
+    policy_confirmation_request: { request_ref: "CONFIRM-1", case_ref: humanCase.case_ref,
+      original_scope_hash: "a".repeat(64), original_path_id: "COOLING_OFF", path_id: "COOLING_OFF",
+      selection_version: 2, return_required: true, return_requirement_hash: "b".repeat(64) } };
+  await page.route("**/backend/cases/CASE-BROWSER", route => route.fulfill({ json: detail }));
+  await page.route("**/backend/cases/CASE-BROWSER/policy-confirmations", route => {
+    const payload = route.request().postDataJSON();
+    expect(payload).toMatchObject({ request_ref: "CONFIRM-1", selection_version: 2, accept: true });
+    expect(payload.idempotency_key).toMatch(/^[a-f0-9-]{36}$/);
+    detail = { ...detail, status: "AWAITING_RETURN", policy_confirmation_request: null };
+    return route.fulfill({ status: 202, json: {} });
+  });
+  await page.goto("/cases/CASE-BROWSER");
+  const stage = page.getByRole("region", { name: "Agent 決策圖" });
+  const skip = stage.getByRole("button", { name: /跳到最新/ });
+  if (await skip.isVisible()) await skip.click();
+  await expect(stage.locator('[data-node="confirm_policy_path"]')).toHaveAttribute("data-state", "waiting");
+  await expect(stage.locator('[data-edge="evaluate_policy>confirm_policy_path"]')).toHaveAttribute("data-traversed", "true");
+  await expect(page.getByRole("tab", { name: "人工審核" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /模擬/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "同意此途徑" }).click();
+  await expect(page.getByRole("button", { name: "同意此途徑" })).toHaveCount(0);
+  await expect(page.getByLabel("退回與退款進度")).toContainText("等待商品退回");
+});
+
+test("v2 reviewer sees persisted risk dossier and submits the authenticated identity", async ({ page }) => {
+  await signedRole(page, "reviewer");
+  const detail = structuredClone(humanCase);
+  detail.policy_schema_version = "v2";
+  detail.human_review!.routing_reason = "HIGH_USER_RISK";
+  detail.human_review!.review_result.verdict = "APPROVE";
+  detail.human_review!.review_result.revision_reasons = [];
+  const dossier = detail.human_review!.dossier!;
+  dossier.user_risk_gate = { status: "HUMAN_REQUIRED", risk_level: "HIGH", score: 65,
+    config_version: "user-risk:1.0", config_hash: "a".repeat(64), reason: "HIGH_USER_RISK",
+    tags: ["REPEATED_SAME_REASON_CLAIMS", "HIGH_REFUND_RATE"],
+    matched_rules: ["REPEATED_SAME_REASON_CLAIMS", "HIGH_REFUND_RATE"], snapshot_ref: "RISK-PERSISTED-1" };
+  dossier.user_risk_snapshot = { snapshot_ref: "RISK-PERSISTED-1", case_ref: detail.case_ref,
+    user_ref: detail.user_ref, reason_code: "ITEM_DAMAGED", as_of: detail.created_at,
+    created_at: detail.created_at, account_age_days: 90, orders_90d: 8, same_reason_claims_90d: 3, refunded_orders_90d: 4 };
+  await page.route("**/backend/cases/CASE-BROWSER", route => route.fulfill({ json: detail }));
+  await page.route("**/backend/cases/CASE-BROWSER/review", route => {
+    expect(route.request().postDataJSON()).toEqual({ decision: "APPROVE", reviewer_id: "USER-reviewer", review_note: "已核對持久化證據", handoff_id: "HANDOFF-BROWSER" });
+    detail.status = "OBSERVING";
+    return route.fulfill({ json: detail });
+  });
+  await page.goto("/cases/CASE-BROWSER");
+  await expect(page.getByLabel("使用者風險授權")).toContainText("HIGH");
+  await expect(page.getByLabel("使用者風險授權")).toContainText("RISK-PERSISTED-1");
+  await expect(page.getByText("Reviewer 已核准 · 等待人工授權", { exact: true })).toBeVisible();
+  await expect(page.getByText("修正次數已用盡 · Reviewer 尚未核准", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "採用原建議", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: /模擬/ })).toHaveCount(0);
+  await page.getByLabel("人工審核理由").fill("已核對持久化證據");
+  await page.getByRole("button", { name: "採用原建議", exact: true }).click();
+});
+
+test("v2 operator advances inspection while approval still shows unpaid", async ({ page }) => {
+  await signedRole(page, "operator");
+  const detail = { ...humanCase, human_review: null, policy_schema_version: "v2", status: "AWAITING_RETURN",
+    fulfillment: { authorization_ref: "AUTH-1", state: "AWAITING_RETURN", selected_path_id: "COOLING_OFF",
+      return_required: true, return_requirement_hash: "b".repeat(64), payment_status: null } };
+  await page.route("**/backend/cases/CASE-BROWSER", route => route.fulfill({ json: detail }));
+  await page.route("**/backend/demo/cases/CASE-BROWSER/return-simulation", route => {
+    expect(route.request().postDataJSON()).toMatchObject({ intent: "ARRIVED" });
+    detail.status = detail.fulfillment.state = "AWAITING_RETURN_INSPECTION";
+    return route.fulfill({ json: detail.fulfillment });
+  });
+  await page.goto("/cases/CASE-BROWSER");
+  await expect(page.getByRole("tab", { name: "人工審核" })).toHaveCount(0);
+  await expect(page.getByLabel("退回與退款進度")).toContainText("付款：尚未完成");
+  await page.getByRole("button", { name: "模擬退回送達" }).click();
+  await expect(page.getByRole("button", { name: "模擬驗收通過" })).toBeVisible();
+  await expect(page.getByLabel("退回與退款進度")).toContainText("付款：尚未完成");
 });
 
 for (const decision of ["REJECT"] as const) {

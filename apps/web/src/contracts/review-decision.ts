@@ -8,15 +8,37 @@ export type ReviewNote = string;
 export type ReviewerId = string;
 export type CorrectedDecision = CorrectedFullRefundDecision | CorrectedDeclineDecision;
 export type Action = "FULL_REFUND";
+export type PolicyFindings = ClaimFinding[] | null;
+export type ClaimId =
+  | "ITEM_CONFIRMED_UNDELIVERED"
+  | "DELIVERY_CONFIRMED"
+  | "ORDER_WITHIN_RETURN_WINDOW"
+  | "SHIPMENT_SEAL_INTACT"
+  | "ITEM_PHYSICALLY_DAMAGED"
+  | "DAMAGE_PRESENT_ON_ARRIVAL"
+  | "ITEM_FUNCTIONALLY_IMPAIRED"
+  | "ITEM_DIFFERS_FROM_LISTING"
+  | "WRONG_ITEM_RECEIVED"
+  | "ITEM_NOT_IN_SHIPMENT"
+  | "ITEM_UNUSED";
+export type Explanation = string;
+export type ClaimStatus = "SUPPORTED" | "UNSUPPORTED" | "CONTRADICTED";
+export type Subject = string;
+export type SupportingEvidenceRefs = string[];
 /**
  * @minItems 1
  */
 export type LineItemIds = [string, ...string[]];
 export type Requirement = RequiredReturnRequirement | WaivedReturnRequirement;
-export type RequiredReturnReasonCode = "RESALE_VALUE_RETAINED" | "RETURN_REQUIRED_FOR_INSPECTION";
+export type RequiredReturnReasonCode =
+  "POLICY_RETURN_REQUIRED" | "RESALE_VALUE_RETAINED" | "RETURN_REQUIRED_FOR_INSPECTION";
 export type Required = true;
 export type WaivedReturnReasonCode =
-  "ITEM_UNSALVAGEABLE" | "HYGIENE_RISK" | "RETURN_UNECONOMICAL" | "EVIDENCE_SUFFICIENT_WITHOUT_RETURN";
+  | "ITEM_NOT_RECEIVED"
+  | "ITEM_UNSALVAGEABLE"
+  | "HYGIENE_RISK"
+  | "RETURN_UNECONOMICAL"
+  | "EVIDENCE_SUFFICIENT_WITHOUT_RETURN";
 export type Required1 = false;
 export type Source = "HUMAN_REVIEW";
 export type Action1 = "DECLINE";
@@ -55,8 +77,16 @@ export interface EditReviewDecision {
 }
 export interface CorrectedFullRefundDecision {
   action: Action;
+  policy_findings?: PolicyFindings;
   refund_scope: NonEmptyRefundScope;
   return_decision: HumanReviewReturnDecision;
+}
+export interface ClaimFinding {
+  claim_id: ClaimId;
+  explanation: Explanation;
+  status: ClaimStatus;
+  subject: Subject;
+  supporting_evidence_refs?: SupportingEvidenceRefs;
 }
 export interface NonEmptyRefundScope {
   line_item_ids: LineItemIds;

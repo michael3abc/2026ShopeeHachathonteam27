@@ -35,7 +35,7 @@ export function useCaseActivities(caseRef: string) {
         cursor = page.next_cursor;
         if (!page.has_more) break;
       }
-      source = new EventSource(caseActivitiesStreamUrl(caseRef, cursor));
+      source = new EventSource(caseActivitiesStreamUrl(caseRef, cursor), {withCredentials:true});
       source.onopen = () => setUnavailable(false);
       source.onerror = () => {
         if (!disposed) setUnavailable(true);

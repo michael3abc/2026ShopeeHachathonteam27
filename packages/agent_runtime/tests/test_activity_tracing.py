@@ -78,6 +78,11 @@ async def test_model_start_is_observable_while_call_is_blocked():
     }
     assert completed == summaries
     assert all(e.run_id == "COMMAND-1" for e in events)
+    intent_summaries = [e for e in events if isinstance(e.payload, NodeSummary) and e.payload.intent_display]
+    assert intent_summaries
+    assert all(e.node in {"parse_request", "load_case_context"} for e in intent_summaries)
+    assert intent_summaries[0].payload.intent_display.requested_action
+    assert sum(call.task == ModelTask.INTAKE for call in model.calls) == 1
     assert "artifact://" not in str([e.model_dump_json() for e in events])
     assert any(e.payload.type == "tool" for e in events)
 

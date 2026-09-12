@@ -28,6 +28,7 @@ from return_agent_contracts.models import (
     ApplyRefundRequest,
     CaseContextLoadResult,
     MemoryCandidate,
+    OrderSnapshot,
     RefundApplicationResult,
 )
 from sqlalchemy.orm import Session, sessionmaker
@@ -148,6 +149,16 @@ class FixtureCaseContextProvider(CaseContextProvider):
                 }
             ),
         )
+
+    def load_order_snapshot(self, order_ref: str) -> OrderSnapshot:
+        """Read the trusted fixture before a case exists, for upload subjects."""
+        if self._templates is not None:
+            template = self._templates.get(order_ref)
+        else:
+            template = self._template if order_ref.startswith(self.DEMO_ORDER_PREFIX) else None
+        if template is None:
+            raise LookupError("Unknown order")
+        return template.order_snapshot.model_copy(update={"order_ref": order_ref})
 
 
 class DeterministicDemoRefundApplicationProvider(RefundApplicationProvider):

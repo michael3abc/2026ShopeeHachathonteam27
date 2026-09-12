@@ -1,0 +1,57 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "artifact_ref": {
+      "title": "Artifact Ref",
+      "type": "string"
+    },
+    "attachment_id": {
+      "title": "Attachment Id",
+      "type": "string"
+    },
+    "content_sha256": {
+      "title": "Content Sha256",
+      "type": "string"
+    },
+    "evidence_id": {
+      "title": "Evidence Id",
+      "type": "string"
+    },
+    "height": {
+      "exclusiveMinimum": 0,
+      "title": "Height",
+      "type": "integer"
+    },
+    "media_type": {
+      "title": "Media Type",
+      "type": "string"
+    },
+    "size_bytes": {
+      "exclusiveMinimum": 0,
+      "title": "Size Bytes",
+      "type": "integer"
+    },
+    "subject": {
+      "title": "Subject",
+      "type": "string"
+    },
+    "width": {
+      "exclusiveMinimum": 0,
+      "title": "Width",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "attachment_id",
+    "artifact_ref",
+    "evidence_id",
+    "subject",
+    "media_type",
+    "width",
+    "height",
+    "size_bytes",
+    "content_sha256"
+  ],
+  "title": "AttachmentView",
+  "type": "object"
+}

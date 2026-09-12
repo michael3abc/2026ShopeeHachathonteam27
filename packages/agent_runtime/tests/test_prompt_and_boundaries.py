@@ -176,7 +176,7 @@ def test_graph_overwrites_reviewer_owned_metadata():
     ).values
     review_result = state["review_history"][0]
     assert state["evidence_assessment"].claim_registry_version == "claim-registry:1.0"
-    assert review_result.reviewer_prompt_version == "reviewer:3.0"
+    assert review_result.reviewer_prompt_version == "reviewer:3.1"
     assert review_result.reviewed_at.isoformat() == "2026-09-01T10:00:00+00:00"
 
 

@@ -62,6 +62,10 @@ export type Model = string | null;
 export type Name = string;
 export type Phase = "STARTED" | "COMPLETED" | "PAUSED" | "FAILED";
 export type Type = "node" | "model" | "tool";
+export type ClaimedLineItemIds = string[];
+export type IntakeCompleteness = "COMPLETE" | "INCOMPLETE";
+export type MissingFields = ("ORDER" | "REASON" | "ACTION" | "ITEMS" | "OTHER")[];
+export type RequestedAction = "REFUND" | "RETURN_AND_REFUND" | "EXCHANGE" | "UNSPECIFIED";
 export type MemoryRetrievalObservation = MemoryRetrievalObservation1;
 export type ErrorCode1 = ("SUMMARY_UNAVAILABLE" | "RETRIEVAL_UNAVAILABLE") | null;
 /**
@@ -173,9 +177,20 @@ export interface ActivityInputs {
 }
 export interface NodeSummary {
   facts: ActivityFacts;
+  intent_display?: IntentDisplay | null;
   memory_retrieval?: MemoryRetrievalObservation | null;
   review_gate?: ReviewGateResult | null;
   type?: Type1;
+}
+/**
+ * Safe snapshot of a validated intake, never model prose.
+ */
+export interface IntentDisplay {
+  claimed_line_item_ids?: ClaimedLineItemIds;
+  completeness: IntakeCompleteness;
+  missing_fields?: MissingFields;
+  reason_code?: ReasonCode | null;
+  requested_action: RequestedAction;
 }
 export interface MemoryRetrievalObservation1 {
   error_code?: ErrorCode1;

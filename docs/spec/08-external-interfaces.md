@@ -913,7 +913,8 @@ NORMAL／WATCH 自動授權與 HIGH／UNKNOWN 人工授權均不能跳過退回�
 API 在確認 `APPLIED` 的同一成功 transaction 保存 refund ledger、
 `REFUND_SUCCEEDED` 與 completion outbox。`case_ref + event_type` 去重並驗 immutable
 facts；等待退回、人工核准與付款結果未知都不寫成功事件。API migration 單鏈
-`0013 → 0014_user_risk_authorization → 0015_policy_v2_fulfillment`，User Risk 三張
+`0013_activity_tracing → 0014_memory_learning_sources → 0015_user_risk_authorization →
+0016_policy_v2_fulfillment → 0017_image_attachments`，User Risk 三張
 新表與 legacy risk_evaluations 分離；歷史非空時 online／offline downgrade 均阻擋。
 
 ### Demo session 與角色投影
@@ -945,3 +946,17 @@ risk routing reason 與 human notes。SSE id／cursor／replay／heartbeat 語�
 ```json
 {"result":{"snapshot_ref":"user-risk-snapshot:example","case_ref":"CASE-PV2","user_ref":"USER-NORMAL","reason_code":"ITEM_DAMAGED","as_of":"2026-09-12T00:00:00Z","created_at":"2026-09-12T00:00:01Z","account_age_days":720,"orders_90d":15,"same_reason_claims_90d":1,"refunded_orders_90d":1}}
 ```
+
+## 圖片上傳介面
+
+- `GET /attachments/options?order_ref=…`：取得可信訂單品項、ORDER 外包裝選項及上傳限制。
+- `POST /attachments`：multipart file、order_ref、subject、可選 case_ref；201 回傳 AttachmentView。
+- `GET /attachments/{attachment_id}/content`：固定使用者可存取的圖片 bytes；private/no-store。
+- `GET /internal/cases/{case_ref}/images/{attachment_id}`：service token 授權，只讀已綁定且已送出的當案圖片。
+- `GET /cases/{case_ref}/conversation`：持久化使用者訊息與附件，case seq 排序；不取代 Agent event／Activity SSE。
+
+未知引用 404、越界綁定 403、案件狀態衝突 409、大小限制 413、格式不符 415、無法解碼／無效品項 422、Provider 或儲存不可用 503。初次附件於 create transaction 綁定，補件沿用 message transaction 與單次狀態轉移。保留原本 metadata-only fixture Provider，不把使用者描述當作已看圖結果。
+
+## 申請理解展示
+
+Activity 既有 JSON、分頁與 SSE 傳送可選 intent_display；run／attempt／operation 對應快照，重播去重。Narration 仍只取得安全 facts，不新增展示資料輸入。

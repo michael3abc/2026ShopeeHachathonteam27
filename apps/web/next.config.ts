@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  experimental: {
+    // One file per request; include the API's bounded multipart overhead.
+    proxyClientMaxBodySize:
+      Number(process.env.RETURN_AGENT_IMAGE_MAX_BYTES ?? 10485760) + 65536,
+  },
   // Next gzips proxied responses, and a gzip buffer never flushes, so the SSE
   // stream reaches EventSource as a header and nothing else.
   compress: false,

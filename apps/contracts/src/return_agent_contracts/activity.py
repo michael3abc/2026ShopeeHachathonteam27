@@ -15,7 +15,7 @@ from pydantic import (
 )
 
 from .base import ContractModel, UTCDateTime
-from .enums import ClaimId, ClaimStatus, ReasonCode
+from .enums import ClaimId, ClaimStatus, IntakeCompleteness, ReasonCode, RequestedAction
 from .models import MemoryRetrievalObservation
 from .review_gates import ReviewGateResult
 
@@ -97,9 +97,24 @@ class Lifecycle(ContractModel):
     error_code: Identifier | None = None
 
 
+class IntentDisplay(ContractModel):
+    """Safe snapshot of a validated intake, never model prose."""
+
+    reason_code: ReasonCode | None = None
+    requested_action: RequestedAction
+    claimed_line_item_ids: list[Identifier] = Field(default_factory=list)
+    completeness: IntakeCompleteness
+    missing_fields: list[Literal["ORDER", "REASON", "ACTION", "ITEMS", "OTHER"]] = (
+        Field(default_factory=list)
+    )
+
+
 class NodeSummary(ContractModel):
     type: Literal["node_summary"] = "node_summary"
     facts: ActivityFacts
+    intent_display: IntentDisplay | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     memory_retrieval: MemoryRetrievalObservation | None = None
     review_gate: ReviewGateResult | None = None
 

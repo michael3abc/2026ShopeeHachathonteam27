@@ -44,7 +44,7 @@ def migrated_database(tmp_path, monkeypatch):
 def test_v2_single_chain_and_offline_upgrade_downgrade(monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://unused/unused")
     cfg = config()
-    assert ScriptDirectory.from_config(cfg).get_heads() == ["0016_policy_v2_fulfillment"]
+    assert ScriptDirectory.from_config(cfg).get_heads() == ["0017_image_attachments"]
     cfg.output_buffer = StringIO()
     command.upgrade(cfg, "0013_activity_tracing:head", sql=True)
     sql = cfg.output_buffer.getvalue()
@@ -73,7 +73,7 @@ def test_v2_empty_upgrade_downgrade_and_preserve_v1(migrated_database):
     command.upgrade(cfg, "head")
     with engine.connect() as connection:
         assert connection.scalar(text("SELECT policy_schema_version FROM cases WHERE case_ref = 'legacy'")) == "v1"
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0016_policy_v2_fulfillment"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0017_image_attachments"
 
 
 @pytest.mark.parametrize("seed", [

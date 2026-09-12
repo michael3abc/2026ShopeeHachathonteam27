@@ -31,6 +31,22 @@ const completed = (node, attempt, next) => [started(node, attempt), ended(node, 
 const narration = (node, attempt, source, fields) =>
   activity(node, { type: "narration", source_event_id: source, ...fields }, { attempt });
 
+test("intent snapshots stay with their attempt and deduplicate late replay", () => {
+  const first = activity("parse_request", {type:"node_summary", facts:{}, intent_display:{
+    requested_action:"REFUND", completeness:"INCOMPLETE", claimed_line_item_ids:[], missing_fields:["ITEMS"],
+  }}, {attempt:"P1"});
+  const second = activity("parse_request", {type:"node_summary", facts:{}, intent_display:{
+    requested_action:"RETURN_AND_REFUND", completeness:"COMPLETE", claimed_line_item_ids:["LI-1"], missing_fields:[],
+  }}, {attempt:"P2"});
+  const progress = graphProgress([
+    started("parse_request","P1"), first, ...completed("load_case_context","L1","parse_request"),
+    started("parse_request","P2"), second, first,
+  ]);
+  assert.equal(progress.visits.parse_request.length, 2);
+  assert.deepEqual(progress.visits.parse_request.map(v => v.intents.map(i => i.value.requested_action)),
+    [["REFUND"], ["RETURN_AND_REFUND"]]);
+});
+
 test("a node resumed after a pause is one visit, and edges follow next_node", () => {
   const progress = graphProgress([
     ...completed("parse_request", "P1", "request_clarification"),

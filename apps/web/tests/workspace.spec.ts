@@ -61,6 +61,11 @@ async function routeActivities(page: Page, activities: object[] = []) {
 test.beforeEach(async ({ page }) => {
   await page.route("**/backend/auth/config", route => route.fulfill({ json: { enabled: false } }));
   await routeActivities(page);
+  await page.route("**/backend/attachments/options?**", route => route.fulfill({json: {
+    max_bytes: 10485760, max_images: 6, max_pixels: 25000000,
+    media_types: ["image/png", "image/jpeg", "image/webp"], subjects: {ORDER: "外包裝", "LI-DEMO": "商品"},
+  }}));
+  await page.route("**/backend/cases/CASE-BROWSER/conversation", route => route.fulfill({json: {turns: []}}));
 });
 
 async function signedRole(page: Page, role: "buyer" | "reviewer" | "operator") {
@@ -219,6 +224,7 @@ test("evidence submission preserves the artifact reference and resumes observati
     return route.fulfill({ json: detail });
   });
   await page.goto("/cases/CASE-BROWSER");
+  await page.getByText("進階 Demo：使用既有證據編號").click();
   await page.getByLabel("證據檔案編號").fill("artifact://demo/damage");
   await page.getByLabel("補充案件說明").fill("外箱與商品照片");
   await page.getByRole("button", { name: "送出", exact: true }).click();

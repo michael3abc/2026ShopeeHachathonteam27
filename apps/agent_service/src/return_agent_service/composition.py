@@ -126,6 +126,13 @@ def compose_integrated_service(
     @asynccontextmanager
     async def resources():
         client = httpx.Client(timeout=settings.provider_timeout_seconds)
+        from return_agent_runtime.model import OpenAIStructuredOutputModel
+        from return_agent_contracts.image_adapter import HttpEvidenceImageProvider
+        if isinstance(model, OpenAIStructuredOutputModel):
+            model.image_provider = HttpEvidenceImageProvider(
+                base_url=settings.api_base_url, service_token=token, client=client,
+                max_bytes=int(os.environ.get("RETURN_AGENT_IMAGE_MAX_BYTES", "10485760")),
+            )
         broker = RedisStreamBroker.from_url(settings.redis_url)
         journal = PostgresCommandJournal(
             settings.agent_database_url,

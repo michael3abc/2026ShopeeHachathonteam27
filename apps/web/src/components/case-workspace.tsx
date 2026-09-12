@@ -30,6 +30,10 @@ import { useCaseActivities } from "@/lib/use-case-activities";
 import { cn } from "@/lib/utils";
 import { useDemoIdentity } from "@/components/demo-session";
 import { confirmPolicy, confirmReturn, simulateReturn } from "@/lib/api";
+import { AttachmentImage, ImageAttachments, type ImageDraft } from "@/components/image-attachments";
+import type { ConversationPage } from "@/contracts/conversation-page";
+import type { AttachmentView } from "@/contracts/attachment-view";
+import { getConversation } from "@/lib/api";
 
 const eventTypes = [
   "node_enter",
@@ -60,6 +64,7 @@ type LocalMessage = {
 };
 
 type ConversationItem = {
+  attachments?: AttachmentView[];
   artifactRef?: string;
   id: string;
   role: "agent" | "user";
@@ -341,27 +346,36 @@ function ConversationPanel({
   const identity = useDemoIdentity();
   const [message, setMessage] = useState("");
   const [artifactRef, setArtifactRef] = useState("");
+  const [images, setImages] = useState<ImageDraft[]>([]);
+  const [history, setHistory] = useState<ConversationPage>();
+  const [historyError, setHistoryError] = useState<string>();
+  const [submittedVersion, setSubmittedVersion] = useState<string>();
+  const projectionVersion = detail.status + ":" + detail.updated_at;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string>();
   const needsInput =
-    (!identity || identity.role === "buyer") && (detail.status === "AWAITING_CLARIFICATION" || detail.status === "AWAITING_EVIDENCE");
+    (!identity || identity.role === "buyer") &&
+    submittedVersion !== projectionVersion &&
+    (detail.status === "AWAITING_CLARIFICATION" || detail.status === "AWAITING_EVIDENCE");
   const isEvidence = detail.status === "AWAITING_EVIDENCE";
   const isAgentWorking = detail.status === "OBSERVING";
+
+  useEffect(() => {
+    let alive = true;
+    getConversation(detail.case_ref).then(value => {
+      if (alive) { setHistory(value); setHistoryError(undefined); }
+    }).catch(cause => { if (alive) setHistoryError(cause instanceof Error ? cause.message : "對話讀取失敗"); });
+    return () => { alive = false; };
+  }, [detail.case_ref, detail.updated_at, localMessages.length]);
 
   const conversation = useMemo<ConversationItem[]>(() => {
     const startedAt = new Date(detail.created_at).getTime();
     const items: ConversationItem[] = [
       {
-        id: "case-created",
-        role: "user",
-        text: `已送出訂單 ${detail.order_ref} 的退貨退款申請。`,
-        ts: new Date(startedAt).toISOString(),
-      },
-      {
         id: "agent-started",
         role: "agent",
         text: "我已收到案件，正在檢查訂單、政策與佐證資料。",
-        ts: new Date(startedAt + 1).toISOString(),
+        ts: new Date(Math.max(startedAt, history?.turns[0] ? Date.parse(history.turns[0].created_at) : startedAt) + 1).toISOString(),
       },
     ];
 
@@ -381,7 +395,14 @@ function ConversationPanel({
       items.push({ id: `event-${event.seq}`, role: "agent", text, ts: event.ts });
     }
 
-    for (const local of localMessages) {
+    if (history) {
+      for (const turn of new Map(history.turns.map(turn => [turn.seq, turn])).values()) items.push({
+        id: `turn-${turn.seq}`, role: "user", text: turn.message, ts: turn.created_at,
+        attachments: turn.attachments,
+        artifactRef: turn.attached_artifact_refs.filter(ref => !ref.startsWith("artifact://upload/")).join(", ") || undefined,
+      });
+    }
+    for (const local of history ? [] : localMessages) {
       items.push({
         artifactRef: local.artifactRef,
         id: `local-${local.id}`,
@@ -391,7 +412,7 @@ function ConversationPanel({
       });
     }
     return items.sort((left, right) => Date.parse(left.ts) - Date.parse(right.ts));
-  }, [detail.created_at, detail.order_ref, events, localMessages]);
+  }, [detail.created_at, events, localMessages, history]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -400,19 +421,29 @@ function ConversationPanel({
     const sentText = message.trim() || "已補交所需資料。";
     const sentArtifactRef = artifactRef.trim() || undefined;
     try {
+      if (images.some(i => i.state !== "ready")) throw new Error("請先重試或移除尚未上傳的圖片。");
+      const refs = [...images.map(i => i.attachment!.artifact_ref), ...(sentArtifactRef ? [sentArtifactRef] : [])];
       await sendCaseMessage(detail.case_ref, {
         message: sentText,
-        attached_artifact_refs: sentArtifactRef ? [sentArtifactRef] : [],
+        attached_artifact_refs: refs,
       });
+      setSubmittedVersion(projectionVersion);
       onMessageSent({
         id: Date.now(),
         artifactRef: sentArtifactRef,
         text: sentText,
         ts: new Date().toISOString(),
       });
-      await onUpdated();
       setMessage("");
       setArtifactRef("");
+      setImages([]);
+      try {
+        const [freshHistory] = await Promise.all([getConversation(detail.case_ref), onUpdated()]);
+        setHistory(freshHistory);
+        setHistoryError(undefined);
+      } catch {
+        setHistoryError("訊息已送出，但畫面更新失敗。請重新整理，不需重送。");
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "送出失敗，請稍後再試。");
     } finally {
@@ -430,6 +461,8 @@ function ConversationPanel({
         <Badge className="border-orange-100 bg-orange-50 text-orange-700">固定使用者</Badge>
       </div>
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-gradient-to-b from-white to-stone-50/70 p-5">
+        {!history && !historyError && <p role="status" className="text-sm text-stone-500">正在載入對話…</p>}
+        {history && history.turns.length === 0 && <p role="status" className="text-sm text-stone-500">未保存初始申請內容</p>}
         {conversation.map((item) => (
           <ConversationBubble key={item.id} item={item} />
         ))}
@@ -445,7 +478,9 @@ function ConversationPanel({
             案件 <strong className="font-mono text-stone-700">{detail.case_ref}</strong>
             {isEvidence ? <span className="ml-auto text-orange-600">需要補交證據</span> : null}
           </div>
+          <ImageAttachments orderRef={detail.order_ref} caseRef={detail.case_ref} images={images} onChange={setImages} disabled={!needsInput || submitting} />
           {isEvidence ? (
+            <details><summary className="text-xs text-stone-500">進階 Demo：使用既有證據編號</summary>
             <label className="mt-2 flex items-center gap-2 rounded-xl bg-stone-50 px-3 py-2 text-xs text-stone-500">
               <Paperclip className="size-3.5" />
               <span className="sr-only">證據檔案編號</span>
@@ -455,10 +490,10 @@ function ConversationPanel({
                 onChange={(event) => setArtifactRef(event.target.value)}
                 placeholder="artifact://demo/EV-DEMO-ARRIVAL-PACKAGING-AND-DAMAGE"
                 disabled={submitting}
-                required
                 value={artifactRef}
               />
             </label>
+            </details>
           ) : null}
           <div className="flex items-end gap-2 pt-2">
             <Textarea
@@ -467,15 +502,16 @@ function ConversationPanel({
               disabled={!needsInput || submitting}
               onChange={(event) => setMessage(event.target.value)}
               placeholder={needsInput ? "輸入要補充的內容⋯" : statusLabel(detail.status)}
-              required={!isEvidence && needsInput}
+              required={!isEvidence && needsInput && images.length === 0}
               value={message}
             />
-            <Button className="size-10 shrink-0 px-0" disabled={!needsInput || submitting} aria-label="送出">
+            <Button className="size-10 shrink-0 px-0" disabled={!needsInput || submitting || images.some(i => i.state !== "ready")} aria-label="送出">
               {submitting ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
             </Button>
           </div>
         </div>
         {error ? <p className="mt-2 text-xs text-red-600" role="alert">{error}</p> : null}
+        {historyError ? <p className="mt-2 text-xs text-red-600" role="alert">對話還原失敗：{historyError}</p> : null}
       </form>
     </Card>
   );
@@ -501,7 +537,8 @@ function ConversationBubble({ item }: { item: ConversationItem }) {
             : "rounded-tl-sm border-stone-200 bg-white text-stone-700",
         )}
       >
-        <p>{item.text}</p>
+        <p className="whitespace-pre-wrap break-words">{item.text}</p>
+        {item.attachments?.length ? <div className="mt-2 flex flex-wrap gap-2">{item.attachments.map(a => <AttachmentImage key={a.attachment_id} attachment={a} />)}</div> : null}
         {item.artifactRef ? (
           <div className="mt-3 flex items-center gap-3 rounded-xl bg-white/95 p-2.5 text-stone-700">
             <span className="grid size-9 place-items-center rounded-lg bg-orange-100 text-orange-600">

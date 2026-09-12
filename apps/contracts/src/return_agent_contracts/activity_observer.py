@@ -194,6 +194,7 @@ def span(
                 try:
                     summary = NodeSummary(
                         facts=result["facts"],
+                        intent_display=result.get("intent_display"),
                         memory_retrieval=result.get("memory_retrieval"),
                         review_gate=result.get("review_gate"),
                     )

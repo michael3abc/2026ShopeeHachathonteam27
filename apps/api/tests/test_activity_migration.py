@@ -38,6 +38,9 @@ def test_activity_migration_and_concurrent_sequences(tmp_path, monkeypatch):
         admin = create_engine(url)
         with admin.begin() as connection:
             connection.exec_driver_sql(f'CREATE SCHEMA "{schema}"')
+            connection.exec_driver_sql(
+                f'CREATE TABLE "{schema}".alembic_version (version_num VARCHAR(32) PRIMARY KEY)'
+            )
         url = (
             make_url(url)
             .update_query_dict({"options": f"-csearch_path={schema},public"})

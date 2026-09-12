@@ -1,5 +1,8 @@
 {
   "schemas": [
+    "AttachmentView.schema.json",
+    "ConversationPage.schema.json",
+    "UploadOptions.schema.json",
     "ActivityEvent.schema.json",
     "ActivityPage.schema.json",
     "AgentEvent.schema.json",

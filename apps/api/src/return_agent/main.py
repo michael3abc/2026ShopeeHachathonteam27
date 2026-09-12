@@ -18,6 +18,11 @@ from .internal import internal_router
 from return_agent_contracts.providers import ContractConflict, ProviderUnavailable
 from return_agent_contracts.human import ReviewDecision
 from .human_review import HumanReviewService
+from .background import BackgroundWorkers
+from .refunds import RefundService, SimulatedRefundApplication
+from .workers import CommandDispatcher, EventConsumer, ResolutionWorker
+from redis import Redis
+from uuid import uuid4
 
 
 def create_app(settings: Settings | None = None, *, store: CaseStore | None = None) -> FastAPI:
@@ -26,10 +31,24 @@ def create_app(settings: Settings | None = None, *, store: CaseStore | None = No
     if store is None and settings.profile == "integrated-demo":
         engine = make_engine(settings)
         store = CaseStore(make_sessions(engine))
+    background, redis = None, None
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        nonlocal background, redis
+        if settings.workers_enabled and store is not None:
+            redis = Redis.from_url(settings.redis_url, decode_responses=True, socket_timeout=5, socket_connect_timeout=5)
+            capabilities = CapabilityStore(store)
+            events = EventConsumer(store, redis, consumer="api-" + uuid4().hex)
+            dispatcher = CommandDispatcher(store, redis)
+            refunds = ResolutionWorker(store, RefundService(capabilities, SimulatedRefundApplication(capabilities)))
+            background = BackgroundWorkers({"commands": dispatcher.tick, "events": events.tick, "resolutions": refunds.tick})
+            background.start()
         yield
+        if background:
+            await asyncio.to_thread(background.close)
+        if redis:
+            redis.close()
         if engine is not None:
             engine.dispose()
 
@@ -79,7 +98,9 @@ def create_app(settings: Settings | None = None, *, store: CaseStore | None = No
 
     @app.get("/health/ready")
     def ready() -> dict[str, str]:
-        raise HTTPException(503, "API composition is not configured")
+        if background is None or not background.ready():
+            raise HTTPException(503, "API workers are not ready")
+        return {"status": "ready", "profile": settings.profile}
 
     @app.post("/cases", status_code=201, response_model=CreateCaseResponse)
     def create_case(body: CreateCaseRequest) -> CreateCaseResponse:

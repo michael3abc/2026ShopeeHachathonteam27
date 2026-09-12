@@ -9,7 +9,7 @@
 | T03 API／DB | 核心持久化通過 | 0001 migration、case create/get/messages/events、atomic outbox；9 項 PostgreSQL 測試與全套 105 項通過，含主庫已有 migration 的隔離回歸。service event 投影接線續於 T06。 |
 | T04 能力／退款 | 核心持久化與模擬退款通過 | API 33 項 PostgreSQL 測試；獨立授權、原子人審／RESUME、品項 reservation、APPLIED ledger、未知結果同 key 恢復；跨服務接線待 T06。 |
 | T05 Graph | 核心 deterministic 測試通過 | 16 節點、14 項 graph 測試、6 份 prompts、typed fake 與真模型 adapter；durable PostgreSQL checkpoint／跨服務待 T06。 |
-| T06 跨服務 | 核心整合通過，啟動組合接線中 | 6 項真 HTTP／Redis／PostgreSQL 整合測試；durable checkpoint／journal／outbox／事件投影／退款 job。 |
+| T06 跨服務 | 核心與本機常駐組合通過 | 6 項真 HTTP／Redis／PostgreSQL 整合測試；durable checkpoint／journal／outbox／事件投影／退款 job；本機 offline A=1200 APPLIED。 |
 | T07 VDB／Memory | 未開始 | 待 T06。 |
 | T08 Activity | 未開始 | 待 T06。 |
 | T09 Web | 未開始 | 待 T06–T08。 |
@@ -111,3 +111,6 @@ C01–C06、C10–C11 的上述**契約子案例**通過；C12–C13 僅已驗�
 - 6 項跨服務測試 passed，exit 0，9.02s：真 HTTP Provider、Redis Streams、獨立 API／Agent PostgreSQL schema；人工 EDIT 後重新建立 worker／saver，退款 APPLIED，Reviewer 不重跑。
 - C15–C18 相關情境：journal terminal 前 crash 後恢復、XADD 後斷線以同 command 重送、terminal replay 不重跑模型、事件 ID/hash 衝突、亂序留 pending、投影失敗 rollback、前序新事件不被 pending queue 餓死。
 - 目前 Memory HTTP 尚未接線，跨服務案例明確 Memory UNAVAILABLE；不把此案例稱為 B→C 學習通過。常駐 composition／容器與完整 A/B/C 待完成。
+- 本機 `python3 scripts/dev.py migrate`／`seed` exit 0；API 與 Agent ready 均 200。離線 smoke 案 `CASE-0feb8f79ecc64dbba74b711e86b1df7e`，1200 TWD、RESOLVED、退款 SUCCEEDED／APPLIED，去敏摘要保留於本機 artifacts。該訂單的退款 reservation 保留，不刪除成功紀錄供重複 Demo。
+- `scripts/dev.py` 預設 offline，明確 `--profile live` 才啟用既有 RETURN_AGENT_* 模型設定；解析 dotenv 不執行 shell，secret file 不提交。
+- 直接退款執行的授權拒絕現在保存並回傳 typed REJECTED；已有 application attempt 且結果未知時維持 IN_PROGRESS／reservation，不能改稱確定拒絕。

@@ -86,8 +86,9 @@ def test_forged_authority_never_applies(trusted, forgery):
         values["outcome_source"] = "HUMAN_APPROVE"
         request = ExecuteRefundRequest.model_validate({"resolution_handoff": values})
         resolution = request.resolution_handoff
-    with pytest.raises(AuthorizationRejected):
-        RefundService(caps, SimulatedRefundApplication(caps)).execute(ExecuteRefundRequest(resolution_handoff=resolution))
+    result = RefundService(caps, SimulatedRefundApplication(caps)).execute(ExecuteRefundRequest(resolution_handoff=resolution))
+    assert result.status == "REJECTED"
+    assert result.application_result.reason_codes == ["REFUND_AUTHORIZATION_REJECTED"]
     with caps.sessions() as session:
         assert session.scalar(select(func.count()).select_from(MockRefundReceiptRow)) == 0
         assert session.scalar(select(func.count()).select_from(RefundReservationRow)) == 0

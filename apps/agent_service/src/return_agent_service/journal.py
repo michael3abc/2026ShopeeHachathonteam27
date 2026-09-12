@@ -70,3 +70,11 @@ class CommandJournal:
             self.append(session, command, stable_id("agent-event", command.command_id, "terminal"), event_type, {"result": result.model_dump(mode="json")})
             row.result, row.status = result.model_dump(mode="json"), "TERMINAL"
             row.distillation_input = distillation_input.model_dump(mode="json") if distillation_input else None
+
+    def fail(self, command: AgentCommand, owner: str):
+        with self.sessions.begin() as session:
+            row = session.get(CommandRow, command.command_id, with_for_update=True)
+            if row.lease_owner != owner:
+                raise JournalBusy("Command lease was replaced")
+            self.append(session, command, stable_id("agent-event", command.command_id, "terminal"), "RUN_FAILED", {"code": "INVALID_RUNTIME_COMMAND", "message": "Command does not match the durable runtime state", "retryable": False, "failed_node": None})
+            row.status = "TERMINAL"

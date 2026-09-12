@@ -1,5 +1,5 @@
 """Explicit deterministic model profile for local integration and CI."""
-from collections import defaultdict
+from collections import defaultdict, deque
 from typing import Any
 
 from pydantic import TypeAdapter
@@ -10,7 +10,7 @@ from return_agent_contracts.registry import REGISTRY_VERSION
 class TypedFakeModel:
     def __init__(self, *, scripted: dict[str, list[Any]] | None = None):
         self.scripted = {key: list(values) for key, values in (scripted or {}).items()}
-        self.calls: list[tuple[str, dict[str, Any]]] = []
+        self.calls = deque(maxlen=1024)
         self.counts = defaultdict(int)
 
     def generate(self, task: str, payload: dict[str, Any], output_type: Any):
@@ -31,6 +31,8 @@ class TypedFakeModel:
         findings = []
         for pair in payload["expected_claim_subject_pairs"]:
             refs = [item["evidence_id"] for item in evidence if item["subject"] == pair["subject"]]
+            if pair["claim_id"] == "DAMAGE_PRESENT_ON_ARRIVAL":
+                refs = [item["evidence_id"] for item in evidence if item["subject"] == pair["subject"] and "連續拆封" in item["extracted_summary"]]
             system = pair["claim_id"] in ("DELIVERY_CONFIRMED", "ORDER_WITHIN_RETURN_WINDOW")
             findings.append({**pair, "status": "SUPPORTED" if system or refs else "UNSUPPORTED", "explanation": "合成測試：依可信日期與指定 metadata 檢查。", "supporting_evidence_refs": [] if system else refs})
         return findings

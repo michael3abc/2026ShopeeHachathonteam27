@@ -2,7 +2,7 @@
 
 內部退貨案件 Demo，整合證據審核、人工裁決與經驗學習。使用合成資料與模擬退款，不接真實金流。
 
-T01–T05 核心驗證通過；T06 已跑通 HTTP／Redis／PostgreSQL 的人工裁決與模擬退款整合測試，常駐服務啟動組合接線中。進度與實際驗證見 [進度紀錄](docs/progress.md)，技術選擇見 [決策紀錄](docs/decisions.md)。
+T01–T06 核心與本機常駐服務驗證通過，包含 HTTP／Redis／PostgreSQL 的人工裁決、重啟恢復與模擬退款。Memory、Activity、完整 Web 與真模型 A/B/C 尚未完成。實際驗證見 [進度紀錄](docs/progress.md)，技術選擇見 [決策紀錄](docs/decisions.md)。
 
 ## 開發環境
 
@@ -17,26 +17,27 @@ uv sync --frozen --all-packages
 npm --prefix apps/web ci
 ```
 
-## 啟動骨架
+## 本機啟動
 
 各命令分別在不同終端執行：
 
 ```bash
-uv run return-agent-api
-uv run return-agent-service
-npm --prefix apps/web run dev
+python3 scripts/dev.py api
+python3 scripts/dev.py agent
+python3 scripts/dev.py web
 ```
 
 Web：`http://localhost:3000`；API：`http://localhost:8000`；Agent health：`http://localhost:8090`。
 
-API `/health`、Agent `/health/live` 僅表示程序存活；兩者 `/health/ready` 在組合尚未完成時回 503。首頁目前顯示建置狀態，不提供假的案件成功流程。
+API `/health`、Agent `/health/live` 僅表示程序存活；兩者 `/health/ready` 檢查 workers。首頁目前為骨架，完整互動介面待 T09。
 
 本機基礎服務與容器骨架：
 
 ```bash
 docker compose config --quiet
 docker compose up -d api-db agent-db redis
-docker compose --profile app up --build
+python3 scripts/dev.py migrate
+python3 scripts/dev.py seed
 ```
 
 Compose 的資料庫密碼是明示的本機示範值；連接埠只綁 loopback。容器啟動僅代表基礎服務可用。
@@ -49,7 +50,9 @@ uv run alembic -c apps/api/alembic.ini upgrade head
 API_PROFILE=integrated-demo uv run return-agent-api
 ```
 
-`POST /cases` 建立案件與 START outbox；`GET /cases/{case_ref}` 查詢 canonical 狀態；`POST /cases/{case_ref}/messages` 只在等待澄清／證據時接受。`GET /cases/{case_ref}/events` 支援 Last-Event-ID replay，終態 drain 後關閉。workers 尚未接通，因此新案目前會保持 OBSERVING，不會自動退款。
+`POST /cases` 建立案件與 START outbox；`GET /cases/{case_ref}` 查詢 canonical 狀態、final_resolution 與 refund_execution；`POST /cases/{case_ref}/messages` 只在等待澄清／證據時接受。`GET /cases/{case_ref}/events` 支援 Last-Event-ID replay，終態 drain 後關閉。`POST /cases/{case_ref}/review` 支援 APPROVE／REJECT／EDIT；退款成功以 application_result.status=APPLIED 判定。
+
+`seed` 建立 DEMO-A／B／C 合成訂單，金額 1200／6200／6800 TWD，各有 CLOSEUP／UNBOXING／OVERVIEW／INSPECTION 四個 opaque artifact refs，例如 DEMO-A-CLOSEUP。已退款品項再次申請會被 reservation 拒絕；seed 不覆寫既有訂單或刪除付款紀錄。
 
 ## 驗證
 
@@ -96,4 +99,4 @@ API 不執行 Runtime；API 與 Agent 以 Redis Streams 交換案件命令／事
 
 ## 設定與秘密值
 
-`.env.example` 列出本機設定。API 目前讀取程序環境中的 profile、DB、host/port；模型、embedding 與 internal token 的 `_FILE` 設定將隨完整 composition 接線。秘密檔案放忽略的 `secrets/`，勿將真實 token、個資、DB dump 或原始模型 payload 提交到 Git。
+`.env.example` 列出本機設定。`scripts/dev.py` 以字面值解析 `.env`，不執行 shell 展開；自動建立本機 internal token secret file。預設 offline 使用 typed fake model；真模型須明確加 `--profile live`，保留 RETURN_AGENT_* 的 endpoint／名稱／secret file。秘密檔案放忽略的 `secrets/`，勿將真實 token、個資、DB dump 或原始模型 payload 提交到 Git。embedding 與 narration composition 待 T07–T08。

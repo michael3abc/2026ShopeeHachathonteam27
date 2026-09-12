@@ -124,12 +124,20 @@ class RefundService:
             order_row = session.scalar(select(TrustedOrderRow).where(TrustedOrderRow.order_ref == case.order_ref).with_for_update())
             if order_row is None:
                 raise AuthorizationRejected("Trusted order is missing")
-            snapshot = self.authorize(session, request)
             now = self.cases.clock()
             if row is None:
                 row = RefundExecutionRow(execution_ref=execution_ref, handoff_id=resolution.handoff_id, case_ref=resolution.case_ref, order_ref=case.order_ref, payload_hash=digest, request=request.model_dump(mode="json"), status="IN_PROGRESS", created_at=now, updated_at=now)
                 session.add(row)
                 session.flush()
+            try:
+                snapshot = self.authorize(session, request)
+            except AuthorizationRejected:
+                if row.application_started_at is not None:
+                    raise ProviderUnavailable("Authorization changed while application outcome is unresolved") from None
+                rejected = RejectedRefundApplicationResult(status="REJECTED", reason_codes=["REFUND_AUTHORIZATION_REJECTED"], rejected_at=now)
+                row.status, row.application_result, row.updated_at = "REJECTED", rejected.model_dump(mode="json"), now
+                session.flush()
+                return self.record(row)
             if row.application_started_at is not None:
                 self.owned_items(session, row, scope)
             else:

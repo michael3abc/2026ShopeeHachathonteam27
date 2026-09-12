@@ -19,3 +19,9 @@ def checkpoint_saver(database_url: str, *, schema: str | None = None, setup: boo
         if setup:
             saver.setup()
         yield saver
+
+
+if __name__ == "__main__":
+    import os
+    with checkpoint_saver(os.environ["AGENT_DATABASE_URL"], setup=True):
+        print("Agent PostgreSQL checkpoint migrations applied")

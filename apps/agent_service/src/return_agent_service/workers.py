@@ -63,14 +63,18 @@ class CommandWorker:
                     if status == "BUSY":
                         return False
                     if status != "TERMINAL":
-                        if command.command_type == "START":
-                            result = runtime.continue_run(command.thread_id) if snapshot.values else runtime.start(AgentStartRequest(case_ref=command.case_ref, thread_id=command.thread_id, order_ref=command.payload.order_ref, initial_turn=command.payload.initial_turn))
-                        elif checkpoint != initial_checkpoint:
-                            result = runtime.continue_run(command.thread_id)
+                        try:
+                            if command.command_type == "START":
+                                result = runtime.continue_run(command.thread_id) if snapshot.values else runtime.start(AgentStartRequest(case_ref=command.case_ref, thread_id=command.thread_id, order_ref=command.payload.order_ref, initial_turn=command.payload.initial_turn))
+                            elif checkpoint != initial_checkpoint:
+                                result = runtime.continue_run(command.thread_id)
+                            else:
+                                result = runtime.resume(AgentResumeRequest(thread_id=command.thread_id, payload=command.payload.resume))
+                        except ValueError:
+                            self.journal.fail(command, self.consumer)
                         else:
-                            result = runtime.resume(AgentResumeRequest(thread_id=command.thread_id, payload=command.payload.resume))
-                        state = runtime.state(command.thread_id)
-                        self.journal.complete(command, self.consumer, result, state.memory_distillation_input)
+                            state = runtime.state(command.thread_id)
+                            self.journal.complete(command, self.consumer, result, state.memory_distillation_input)
                 self.redis.xack(COMMAND_STREAM, COMMAND_GROUP, message_id)
                 return True
             finally:

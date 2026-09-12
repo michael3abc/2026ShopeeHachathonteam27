@@ -10,5 +10,6 @@
 | D06 | 不新增 LICENSE、不部署公開服務 | 公開可見性不代表選定授權條款；此次授權限 repo 與實作。 |
 | D07 | Python 為跨服務契約單一來源 | 從 Pydantic 產生 JSON Schema 與 TypeScript；CI 檢查 drift。 |
 | D08 | CaseDetail 維持案件與待辦快照，Memory／結果由 events replay 還原 | 採已提出的預設解讀；保留既有 HTTP 欄位與獨立 cursor，不添加隱含的公開欄位。 |
+| D09 | 模型傳輸 schema 將 union 放入 object envelope，所有 object 欄位 required | 符合 [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs) 限制；傳輸 oneOf 轉 anyOf，程式仍用原 Pydantic discriminator 與語意驗證，不修改公開 DTO。 |
 
 版本差異、外部限制與後續確認均在此記錄。

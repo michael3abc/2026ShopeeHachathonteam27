@@ -644,8 +644,118 @@ ResolutionHandoff: TypeAlias = Annotated[
 ]
 
 
+class LearningEvidence(ContractModel):
+    evidence_id: OpaqueRef
+    type: EvidenceType
+    source: EvidenceSource
+    subject: OpaqueRef
+    extracted_summary: NonEmptyText
+
+
+class LearningDecision(ContractModel):
+    handoff_id: OpaqueRef
+    action: ResolutionAction
+    line_item_ids: list[OpaqueRef]
+    return_decision: ReturnDecision | None = None
+    explanation: NonEmptyText
+
+
+class LearningMemory(ContractModel):
+    memory_id: OpaqueRef
+    policy_version: OpaqueRef
+    claim_registry_version: OpaqueRef
+    recommended_behavior: NonEmptyText
+
+
+class LearningHumanDecision(ContractModel):
+    decision: HumanDecision
+    final_resolution_ref: OpaqueRef
+    correction_reason_code: HumanCorrectionReasonCode | None = None
+    review_note: NonEmptyText
+
+
+class LearningEvent(ContractModel):
+    """Allowlisted observations, never raw state, prompts or media."""
+
+    event_id: OpaqueRef
+    sequence: PositiveInt
+    node: Literal[
+        "parse_request", "request_clarification", "load_case_context",
+        "retrieve_policy", "prepare_memory_query", "retrieve_memory",
+        "assess_case", "request_evidence", "propose_decision",
+        "external_verification", "reviewer", "record_revision_event",
+        "await_human_review", "emit_resolution_handoff", "terminate_automation",
+    ]
+    next_node: NonEmptyText | None = None
+    intent: IntakeResult | None = None
+    claimed_line_item_ids: list[OpaqueRef] = Field(default_factory=list)
+    context_snapshot_version: PositiveInt | None = None
+    order_snapshot_version: PositiveInt | None = None
+    policy_bundle_version: OpaqueRef | None = None
+    policy_versions: list[OpaqueRef] = Field(default_factory=list)
+    claim_registry_version: OpaqueRef | None = None
+    clarification_request: ClarificationRequest | None = None
+    response_turn_refs: list[OpaqueRef] = Field(default_factory=list)
+    evidence_request: EvidenceRequest | None = None
+    evidence: list[LearningEvidence] = Field(default_factory=list)
+    assessment: EvidenceAssessment | None = None
+    decision: LearningDecision | None = None
+    verification: VerificationResult | None = None
+    review: ReviewResult | None = None
+    revision_event_ref: OpaqueRef | None = None
+    human_decision: LearningHumanDecision | None = None
+    human_review_ref: OpaqueRef | None = None
+    memory_status: Literal["OK", "UNAVAILABLE"] | None = None
+    memory_query_summary: NonEmptyText | None = None
+    memories: list[LearningMemory] = Field(default_factory=list)
+    outcome_source: OutcomeSource | None = None
+    error_code: NonEmptyText | None = None
+
+
+class LearningTrace(ContractModel):
+    schema_version: Literal["learning-trace:2"] = "learning-trace:2"
+    case_ref: OpaqueRef
+    thread_id: OpaqueRef
+    status: Literal["RECORDING", "COMPLETE", "INCOMPLETE", "LIMIT_EXCEEDED", "UNSAFE_CONTENT"] = "RECORDING"
+    events: list[LearningEvent] = Field(default_factory=list, max_length=256)
+    failure_code: NonEmptyText | None = None
+
+    @model_validator(mode="after")
+    def _ordered_unique_events(self) -> "LearningTrace":
+        if [event.sequence for event in self.events] != list(range(1, len(self.events) + 1)):
+            raise ValueError("learning trace must have contiguous event sequence")
+        if len({event.event_id for event in self.events}) != len(self.events):
+            raise ValueError("learning trace event IDs must be unique")
+        if self.status == "COMPLETE" and (
+            not self.events or self.events[0].node != "parse_request"
+            or self.events[-1].node != "emit_resolution_handoff"
+        ):
+            raise ValueError("complete trace requires intake and final resolution")
+        return self
+
+
+class MemoryCaseReview(ContractModel):
+    key_issue: NonEmptyText = Field(max_length=2000)
+    actions_taken: list[NonEmptyText] = Field(min_length=1, max_length=32)
+    observations: list[NonEmptyText] = Field(min_length=1, max_length=32)
+    judgment_changes: list[NonEmptyText] = Field(max_length=32)
+    final_action: ResolutionAction
+    limitations: list[NonEmptyText] = Field(min_length=1, max_length=16)
+    source_event_refs: list[OpaqueRef] = Field(min_length=1, max_length=256)
+    downstream_execution_verified: Literal[False] = False
+
+
+class MemoryLearningJudgment(ContractModel):
+    category: Literal["VERIFIABLE_ERROR", "OPERATIONAL_METHOD", "CASE_DISCRETION", "EXISTING_RULE", "INSUFFICIENT_EVIDENCE", "SYSTEM_DEFECT"]
+    explanation: NonEmptyText = Field(max_length=2000)
+    source_event_refs: list[OpaqueRef] = Field(min_length=1, max_length=256)
+
+
 class MemoryDistillationInput(ContractModel):
-    """Closed-case correction trace consumed by the async memory worker."""
+    """Closed case plus independent learning observations for v2 workers."""
+
+    schema_version: Literal["memory-distillation:2"] = "memory-distillation:2"
+    learning_trace: LearningTrace | None = None
 
     case_context: CaseContext
     policy_bundle: PolicyBundle
@@ -688,14 +798,8 @@ class MemoryDistillationInput(ContractModel):
             raise ValueError(
                 "assessment and latest proposal registry versions must match"
             )
-        has_human_correction = isinstance(
-            self.human_review_result,
-            (EditedHumanReviewResult, RejectedHumanReviewResult),
-        )
-        if not self.revision_events and not has_human_correction:
-            raise ValueError(
-                "memory distillation requires a confirmed correction trace"
-            )
+        if self.learning_trace is not None and self.learning_trace.case_ref != case_ref:
+            raise ValueError("learning trace must match source case")
         expected_human_type = {
             OutcomeSource.HUMAN_APPROVE: ApprovedHumanReviewResult,
             OutcomeSource.HUMAN_EDIT: EditedHumanReviewResult,
@@ -744,7 +848,9 @@ class MemoryCandidate(ContractModel):
     recommended_behavior: NonEmptyText
     rationale: NonEmptyText
     source_case_refs: list[OpaqueRef] = Field(min_length=1)
-    source_revision_event_refs: list[OpaqueRef] = Field(min_length=1)
+    source_event_refs: list[OpaqueRef] = Field(min_length=1)
+    applicability_limits: list[NonEmptyText] = Field(default_factory=list)
+    prohibited_inferences: list[NonEmptyText] = Field(default_factory=list)
     policy_version: OpaqueRef
     claim_registry_version: OpaqueRef
     scope: MemoryScope
@@ -757,6 +863,8 @@ class ApprovedMemory(ContractModel):
     retrieval_summary: NonEmptyText = Field(max_length=2000)
     status: Literal[MemoryStatus.APPROVED]
     recommended_behavior: NonEmptyText
+    applicability_limits: list[NonEmptyText] = Field(default_factory=list)
+    prohibited_inferences: list[NonEmptyText] = Field(default_factory=list)
     trigger_conditions: list[NonEmptyText] = Field(min_length=1)
     policy_version: OpaqueRef
     claim_registry_version: OpaqueRef
@@ -843,12 +951,16 @@ ResolverOutput: TypeAlias = Annotated[
 
 class MemoryCandidateOutput(ContractModel):
     result_type: Literal[MemoryDistillationResultType.CREATE_CANDIDATE]
+    case_review: MemoryCaseReview
+    learning: MemoryLearningJudgment
     candidate: MemoryCandidate
 
 
 class MemorySkipOutput(ContractModel):
     result_type: Literal[MemoryDistillationResultType.SKIP]
     reason_code: MemorySkipReasonCode
+    case_review: MemoryCaseReview | None = None
+    learning: MemoryLearningJudgment | None = None
 
 
 MemoryDistillationOutput: TypeAlias = Annotated[

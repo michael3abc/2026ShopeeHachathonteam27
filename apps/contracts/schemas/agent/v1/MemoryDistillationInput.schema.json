@@ -316,6 +316,43 @@
       "title": "ClaimStatus",
       "type": "string"
     },
+    "ClarificationRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "clarification_question": {
+          "minLength": 1,
+          "title": "Clarification Question",
+          "type": "string"
+        },
+        "clarification_round": {
+          "minimum": 1,
+          "title": "Clarification Round",
+          "type": "integer"
+        },
+        "missing_fields": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Missing Fields",
+          "type": "array"
+        },
+        "request_id": {
+          "minLength": 1,
+          "title": "Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id",
+        "missing_fields",
+        "clarification_question",
+        "clarification_round"
+      ],
+      "title": "ClarificationRequest",
+      "type": "object"
+    },
     "CorrectedDeclineDecision": {
       "additionalProperties": false,
       "properties": {
@@ -747,6 +784,36 @@
       "title": "EvidenceType",
       "type": "string"
     },
+    "FailedVerificationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/VerificationIssue"
+          },
+          "minItems": 1,
+          "title": "Issues",
+          "type": "array"
+        },
+        "status": {
+          "const": "FAIL",
+          "title": "Status",
+          "type": "string"
+        },
+        "verification_version": {
+          "minLength": 1,
+          "title": "Verification Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "issues",
+        "verification_version"
+      ],
+      "title": "FailedVerificationResult",
+      "type": "object"
+    },
     "FullRefundProposedDecision": {
       "additionalProperties": false,
       "description": "Graph-completed refund decision included in a handoff.",
@@ -920,6 +987,15 @@
         "OTHER"
       ],
       "title": "HumanCorrectionReasonCode",
+      "type": "string"
+    },
+    "HumanDecision": {
+      "enum": [
+        "APPROVE",
+        "EDIT",
+        "REJECT"
+      ],
+      "title": "HumanDecision",
       "type": "string"
     },
     "HumanEditResolutionHandoff": {
@@ -1195,6 +1271,693 @@
       "title": "InsufficientEvidenceAssessment",
       "type": "object"
     },
+    "IntakeCompleteness": {
+      "enum": [
+        "COMPLETE",
+        "INCOMPLETE"
+      ],
+      "title": "IntakeCompleteness",
+      "type": "string"
+    },
+    "IntakeResult": {
+      "additionalProperties": false,
+      "description": "Structured output of the parse_request LLM node.",
+      "properties": {
+        "claimed_line_item_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Claimed Line Item Ids",
+          "type": "array"
+        },
+        "clarification_question": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Clarification Question"
+        },
+        "completeness": {
+          "$ref": "#/$defs/IntakeCompleteness"
+        },
+        "missing_fields": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Missing Fields",
+          "type": "array"
+        },
+        "order_ref": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Order Ref"
+        },
+        "reason_code": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReasonCode"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reason_summary": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason Summary"
+        },
+        "requested_action": {
+          "$ref": "#/$defs/RequestedAction"
+        }
+      },
+      "required": [
+        "completeness",
+        "requested_action"
+      ],
+      "title": "IntakeResult",
+      "type": "object"
+    },
+    "LearningDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/ResolutionAction"
+        },
+        "explanation": {
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        },
+        "handoff_id": {
+          "minLength": 1,
+          "title": "Handoff Id",
+          "type": "string"
+        },
+        "line_item_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Line Item Ids",
+          "type": "array"
+        },
+        "return_decision": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "HUMAN_REVIEW": "#/$defs/HumanReviewReturnDecision",
+                  "MODEL_JUDGMENT": "#/$defs/ModelJudgmentReturnDecision",
+                  "POLICY": "#/$defs/PolicyReturnDecision"
+                },
+                "propertyName": "source"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/PolicyReturnDecision"
+                },
+                {
+                  "$ref": "#/$defs/ModelJudgmentReturnDecision"
+                },
+                {
+                  "$ref": "#/$defs/HumanReviewReturnDecision"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Return Decision"
+        }
+      },
+      "required": [
+        "handoff_id",
+        "action",
+        "line_item_ids",
+        "explanation"
+      ],
+      "title": "LearningDecision",
+      "type": "object"
+    },
+    "LearningEvent": {
+      "additionalProperties": false,
+      "description": "Allowlisted observations, never raw state, prompts or media.",
+      "properties": {
+        "assessment": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "INSUFFICIENT": "#/$defs/InsufficientEvidenceAssessment",
+                  "SUFFICIENT_FOR_APPROVAL": "#/$defs/ApprovalEvidenceAssessment",
+                  "SUFFICIENT_FOR_DECLINE": "#/$defs/DeclineEvidenceAssessment"
+                },
+                "propertyName": "evidence_status"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/ApprovalEvidenceAssessment"
+                },
+                {
+                  "$ref": "#/$defs/DeclineEvidenceAssessment"
+                },
+                {
+                  "$ref": "#/$defs/InsufficientEvidenceAssessment"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assessment"
+        },
+        "claim_registry_version": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Claim Registry Version"
+        },
+        "claimed_line_item_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Claimed Line Item Ids",
+          "type": "array"
+        },
+        "clarification_request": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ClarificationRequest"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "context_snapshot_version": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Context Snapshot Version"
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LearningDecision"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error Code"
+        },
+        "event_id": {
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/LearningEvidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "evidence_request": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRequest"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "human_decision": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LearningHumanDecision"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "human_review_ref": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Human Review Ref"
+        },
+        "intent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IntakeResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "memories": {
+          "items": {
+            "$ref": "#/$defs/LearningMemory"
+          },
+          "title": "Memories",
+          "type": "array"
+        },
+        "memory_query_summary": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Memory Query Summary"
+        },
+        "memory_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "OK",
+                "UNAVAILABLE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Memory Status"
+        },
+        "next_node": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Node"
+        },
+        "node": {
+          "enum": [
+            "parse_request",
+            "request_clarification",
+            "load_case_context",
+            "retrieve_policy",
+            "prepare_memory_query",
+            "retrieve_memory",
+            "assess_case",
+            "request_evidence",
+            "propose_decision",
+            "external_verification",
+            "reviewer",
+            "record_revision_event",
+            "await_human_review",
+            "emit_resolution_handoff",
+            "terminate_automation"
+          ],
+          "title": "Node",
+          "type": "string"
+        },
+        "order_snapshot_version": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Order Snapshot Version"
+        },
+        "outcome_source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OutcomeSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "policy_bundle_version": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Policy Bundle Version"
+        },
+        "policy_versions": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Policy Versions",
+          "type": "array"
+        },
+        "response_turn_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Response Turn Refs",
+          "type": "array"
+        },
+        "review": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "APPROVE": "#/$defs/ApprovedReviewResult",
+                  "REVISE": "#/$defs/RevisedReviewResult"
+                },
+                "propertyName": "verdict"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/ApprovedReviewResult"
+                },
+                {
+                  "$ref": "#/$defs/RevisedReviewResult"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Review"
+        },
+        "revision_event_ref": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Revision Event Ref"
+        },
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "verification": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "FAIL": "#/$defs/FailedVerificationResult",
+                  "PASS": "#/$defs/PassedVerificationResult",
+                  "UNAVAILABLE": "#/$defs/UnavailableVerificationResult"
+                },
+                "propertyName": "status"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/PassedVerificationResult"
+                },
+                {
+                  "$ref": "#/$defs/FailedVerificationResult"
+                },
+                {
+                  "$ref": "#/$defs/UnavailableVerificationResult"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verification"
+        }
+      },
+      "required": [
+        "event_id",
+        "sequence",
+        "node"
+      ],
+      "title": "LearningEvent",
+      "type": "object"
+    },
+    "LearningEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_id": {
+          "minLength": 1,
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "extracted_summary": {
+          "minLength": 1,
+          "title": "Extracted Summary",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/EvidenceSource"
+        },
+        "subject": {
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/EvidenceType"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "type",
+        "source",
+        "subject",
+        "extracted_summary"
+      ],
+      "title": "LearningEvidence",
+      "type": "object"
+    },
+    "LearningHumanDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "correction_reason_code": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HumanCorrectionReasonCode"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "decision": {
+          "$ref": "#/$defs/HumanDecision"
+        },
+        "final_resolution_ref": {
+          "minLength": 1,
+          "title": "Final Resolution Ref",
+          "type": "string"
+        },
+        "review_note": {
+          "minLength": 1,
+          "title": "Review Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "decision",
+        "final_resolution_ref",
+        "review_note"
+      ],
+      "title": "LearningHumanDecision",
+      "type": "object"
+    },
+    "LearningMemory": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_registry_version": {
+          "minLength": 1,
+          "title": "Claim Registry Version",
+          "type": "string"
+        },
+        "memory_id": {
+          "minLength": 1,
+          "title": "Memory Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "minLength": 1,
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "recommended_behavior": {
+          "minLength": 1,
+          "title": "Recommended Behavior",
+          "type": "string"
+        }
+      },
+      "required": [
+        "memory_id",
+        "policy_version",
+        "claim_registry_version",
+        "recommended_behavior"
+      ],
+      "title": "LearningMemory",
+      "type": "object"
+    },
+    "LearningTrace": {
+      "additionalProperties": false,
+      "properties": {
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "events": {
+          "items": {
+            "$ref": "#/$defs/LearningEvent"
+          },
+          "maxItems": 256,
+          "title": "Events",
+          "type": "array"
+        },
+        "failure_code": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Failure Code"
+        },
+        "schema_version": {
+          "const": "learning-trace:2",
+          "default": "learning-trace:2",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "status": {
+          "default": "RECORDING",
+          "enum": [
+            "RECORDING",
+            "COMPLETE",
+            "INCOMPLETE",
+            "LIMIT_EXCEEDED",
+            "UNSAFE_CONTENT"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "thread_id": {
+          "minLength": 1,
+          "title": "Thread Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "case_ref",
+        "thread_id"
+      ],
+      "title": "LearningTrace",
+      "type": "object"
+    },
     "MissingClaim": {
       "additionalProperties": false,
       "properties": {
@@ -1265,6 +2028,45 @@
         "line_item_ids"
       ],
       "title": "NonEmptyRefundScope",
+      "type": "object"
+    },
+    "OutcomeSource": {
+      "enum": [
+        "REVIEWER_APPROVE",
+        "HUMAN_APPROVE",
+        "HUMAN_EDIT",
+        "HUMAN_REJECT"
+      ],
+      "title": "OutcomeSource",
+      "type": "string"
+    },
+    "PassedVerificationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/VerificationIssue"
+          },
+          "maxItems": 0,
+          "title": "Issues",
+          "type": "array"
+        },
+        "status": {
+          "const": "PASS",
+          "title": "Status",
+          "type": "string"
+        },
+        "verification_version": {
+          "minLength": 1,
+          "title": "Verification Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "verification_version"
+      ],
+      "title": "PassedVerificationResult",
       "type": "object"
     },
     "PolicyBundle": {
@@ -1570,6 +2372,16 @@
       ],
       "title": "RejectedHumanReviewResult",
       "type": "object"
+    },
+    "RequestedAction": {
+      "enum": [
+        "REFUND",
+        "RETURN_AND_REFUND",
+        "EXCHANGE",
+        "UNSPECIFIED"
+      ],
+      "title": "RequestedAction",
+      "type": "string"
     },
     "RequiredReturnReasonCode": {
       "enum": [
@@ -1879,6 +2691,62 @@
       "title": "RevisionReasonCode",
       "type": "string"
     },
+    "UnavailableVerificationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/VerificationIssue"
+          },
+          "maxItems": 0,
+          "title": "Issues",
+          "type": "array"
+        },
+        "status": {
+          "const": "UNAVAILABLE",
+          "title": "Status",
+          "type": "string"
+        },
+        "verification_version": {
+          "minLength": 1,
+          "title": "Verification Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "verification_version"
+      ],
+      "title": "UnavailableVerificationResult",
+      "type": "object"
+    },
+    "VerificationIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "field_path": {
+          "minLength": 1,
+          "title": "Field Path",
+          "type": "string"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "field_path"
+      ],
+      "title": "VerificationIssue",
+      "type": "object"
+    },
     "WaivedReturnReasonCode": {
       "enum": [
         "ITEM_UNSALVAGEABLE",
@@ -1910,7 +2778,7 @@
     }
   },
   "additionalProperties": false,
-  "description": "Closed-case correction trace consumed by the async memory worker.",
+  "description": "Closed case plus independent learning observations for v2 workers.",
   "properties": {
     "case_context": {
       "$ref": "#/$defs/CaseContext"
@@ -2001,6 +2869,17 @@
       "default": null,
       "title": "Human Review Result"
     },
+    "learning_trace": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LearningTrace"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "policy_bundle": {
       "$ref": "#/$defs/PolicyBundle"
     },
@@ -2018,6 +2897,12 @@
       },
       "title": "Revision Events",
       "type": "array"
+    },
+    "schema_version": {
+      "const": "memory-distillation:2",
+      "default": "memory-distillation:2",
+      "title": "Schema Version",
+      "type": "string"
     }
   },
   "required": [

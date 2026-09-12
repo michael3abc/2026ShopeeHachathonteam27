@@ -19,6 +19,14 @@
     "MemoryCandidate": {
       "additionalProperties": false,
       "properties": {
+        "applicability_limits": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Applicability Limits",
+          "type": "array"
+        },
         "claim_registry_version": {
           "minLength": 1,
           "title": "Claim Registry Version",
@@ -39,6 +47,14 @@
           "minLength": 1,
           "title": "Policy Version",
           "type": "string"
+        },
+        "prohibited_inferences": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Prohibited Inferences",
+          "type": "array"
         },
         "rationale": {
           "minLength": 1,
@@ -68,13 +84,13 @@
           "title": "Source Case Refs",
           "type": "array"
         },
-        "source_revision_event_refs": {
+        "source_event_refs": {
           "items": {
             "minLength": 1,
             "type": "string"
           },
           "minItems": 1,
-          "title": "Source Revision Event Refs",
+          "title": "Source Event Refs",
           "type": "array"
         },
         "status": {
@@ -99,7 +115,7 @@
         "recommended_behavior",
         "rationale",
         "source_case_refs",
-        "source_revision_event_refs",
+        "source_event_refs",
         "policy_version",
         "claim_registry_version",
         "scope",

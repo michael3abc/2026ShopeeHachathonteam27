@@ -23,7 +23,7 @@ from return_agent_contracts.service import (
     MemoryDistillationJob,
 )
 
-from .fixtures import approved_review, memory_candidate
+from .fixtures import approved_review, memory_candidate, memory_reflection
 
 TIME = "2026-09-06T12:00:00Z"
 
@@ -248,7 +248,7 @@ def test_memory_job_is_typed_and_case_bound() -> None:
         issued_at=TIME,
         payload={"input": _memory_input()},
     )
-    assert MEMORY_JOB_STREAM == "return-agent.memory-jobs.v1"
+    assert MEMORY_JOB_STREAM == "return-agent.memory-jobs.v2"
     parsed = MemoryDistillationJob.model_validate(job.model_dump(mode="json"))
     assert parsed.payload.input.final_resolution.handoff_id == "HANDOFF-001"
 
@@ -269,7 +269,7 @@ def test_memory_completion_submission_invariant_is_schema_visible() -> None:
         occurred_at=TIME,
         payload={
             "result": MemoryCandidateOutput(
-                result_type="CREATE_CANDIDATE", candidate=memory_candidate()
+                result_type="CREATE_CANDIDATE", candidate=memory_candidate(), **memory_reflection()
             ),
             "submission_ref": "SUBMISSION-001",
             "distiller_prompt_version": "memory-distiller:1.0",

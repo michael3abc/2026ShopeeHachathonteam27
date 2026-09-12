@@ -28,11 +28,11 @@ AGENT_COMMAND_STREAM = "return-agent.commands.v1"
 AGENT_EVENT_STREAM = "return-agent.events.v1"
 AGENT_COMMAND_DLQ_STREAM = "return-agent.commands.dlq.v1"
 AGENT_WORKER_CONSUMER_GROUP = "return-agent-workers-v1"
-MEMORY_JOB_STREAM = "return-agent.memory-jobs.v1"
-MEMORY_EVENT_STREAM = "return-agent.memory-events.v1"
-MEMORY_JOB_DLQ_STREAM = "return-agent.memory-jobs.dlq.v1"
-MEMORY_ENQUEUE_CONSUMER_GROUP = "return-agent-memory-enqueuers-v1"
-MEMORY_WORKER_CONSUMER_GROUP = "return-agent-memory-workers-v1"
+MEMORY_JOB_STREAM = "return-agent.memory-jobs.v2"
+MEMORY_EVENT_STREAM = "return-agent.memory-events.v2"
+MEMORY_JOB_DLQ_STREAM = "return-agent.memory-jobs.dlq.v2"
+MEMORY_ENQUEUE_CONSUMER_GROUP = "return-agent-memory-enqueuers-v2"
+MEMORY_WORKER_CONSUMER_GROUP = "return-agent-memory-workers-v2"
 REDIS_BODY_FIELD = "body"
 
 
@@ -191,7 +191,7 @@ class MemoryDistillationJobPayload(ContractModel):
 
 
 class MemoryDistillationJob(ContractModel):
-    schema_version: Literal["v1"] = AGENT_SERVICE_SCHEMA_VERSION
+    schema_version: Literal["v2"] = "v2"
     job_id: OpaqueRef
     source_command_id: OpaqueRef
     case_ref: OpaqueRef
@@ -231,7 +231,7 @@ class MemoryDistillationFailedPayload(ContractModel):
 
 
 class _MemoryServiceEventBase(ContractModel):
-    schema_version: Literal["v1"] = AGENT_SERVICE_SCHEMA_VERSION
+    schema_version: Literal["v2"] = "v2"
     event_id: OpaqueRef
     job_id: OpaqueRef
     source_command_id: OpaqueRef
@@ -257,8 +257,8 @@ MemoryServiceEvent: TypeAlias = Annotated[
 
 
 class MemoryJobDeadLetter(ContractModel):
-    schema_version: Literal["v1"] = AGENT_SERVICE_SCHEMA_VERSION
-    source_stream: Literal["return-agent.memory-jobs.v1"] = MEMORY_JOB_STREAM
+    schema_version: Literal["v2"] = "v2"
+    source_stream: Literal["return-agent.memory-jobs.v2"] = MEMORY_JOB_STREAM
     source_message_id: OpaqueRef
     raw_body: str
     error_code: NonEmptyText

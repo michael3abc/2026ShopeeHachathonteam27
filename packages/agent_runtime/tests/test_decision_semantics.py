@@ -166,6 +166,15 @@ def test_reviewer_approved_decline_is_valid(return_policy):
     assert auto.resolution_handoff.final_decision.amount == 0
     assert auto.resolution_handoff.final_decision.refund_scope.line_item_ids == []
     assert "return_decision" not in auto.resolution_handoff.final_decision.model_dump()
+    state = auto_runtime.graph.get_state(
+        {"configurable": {"thread_id": "THREAD-DECLINE-AUTO"}}
+    ).values
+    trace = state["memory_distillation_input"].learning_trace
+    assert trace.status == "COMPLETE"
+    decisions = [event.decision for event in trace.events if event.decision]
+    assert len(decisions) == 2
+    assert all(decision.action == "DECLINE" and decision.return_decision is None
+               for decision in decisions)
     review_call = next(call for call in auto_model.calls if call.task is ModelTask.REVIEW)
     assert "Do not request return_decision" in review_call.system_prompt
     assert "operational_memory" not in review_call.payload

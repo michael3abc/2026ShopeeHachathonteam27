@@ -77,8 +77,8 @@ command；正式 refund executor 尚未組裝，因此全額退款 handoff 會�
 真實 no-UI 整合使用 `integrated-demo` API 與 `integrated-qwen` Agent Service。
 它會呼叫 OpenAI-compatible Qwen/embedding gateways，並走完 PostgreSQL、Redis、
 typed Provider HTTP boundary、補件、Verification、Reviewer 與 demo refund
-application。若案件包含 Reviewer/Human correction，結案後另由獨立 Memory
-Enqueue/Distillation workers 產生並提交 `CANDIDATE`，不阻塞退款結果：
+application。所有完成裁決案件在結案後由獨立 Memory workers 做整案回顧，
+產生至多一則 `CANDIDATE` 或明確 `SKIP`，不阻塞退款結果。完整 trace、v2 工作分流與 migration 邊界見 [Operational Memory](docs/spec/04-operational-memory.md#whole-case-learning-v2)：
 
 ```bash
 mkdir -p .secrets

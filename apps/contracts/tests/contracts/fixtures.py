@@ -231,6 +231,16 @@ def proposed_handoff() -> ProposedDecisionHandoff:
     )
 
 
+def memory_reflection():
+    return dict(
+        case_review=dict(key_issue="Evidence context matters.", actions_taken=["Assessed evidence."],
+            observations=["Observed damage."], judgment_changes=[], final_action="FULL_REFUND",
+            limitations=["Execution and causal benefit not verified."], source_event_refs=["EVENT-1"]),
+        learning=dict(category="OPERATIONAL_METHOD", explanation="A context-aware observation.",
+            source_event_refs=["EVENT-1"]),
+    )
+
+
 def memory_candidate() -> MemoryCandidate:
     return MemoryCandidate(
         memory_id="MEM-001",
@@ -241,7 +251,7 @@ def memory_candidate() -> MemoryCandidate:
         recommended_behavior="Request all missing evidence in one EvidenceRequest.",
         rationale="A human correction showed this reduces repeated evidence rounds.",
         source_case_refs=["CASE-005"],
-        source_revision_event_refs=["REV-001"],
+        source_event_refs=["REV-001"],
         policy_version="POLICY-12:v3",
         claim_registry_version="claim-registry:1.0",
         scope=MemoryScope(

@@ -65,8 +65,8 @@
       "$ref": "#/$defs/MemoryDistillationFailedPayload"
     },
     "schema_version": {
-      "const": "v1",
-      "default": "v1",
+      "const": "v2",
+      "default": "v2",
       "title": "Schema Version",
       "type": "string"
     },

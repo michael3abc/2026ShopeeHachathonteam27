@@ -18,6 +18,7 @@ from return_agent_contracts.interfaces import (
 )
 
 from .model import StructuredOutputModel
+from .learning import LearningTraceLimits
 
 
 class Clock(Protocol):
@@ -63,6 +64,7 @@ class AgentDependencies:
     human_review_provider: HumanReviewProvider
     operational_memory_store: OperationalMemoryStore
     evidence_provider: EvidenceProvider
+    learning_trace_limits: LearningTraceLimits = field(default_factory=LearningTraceLimits)
     reviewer_gate_config: ReviewerGateConfig = field(default_factory=ReviewerGateConfig)
     clock: Clock = UtcClock()
     id_factory: IdFactory = StableIdFactory()

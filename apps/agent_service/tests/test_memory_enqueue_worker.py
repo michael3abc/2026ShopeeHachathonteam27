@@ -135,53 +135,11 @@ def _resolved_event() -> AgentResolvedEvent:
 
 def _prepared_input() -> MemoryDistillationInput:
     runtime = create_demo_runtime()
-    result = runtime.start(
-        thread_id="THREAD-MEMORY-INPUT",
-        case_ref="CASE-001",
-        initial_turn=UserTurn(
-            turn_id="TURN-MEMORY-INPUT",
-            role="USER",
-            text="ORDER-DEMO 的喇叭到貨時損壞",
-            attached_artifact_refs=["artifact://demo/damage"],
-            received_at=TIME,
-        ),
-    )
-    state = runtime.graph.get_state(
-        {"configurable": {"thread_id": "THREAD-MEMORY-INPUT"}}
-    ).values
-    proposal = state["current_handoff"]
-    review = RevisedReviewResult(
-        verdict="REVISE",
-        reviewer_claim_findings=state["evidence_assessment"].claim_findings,
-        revision_reasons=[
-            RevisionReason(
-                code="EVIDENCE_INSUFFICIENT",
-                message="Related evidence was split across requests.",
-                subject="LI-DEMO",
-                required_change="Request the package and damage together.",
-            )
-        ],
-        reviewer_prompt_version="reviewer:1.0",
-        reviewed_at=TIME,
-    )
-    return MemoryDistillationInput(
-        case_context=state["case_context"],
-        policy_bundle=state["policy_bundle"],
-        evidence_assessment=state["evidence_assessment"],
-        proposal_history=[proposal],
-        revision_events=[
-            DecisionRevisionEvent(
-                event_id="REVISION-001",
-                case_ref="CASE-001",
-                handoff_before_ref=proposal.handoff_id,
-                review_result=review,
-                revision_round=1,
-                created_at=TIME,
-            )
-        ],
-        final_resolution=result.resolution_handoff,
-        claimed_categories=["CAT-AUDIO-SPEAKERS"],
-    )
+    runtime.start(thread_id="THREAD-001", case_ref="CASE-001", initial_turn=UserTurn(
+        turn_id="TURN-001", role="USER", text="ORDER-DEMO 的喇叭到貨時損壞",
+        attached_artifact_refs=["artifact://demo/damage"], received_at=TIME,
+    ))
+    return runtime.graph.get_state({"configurable": {"thread_id": "THREAD-001"}}).values["memory_distillation_input"]
 
 
 def _worker(provider, broker) -> MemoryEnqueueWorker:
@@ -207,14 +165,14 @@ async def test_resolved_event_enqueues_stable_memory_job_then_acks() -> None:
     assert len(broker.jobs) == 1
     job = broker.jobs[0]
     assert job.job_id == (
-        f"memory:{event.payload.result.resolution_handoff.handoff_id}"
+        f"memory-v2:{event.payload.result.resolution_handoff.handoff_id}"
     )
     assert job.source_command_id == "COMMAND-001"
     assert broker.acks == ["1-1"]
 
 
 @pytest.mark.asyncio
-async def test_resolution_without_correction_payload_is_acked_without_job() -> None:
+async def test_resolution_without_checkpoint_payload_is_acked_without_job() -> None:
     provider = InputProviderFake(None)
     broker = EnqueueBrokerFake(_resolved_event().model_dump_json())
 
@@ -222,6 +180,15 @@ async def test_resolution_without_correction_payload_is_acked_without_job() -> N
 
     assert broker.jobs == []
     assert broker.acks == ["1-1"]
+
+
+@pytest.mark.asyncio
+async def test_mismatched_checkpoint_is_not_enqueued():
+    input_ = _prepared_input()
+    input_.learning_trace.thread_id = "ANOTHER-THREAD"
+    broker = EnqueueBrokerFake(_resolved_event().model_dump_json())
+    assert await _worker(InputProviderFake(input_), broker).run_once()
+    assert broker.jobs == [] and broker.acks == ["1-1"]
 
 
 @pytest.mark.asyncio

@@ -120,6 +120,8 @@ def _to_approved_memory(record: OperationalMemoryRecord) -> ApprovedMemory:
             retrieval_summary=record.retrieval_summary,
             status=MemoryStatus.APPROVED,
             recommended_behavior=record.recommended_behavior,
+            applicability_limits=list(record.applicability_limits),
+            prohibited_inferences=list(record.prohibited_inferences),
             trigger_conditions=list(record.trigger_conditions),
             policy_version=record.policy_version,
             claim_registry_version=record.claim_registry_version,
@@ -203,9 +205,11 @@ class SqlAlchemyOperationalMemoryStore(OperationalMemoryStore):
                         recommended_behavior=validated_candidate.recommended_behavior,
                         rationale=validated_candidate.rationale,
                         source_case_refs=list(validated_candidate.source_case_refs),
-                        source_revision_event_refs=list(
-                            validated_candidate.source_revision_event_refs
+                        source_event_refs=list(
+                            validated_candidate.source_event_refs
                         ),
+                        applicability_limits=list(validated_candidate.applicability_limits),
+                        prohibited_inferences=list(validated_candidate.prohibited_inferences),
                         policy_version=validated_candidate.policy_version,
                         claim_registry_version=validated_candidate.claim_registry_version,
                         scope_market=validated_candidate.scope.market,

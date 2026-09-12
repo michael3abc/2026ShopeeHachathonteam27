@@ -19,6 +19,14 @@
     "MemoryCandidate": {
       "additionalProperties": false,
       "properties": {
+        "applicability_limits": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Applicability Limits",
+          "type": "array"
+        },
         "claim_registry_version": {
           "minLength": 1,
           "title": "Claim Registry Version",
@@ -39,6 +47,14 @@
           "minLength": 1,
           "title": "Policy Version",
           "type": "string"
+        },
+        "prohibited_inferences": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Prohibited Inferences",
+          "type": "array"
         },
         "rationale": {
           "minLength": 1,
@@ -68,13 +84,13 @@
           "title": "Source Case Refs",
           "type": "array"
         },
-        "source_revision_event_refs": {
+        "source_event_refs": {
           "items": {
             "minLength": 1,
             "type": "string"
           },
           "minItems": 1,
-          "title": "Source Revision Event Refs",
+          "title": "Source Event Refs",
           "type": "array"
         },
         "status": {
@@ -99,7 +115,7 @@
         "recommended_behavior",
         "rationale",
         "source_case_refs",
-        "source_revision_event_refs",
+        "source_event_refs",
         "policy_version",
         "claim_registry_version",
         "scope",
@@ -140,6 +156,12 @@
         "candidate": {
           "$ref": "#/$defs/MemoryCandidate"
         },
+        "case_review": {
+          "$ref": "#/$defs/MemoryCaseReview"
+        },
+        "learning": {
+          "$ref": "#/$defs/MemoryLearningJudgment"
+        },
         "result_type": {
           "const": "CREATE_CANDIDATE",
           "title": "Result Type",
@@ -148,9 +170,131 @@
       },
       "required": [
         "result_type",
+        "case_review",
+        "learning",
         "candidate"
       ],
       "title": "MemoryCandidateOutput",
+      "type": "object"
+    },
+    "MemoryCaseReview": {
+      "additionalProperties": false,
+      "properties": {
+        "actions_taken": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "title": "Actions Taken",
+          "type": "array"
+        },
+        "downstream_execution_verified": {
+          "const": false,
+          "default": false,
+          "title": "Downstream Execution Verified",
+          "type": "boolean"
+        },
+        "final_action": {
+          "$ref": "#/$defs/ResolutionAction"
+        },
+        "judgment_changes": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Judgment Changes",
+          "type": "array"
+        },
+        "key_issue": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Key Issue",
+          "type": "string"
+        },
+        "limitations": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Limitations",
+          "type": "array"
+        },
+        "observations": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "title": "Observations",
+          "type": "array"
+        },
+        "source_event_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "minItems": 1,
+          "title": "Source Event Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "key_issue",
+        "actions_taken",
+        "observations",
+        "judgment_changes",
+        "final_action",
+        "limitations",
+        "source_event_refs"
+      ],
+      "title": "MemoryCaseReview",
+      "type": "object"
+    },
+    "MemoryLearningJudgment": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "enum": [
+            "VERIFIABLE_ERROR",
+            "OPERATIONAL_METHOD",
+            "CASE_DISCRETION",
+            "EXISTING_RULE",
+            "INSUFFICIENT_EVIDENCE",
+            "SYSTEM_DEFECT"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "explanation": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        },
+        "source_event_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "minItems": 1,
+          "title": "Source Event Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "category",
+        "explanation",
+        "source_event_refs"
+      ],
+      "title": "MemoryLearningJudgment",
       "type": "object"
     },
     "MemoryScope": {
@@ -217,6 +361,28 @@
     "MemorySkipOutput": {
       "additionalProperties": false,
       "properties": {
+        "case_review": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MemoryCaseReview"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "learning": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MemoryLearningJudgment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "reason_code": {
           "$ref": "#/$defs/MemorySkipReasonCode"
         },
@@ -235,6 +401,11 @@
     },
     "MemorySkipReasonCode": {
       "enum": [
+        "TRACE_INCOMPLETE",
+        "TRACE_LIMIT_EXCEEDED",
+        "TRACE_UNSAFE_CONTENT",
+        "NO_GENERALIZABLE_LESSON",
+        "SYSTEM_DEFECT",
         "NO_FINAL_OUTCOME",
         "CASE_SPECIFIC_ONLY",
         "DATA_ENTRY_ERROR",
@@ -257,6 +428,14 @@
         "CHANGED_MIND"
       ],
       "title": "ReasonCode",
+      "type": "string"
+    },
+    "ResolutionAction": {
+      "enum": [
+        "DECLINE",
+        "FULL_REFUND"
+      ],
+      "title": "ResolutionAction",
       "type": "string"
     }
   },
@@ -300,8 +479,8 @@
       "title": "Payload"
     },
     "schema_version": {
-      "const": "v1",
-      "default": "v1",
+      "const": "v2",
+      "default": "v2",
       "title": "Schema Version",
       "type": "string"
     },

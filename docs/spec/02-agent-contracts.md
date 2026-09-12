@@ -588,7 +588,7 @@ External。**必須結構化** —— [Operational Memory](04-operational-memory
 - `EDIT` 時 `corrected_decision` 與 `correction_reason_code` 必填；`APPROVE`/`REJECT` 不得帶 correction 欄位。
 - `corrected_decision` 只能調整 `action`、`refund_scope` 與退貨決定；`amount` 依同一公式重算，不得手動指定。若修正後為 `FULL_REFUND`，必須帶 `return_decision.source = HUMAN_REVIEW` 與 boolean 相容的新 reason；若為 `DECLINE` 則不得帶 `return_decision`。
 - `correction_reason_code` 為 `CLAIM_NOT_ESTABLISHED | POLICY_MISAPPLIED | SCOPE_INCORRECT | RETURN_REQUIREMENT_INCORRECT | OTHER`。
-- Agent 僅消費此結果以建立 correction trace；不負責 UI 或執行。
+- Agent 消費此結果建立最終裁決與全案 learning trace；EDIT 保留 correction 資訊，APPROVE／REJECT 不偽造 revision。Agent 不負責 UI 或退款執行。
 
 ## ResolutionHandoff
 
@@ -649,10 +649,11 @@ Agent 不得宣稱退款已執行；`final_resolution` 由外部執行系統確�
 
 ## MemoryDistillationInput
 
-Graph-derived。只在案件已有 final `ResolutionHandoff` 且存在 Reviewer revision 或 Human `EDIT/REJECT` 時組裝，作為非同步 Memory Worker 的封閉輸入：
+Graph-derived。所有已有 final `ResolutionHandoff` 的完成裁決均組裝，包含無 revision 與合法拒絕。等待補件、等待人工及技術終止不符合條件。作為非同步 Memory Worker 的封閉輸入：
 
 ```text
 case_context
+learning_trace?
 policy_bundle
 evidence_assessment
 proposal_history[]
@@ -663,6 +664,8 @@ claimed_categories[]
 ```
 
 所有 case references 必須一致；`final_resolution.handoff_id` 必須等於最後一筆 proposal，`claimed_categories` 只能由 claimed line items deterministic 推導且不得重複。此 DTO 不包含 UserTurn 原文、使用者 reference 或 artifact bytes。Memory job/event transport 見 [External Interfaces](08-external-interfaces.md#api-與-agent-service-邊界)。
+
+`learning_trace` 使用 `learning-trace:2`，checkpoint 保存 allowlisted 的 intake、查詢版本、補件／觀察、assessment、提案、Verification、Reviewer、人工結果及 final handoff；穩定 event ID 與連續序號用於來源驗證。缺失、不完整、不安全或超限 trace 必須明示 SKIP，不默默截斷。完整 trace 的模型輸出必須含 `case_review` 與 `learning`，以及至多一則操作經驗或 SKIP；新經驗的 `source_event_refs` 必須存在於該案 trace，不能偽造 correction。
 
 ## ManualEscalationHandoff
 

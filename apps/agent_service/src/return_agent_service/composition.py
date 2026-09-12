@@ -26,6 +26,7 @@ from return_agent_runtime import (
     create_checkpoint_serializer,
 )
 from return_agent_runtime.model import StructuredOutputModel
+from return_agent_runtime.learning import LearningTraceLimits
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 
@@ -134,6 +135,7 @@ def compose_integrated_service(
                     "client": client,
                 }
                 dependencies = AgentDependencies(
+                    learning_trace_limits=LearningTraceLimits(settings.learning_trace_max_events, settings.learning_trace_max_bytes),
                     reviewer_gate_config=load_reviewer_gate_config(os.environ.get("RETURN_AGENT_REVIEW_GATE_CONFIG")),
                     model=model,
                     case_context_provider=HttpCaseContextProvider(**provider_args),
@@ -167,7 +169,7 @@ def compose_integrated_service(
                 )
                 memory_worker = MemoryWorker(
                     activity_sink=publisher.submit,
-                    distiller=MemoryDistiller(model=ObservedProvider(model, "model", "model")),
+                    distiller=MemoryDistiller(model=ObservedProvider(model, "model", "model"), trace_limits=dependencies.learning_trace_limits),
                     store=ObservedProvider(dependencies.operational_memory_store, "operational_memory_store"),
                     broker=broker,
                     journal=journal,

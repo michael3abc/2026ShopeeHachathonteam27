@@ -38,6 +38,7 @@ from .conftest import (
 )
 from .fakes import QueuedModel
 from .test_interrupt_resume import complete_intake
+from .test_learning_distillation import reflection
 
 
 def verification_issue(code="BAD_RETURN") -> VerificationIssue:
@@ -109,6 +110,7 @@ async def test_closed_revision_prepares_and_distills_memory_candidate():
         ModelTask.MEMORY_DISTILL,
         {
             "result_type": "CREATE_CANDIDATE",
+            **reflection(memory_input.learning_trace),
             "candidate": {
                 "memory_id": "MODEL-MEMORY-ID",
                 "retrieval_summary": "Reviewer correction required; apply the cited correction before review.",
@@ -116,7 +118,9 @@ async def test_closed_revision_prepares_and_distills_memory_candidate():
                 "recommended_behavior": "Apply the cited correction before review.",
                 "rationale": "The revised proposal was approved.",
                 "source_case_refs": ["MODEL-CASE"],
-                "source_revision_event_refs": ["MODEL-REVISION"],
+                "source_event_refs": [e.event_id for e in memory_input.learning_trace.events],
+                "applicability_limits": ["Only the observed evidence gap."],
+                "prohibited_inferences": ["Does not prove refund eligibility."],
                 "policy_version": "MODEL-POLICY",
                 "claim_registry_version": "model-registry:9.0",
                 "scope": {
@@ -155,7 +159,7 @@ async def test_closed_revision_prepares_and_distills_memory_candidate():
     )
     model.queue(
         ModelTask.MEMORY_DISTILL,
-        MemoryCandidateOutput(result_type="CREATE_CANDIDATE", candidate=leaked),
+        MemoryCandidateOutput(result_type="CREATE_CANDIDATE", candidate=leaked, **reflection(memory_input.learning_trace)),
     )
     with pytest.raises(ValueError, match="PII or a raw artifact"):
         MemoryDistiller(model).distill(memory_input)
@@ -169,7 +173,7 @@ async def test_closed_revision_prepares_and_distills_memory_candidate():
     )
     model.queue(
         ModelTask.MEMORY_DISTILL,
-        MemoryCandidateOutput(result_type="CREATE_CANDIDATE", candidate=out_of_scope),
+        MemoryCandidateOutput(result_type="CREATE_CANDIDATE", candidate=out_of_scope, **reflection(memory_input.learning_trace)),
     )
     with pytest.raises(ValueError, match="category scope exceeds claimed items"):
         MemoryDistiller(model).distill(memory_input)

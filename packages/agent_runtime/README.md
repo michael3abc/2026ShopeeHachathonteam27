@@ -2,7 +2,9 @@
 
 `packages/agent_runtime` 提供 Adaptive Return Resolution Agent 的純 Python library：LangGraph、LLM structured-output adapter、deterministic assembly，以及 typed start/resume 介面。它直接使用 [`apps/contracts`](../../apps/contracts/README.md) 的 DTO 與 Provider Protocol，不複製 contract。
 
-本 package **不包含** FastAPI route、前端、DB、HTTP client、真實 Provider 實作或退款執行。Operational Memory 在 graph 內提供 `query_approved` retrieval 與 correction payload 組裝，並提供可由 service worker 呼叫的純 `MemoryDistiller`；Redis transport、candidate submission 與 approval 不屬於 runtime。
+本 package **不包含** FastAPI route、前端、DB、HTTP client、真實 Provider 實作或退款執行。Operational Memory 在 graph 內提供 `query_approved` retrieval 與全案 typed learning trace，並提供可由 service worker 呼叫的純 `MemoryDistiller`；Redis transport、candidate submission 與 approval 不屬於 runtime。
+
+所有完成裁決的案件（含無修正與拒絕）可輸出整案回顧、學習判定及至多一則經驗候選；缺失、不安全或超限歷程明確 SKIP，不阻塞結案。Trace 存於 checkpoint，不依賴 Activity／narration。經驗不能改寫 Policy 或直接核准退款；整案回顧不進入向量索引。
 
 ## 安裝與測試
 

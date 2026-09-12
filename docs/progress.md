@@ -5,6 +5,31 @@
 
 此文件追蹤功能里程碑、測試結果與未完成項目。
 
+## 2026-09-12 全流程 Memory 蒸餾驗證
+
+以下為獨立 `feat/enhance-memory-distill` worktree 的驗證，不變更下方重建里程碑歷史，也未部署或重啟既有服務。
+
+- 已實作：checkpoint 全案 learning trace、無修正／拒絕案件蒸餾、整案回顧與至多一則受限經驗或 SKIP、v2 工作隔離、一般來源事件與保留治理的 0014 migration。修正 DECLINE 不含 return_decision 時的 trace 投影，拒絕 wildcard scope 擴張。
+- `make check`：Contracts 80、API 207、Runtime 99、Service 71、跨服務／重建 23，合計 480 項。涵蓋 interrupt/resume、來源不符、PII、trace 缺失／超限、無新經驗、人審與合法拒絕、pending prompt 衝突、v1 job 拒絕及 replay。
+- `make check-web`：22 tests、lint、TypeScript／Next production build 通過；`make contracts` 與前端 contracts 生成成功，固定 `docs/reconstruction/` 無修改。
+- 獨立 PostgreSQL 上執行 `MEMORY_TEST_POSTGRES_URL=... uv run --all-packages pytest apps/api/tests/test_memory_learning_migration.py -q`：2 passed；保留舊來源／向量／治理與冪等，驗證合法 rollback 及 v2 資料降版拒絕。相同測試加入 CI。
+- API、Agent Service、Web Docker build 及 Compose config 通過。測試容器與進程由各隔離 runner 清理；不刪正式資料。
+
+### 真實模型單案 E2E
+
+在 yoyo-laptop 的獨立 WSL worktree，使用既有明示設定的 `compass-5.6-luna`、`text-embedding-3-large`／1536 維；無模型 retry 或 fake fallback。PostgreSQL、Redis、API、Agent 全部隔離；測試治理先退役 demo 預置經驗，來源案未取用人工撰寫 Memory。
+
+| Run | 結果 | 證據 |
+| --- | --- | --- |
+| `20260912T055422Z` | PASS；81.15 秒 | `CASE-49391403`，補件後 RESOLVED，15 個 COMPLETE trace events，無 revision；真模型產生整案回顧與 OPERATIONAL_METHOD candidate，embedding 入庫。 |
+| `20260912T055924Z` | PASS；76.33 秒 | `CASE-78E3AB4D`，同一路徑；加驗 1200 TWD、僅喇叭品項之模擬退款 SUCCEEDED／APPLIED，Memory 重送已由 worker ACK 且首次結果／terminal event 不變。 |
+
+產出的建議是分開判定「商品實體損壞」與「到貨時已損壞」，針對缺口收集同時呈現包裝及損壞位置的補充證據，重新判讀而非照抄退款結果。候選仍為 CANDIDATE、沒有自動核准。
+
+兩次完整產物與 runner 保留於本機忽略的 `mockcase_generater/behavior_v2/`，不提交憑證或原始執行資料。第二次模型結果另通過最新 wildcard scope 驗證；該加嚴檢查於 E2E 後新增，以 deterministic regression 驗證，未再次呼叫模型。
+
+限制：這是合成訂單／證據 metadata 與 demo 退款 adapter，不是圖片辨識、真金流或瀏覽器操作驗收。只證明全流程蒸餾可運作，**尚未證實 Memory 改善下一案**；8 組 A/B/C 先導未執行，也未擴量。切換新版前仍需處理舊版 pending 工作。
+
 | 任務 | 狀態 | 證據／未完成 |
 | --- | --- | --- |
 | T01 骨架與依賴 | 骨架驗證通過 | 四個 packages 可安裝；Python 3.12.0、uv.lock、npm lock；3 項架構／health 測試通過，Next build 通過，Compose config 通過。Docker daemon／映像建置未驗證。 |

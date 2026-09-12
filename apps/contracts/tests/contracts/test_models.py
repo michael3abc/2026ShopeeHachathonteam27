@@ -44,6 +44,7 @@ from return_agent_contracts.models import (
 )
 
 from .fixtures import (
+    memory_reflection,
     TIME,
     approved_review,
     case_context,
@@ -380,7 +381,7 @@ def test_memory_candidate_union_is_candidate_only() -> None:
         recommended_behavior="Ask for both in one request.",
         rationale="A correction established this is more efficient.",
         source_case_refs=["CASE-001"],
-        source_revision_event_refs=["REV-001"],
+        source_event_refs=["REV-001"],
         policy_version="POLICY-12:v3",
         claim_registry_version="claim-registry:1.0",
         scope=MemoryScope(market="TW", claim_ids=[ClaimId.DAMAGE_PRESENT_ON_ARRIVAL]),
@@ -391,7 +392,7 @@ def test_memory_candidate_union_is_candidate_only() -> None:
         _validate(
             MemoryDistillationOutput,
             MemoryCandidateOutput(
-                result_type="CREATE_CANDIDATE", candidate=candidate
+                result_type="CREATE_CANDIDATE", candidate=candidate, **memory_reflection()
             ).model_dump(mode="json"),
         ).result_type
         == "CREATE_CANDIDATE"

@@ -8,7 +8,7 @@
     "recommended_behavior": "Request all remaining buyer-provided evidence in one EvidenceRequest, including the package condition and the damaged area, instead of splitting the request across rounds.",
     "rationale": "A reviewed correction showed that repeated evidence requests were avoidable when all unresolved buyer-evidence claims were requested together.",
     "source_case_refs": ["CASE-DEMO-SOURCE-001"],
-    "source_revision_event_refs": ["REV-DEMO-SOURCE-001"],
+    "source_event_refs": ["REV-DEMO-SOURCE-001"],
     "policy_version": "RETURNS-TW:v1",
     "claim_registry_version": "claim-registry:1.0",
     "scope": {

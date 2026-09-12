@@ -378,7 +378,7 @@ def build_resolution_handoff(
 
 
 def build_memory_distillation_input(state: AgentState) -> MemoryDistillationInput:
-    """Assemble the closed correction trace without adding transport concerns."""
+    """Assemble the closed whole-case history without transport concerns."""
 
     resolution = state.get("resolution_handoff")
     assessment = state.get("evidence_assessment")
@@ -386,6 +386,7 @@ def build_memory_distillation_input(state: AgentState) -> MemoryDistillationInpu
     if resolution is None or assessment is None or not proposals:
         raise ContractInvariantError("memory distillation trace is incomplete")
     return MemoryDistillationInput(
+        learning_trace=state.get("learning_trace"),
         case_context=state["case_context"],
         policy_bundle=state["policy_bundle"],
         evidence_assessment=assessment,

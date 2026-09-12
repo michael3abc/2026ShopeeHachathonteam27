@@ -98,6 +98,13 @@ claim、claimed-item categories、policy version 與 claim-registry major versio
 API 或 case-memory search。Lifecycle timestamp 一律由服務端產生，且資料庫
 保證 submission、approval、retirement 的時間順序。
 
+`0014_memory_learning_sources` 將 correction-only 來源欄位改為
+`source_event_refs`，新增 `applicability_limits`／`prohibited_inferences`；
+保留歷史來源、embedding、治理狀態及時間，並重算 candidate hash 以維持冪等。
+新學習資料存在時禁止降版成 correction-only 資料；升級只在隔離環境驗證，
+正式切換前先處理舊版 pending 工作。整案回顧保存在 Agent-owned replay，
+API 向量索引只保存經驗，不索引案件歷史。
+
 ## Verification
 
 Verification 使用 handoff_verifications，以 handoff_id 與 canonical payload hash 保證冪等：

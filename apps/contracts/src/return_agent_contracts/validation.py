@@ -72,7 +72,7 @@ def validate_memory_candidate(candidate: MemoryCandidate) -> None:
     validate_memory_summary(candidate.retrieval_summary)
     unique_lists = {
         "source_case_refs": candidate.source_case_refs,
-        "source_revision_event_refs": candidate.source_revision_event_refs,
+        "source_event_refs": candidate.source_event_refs,
         "scope.reason_codes": candidate.scope.reason_codes,
         "scope.claim_ids": candidate.scope.claim_ids,
         "scope.categories": candidate.scope.categories,
@@ -85,6 +85,8 @@ def validate_memory_candidate(candidate: MemoryCandidate) -> None:
         *candidate.trigger_conditions,
         candidate.recommended_behavior,
         candidate.rationale,
+        *candidate.applicability_limits,
+        *candidate.prohibited_inferences,
     ]
     for text in natural_language:
         if any(pattern.search(text) for pattern in _CANDIDATE_PII_PATTERNS):

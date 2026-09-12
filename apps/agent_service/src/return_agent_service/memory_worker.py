@@ -167,7 +167,7 @@ class MemoryWorker:
 
         event = MemoryDistillationCompletedEvent(
             event_type="COMPLETED",
-            event_id=f"memory-event:{job.job_id}:completed",
+            event_id=f"memory-event-v2:{job.job_id}:completed",
             job_id=job.job_id,
             source_command_id=job.source_command_id,
             case_ref=job.case_ref,
@@ -195,7 +195,7 @@ class MemoryWorker:
         LOGGER.error("memory job %s failed (%s)", job.job_id, error_type)
         event = MemoryDistillationFailedEvent(
             event_type="FAILED",
-            event_id=f"memory-event:{job.job_id}:failed",
+            event_id=f"memory-event-v2:{job.job_id}:failed",
             job_id=job.job_id,
             source_command_id=job.source_command_id,
             case_ref=job.case_ref,

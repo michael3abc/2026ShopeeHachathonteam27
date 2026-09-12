@@ -83,7 +83,7 @@ def test_memory_http_contract_preserves_query_and_cosine_order():
 
     candidate = memory_candidate().model_dump(mode="json")
     approved = {key: value for key, value in candidate.items() if key not in {
-        "rationale", "source_case_refs", "source_revision_event_refs", "status",
+        "rationale", "source_case_refs", "source_event_refs", "status",
     }} | {"status": "APPROVED", "approved_at": TIME}
     hits = [{"memory": approved | {"memory_id": name, "confidence": confidence}, "similarity": score}
             for name, confidence, score in [("LOW", 0.1, 0.9), ("HIGH", 0.99, 0.7)]]

@@ -19,6 +19,22 @@ ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "docs/reconstruction"
 
 
+def baseline_candidate(candidate):
+    """Explicit v1 snapshot projection, not a production compatibility path."""
+    payload = candidate.model_dump(mode="json")
+    assert payload.pop("applicability_limits") == []
+    assert payload.pop("prohibited_inferences") == []
+    payload["source_revision_event_refs"] = payload.pop("source_event_refs")
+    return payload
+
+
+def validate_baseline_candidate(raw):
+    payload = dict(raw)
+    assert "source_event_refs" not in payload
+    payload["source_event_refs"] = payload.pop("source_revision_event_refs")
+    v.validate_memory_candidate(m.MemoryCandidate.model_validate(payload))
+
+
 def build():
     spec = importlib.util.spec_from_file_location("contract_fixtures", ROOT / "apps/contracts/tests/contracts/fixtures.py")
     fixtures = importlib.util.module_from_spec(spec)
@@ -43,7 +59,7 @@ def build():
     high = m.HumanReviewDossier(claimed_line_item_ids=["LI-002"], claim_registry_version="claim-registry:1.0", routing_reason="HIGH_VALUE_ITEM", review_gate=high_gate, order_snapshot=high_snapshot, policy_bundle=policy, proposal_history=[high_handoff], review_history=[review])
     common = dict(case_ref="CASE-001", run_id="run-demo", scope="CASE", node="reviewer", operation_id="op-review-node", attempt_id="attempt-demo", occurred_at=fixtures.TIME)
     activities = [ActivityEvent(**common, event_id="evt-start", seq=1, payload={"type": "node", "phase": "STARTED", "name": "reviewer"}), ActivityEvent(**common, event_id="evt-complete", seq=2, payload={"type": "node", "phase": "COMPLETED", "name": "reviewer", "duration_ms": 140}), ActivityEvent(**common, event_id="evt-summary", seq=3, payload={"type": "node_summary", "facts": {"verdict": "APPROVE", "next_node": "emit_resolution_handoff"}}), ActivityEvent(**common, event_id="evt-disabled", seq=4, payload={"type": "narration", "source_event_id": "evt-summary", "status": "UNAVAILABLE", "error_code": "NARRATION_DISABLED_OFFLINE_DEMO"})]
-    return {"synthetic": True, "case_context": fixtures.case_context().model_dump(mode="json"), "order_snapshot": snapshot.model_dump(mode="json"), "policy_bundle": policy.model_dump(mode="json"), "claimed_line_item_ids": ["LI-002"], "assessment": assessment.model_dump(mode="json"), "draft": draft.model_dump(mode="json"), "handoff": handoff.model_dump(mode="json"), "review": review.model_dump(mode="json"), "revision_dossier": dossier.model_dump(mode="json"), "amount_dossier": high.model_dump(mode="json"), "candidate": fixtures.memory_candidate().model_dump(mode="json"), "activities": [a.model_dump(mode="json") for a in activities]}
+    return {"synthetic": True, "case_context": fixtures.case_context().model_dump(mode="json"), "order_snapshot": snapshot.model_dump(mode="json"), "policy_bundle": policy.model_dump(mode="json"), "claimed_line_item_ids": ["LI-002"], "assessment": assessment.model_dump(mode="json"), "draft": draft.model_dump(mode="json"), "handoff": handoff.model_dump(mode="json"), "review": review.model_dump(mode="json"), "revision_dossier": dossier.model_dump(mode="json"), "amount_dossier": high.model_dump(mode="json"), "candidate": baseline_candidate(fixtures.memory_candidate()), "activities": [a.model_dump(mode="json") for a in activities]}
 
 
 def validate(raw):
@@ -61,7 +77,7 @@ def validate(raw):
     v.validate_proposed_decision_draft(draft, assessment, policy, snapshot, claimed)
     v.validate_proposed_decision_handoff(handoff, policy, snapshot)
     v.validate_review_result(review, handoff, policy, snapshot, claimed)
-    v.validate_memory_candidate(m.MemoryCandidate.model_validate(raw["candidate"]))
+    validate_baseline_candidate(raw["candidate"])
     for key in ("revision_dossier", "amount_dossier"):
         dossier = m.HumanReviewDossier.model_validate(raw[key])
         v.validate_human_review_entry(dossier.proposal_history[-1], dossier.review_history[-1], dossier, ReviewerGateConfig())
@@ -131,7 +147,7 @@ def main():
         by_ref = {item.artifact_ref: item for item in evidence}
         assert all(ref in by_ref and by_ref[ref].subject in subjects for ref in refs)
     preload = json.loads((demo / "memory-preload.json.example").read_text())
-    v.validate_memory_candidate(m.MemoryCandidate.model_validate(preload["candidate"]))
+    validate_baseline_candidate(preload["candidate"])
     for template in json.loads((demo / "human-review.json.example").read_text()):
         request = dict(template["request"], handoff_id="synthetic-bound-handoff")
         TypeAdapter(ReviewDecision).validate_python(request)

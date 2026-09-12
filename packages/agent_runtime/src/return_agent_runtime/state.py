@@ -20,6 +20,8 @@ from return_agent_contracts.models import (
     IntakeResult,
     ManualEscalationHandoff,
     MemoryDistillationInput,
+    LearningTrace,
+    VerificationResult,
     MemoryRetrievalObservation,
     OrderSnapshot,
     PolicyBundle,
@@ -68,6 +70,8 @@ class AgentState(TypedDict, total=False):
     human_review_result: HumanReviewResult | None
     resolution_handoff: ResolutionHandoff | None
     memory_distillation_input: MemoryDistillationInput | None
+    learning_trace: LearningTrace
+    verification_result: VerificationResult | None
     manual_escalation: ManualEscalationHandoff | None
     escalation_reason: EscalationReason | None
     clarification_round: int

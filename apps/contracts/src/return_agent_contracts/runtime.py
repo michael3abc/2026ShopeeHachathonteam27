@@ -1,10 +1,6 @@
 """Cross-component Python invocation contracts for the Agent runtime."""
 
 from __future__ import annotations
-from .review_gates import HumanReviewRoutingReason
-from .review_gates import ReviewGateResult
-
-from .models import ReviewResult
 
 from enum import StrEnum
 from typing import Annotated, Literal, TypeAlias
@@ -22,9 +18,10 @@ from .models import (
     PolicyBundle,
     ProposedDecisionHandoff,
     ResolutionHandoff,
-    RevisedReviewResult,
+    ReviewResult,
     UserTurn,
 )
+from .review_gates import HumanReviewRoutingReason, ReviewGateResult
 
 
 class AgentInterruptKind(StrEnum):
@@ -167,6 +164,14 @@ class ClarificationResume(ContractModel):
 class EvidenceResume(ContractModel):
     kind: Literal[AgentInterruptKind.EVIDENCE_REQUEST]
     artifact_refs: list[OpaqueRef] = Field(min_length=1)
+    # Learning-only: never silently substitute this text for provider evidence.
+    turn: AgentInputTurn | None = None
+
+    @model_validator(mode="after")
+    def _matching_turn_artifacts(self) -> EvidenceResume:
+        if self.turn is not None and self.turn.attached_artifact_refs != self.artifact_refs:
+            raise ValueError("evidence reply must reference the submitted artifacts")
+        return self
 
 
 class HumanReviewPollResume(ContractModel):

@@ -24,3 +24,10 @@
 - 新 schema／streams／job IDs 與舊 pending jobs 分隔；API migration 保留歷史來源與治理。切換須先排空或隔離舊工作，不直接重啟現有服務。
 - 固定 reconstruction 快照不更新；semantic checker 僅對 v1 Memory fixture 做明示欄位轉接，仍逐 byte 驗證原快照且執行全部負向語意測試。
 - 契約／模擬測試不等於真模型學習效益，A/B/C 配對實測須另行報告。
+
+## 2026-09-12 可追溯對話與獨立 Sol-high
+
+- 去識別化對話與 structured request 共用來源 ID，直接記於 learning checkpoint；不依賴 Activity/narration，不存 hidden reasoning。使用者回覆是未驗證主張，Agent 要求不是執行或送達證明。
+- 補件文字只供 Distiller 回顧，不新增 Resolver 決策輸入；缺輸入能力是系統缺口，不學成成功方法。既有 Policy、授權、Reviewer 與治理不變。
+- Compass Distiller 獨立 Sol/high／Responses，其他模型不變；不 silent retry/fallback。Qwen 不誤套 Compass profile。
+- 以 prompt 3.1、dialogue version 與 replay model_profile 區別新工作；已保存結果原樣重播、舊 hash 保留、pending 不換 prompt/model 重算。部署前處理舊 pending；本批不部署。

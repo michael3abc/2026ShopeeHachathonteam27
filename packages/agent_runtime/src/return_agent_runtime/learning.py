@@ -1,16 +1,24 @@
 """Bounded checkpoint learning history, independent of Activity and narration."""
 
+import re
 from dataclasses import dataclass
 from functools import wraps
-import re
 from uuid import NAMESPACE_URL, uuid5
 
 from return_agent_contracts.enums import ResolutionAction
 from return_agent_contracts.models import (
-    LearningDecision, LearningEvent, LearningEvidence, LearningHumanDecision,
-    LearningMemory, LearningTrace,
+    LearningDecision,
+    LearningDialogueTurn,
+    LearningEvent,
+    LearningEvidence,
+    LearningHumanDecision,
+    LearningMemory,
+    LearningTrace,
 )
-from return_agent_contracts.validation import validate_memory_summary
+from return_agent_contracts.validation import (
+    redact_learning_dialogue,
+    validate_memory_summary,
+)
 
 
 @dataclass(frozen=True)
@@ -26,7 +34,7 @@ class LearningTraceLimits:
 def validate_safe_learning_text(value: object) -> None:
     """Reject unsafe projections rather than silently dropping source facts."""
     if isinstance(value, str):
-        if re.fullmatch(r"[A-Z][A-Z0-9_-]*-[a-f0-9]{32}", value):
+        if re.fullmatch(r"[A-Z][A-Z0-9_-]*-[a-fA-F0-9]{32}", value):
             return  # Graph-owned UUID references are not payment-card numbers.
         validate_memory_summary(value)
     elif isinstance(value, dict):
@@ -54,6 +62,35 @@ def _project(name: str, before: dict, update: dict, sequence: int) -> LearningEv
         "event_id": "LEARNING-" + uuid5(NAMESPACE_URL, f"{state['thread_id']}:{sequence}:{name}").hex,
         "sequence": sequence, "node": name, "next_node": update.get("_route"),
     }
+    dialogue = []
+    if name == "parse_request" and sequence == 1:
+        turn = state["conversation_turns"][0]
+        dialogue.append(_dialogue(turn.turn_id, "USER", turn.text))
+    if name == "request_clarification":
+        request = before["pending_clarification_request"]
+        for turn in update.get("conversation_turns", [])[len(before.get("conversation_turns", [])):]:
+            dialogue.append(_dialogue(turn.turn_id, "USER", turn.text, request.request_id))
+    if name == "request_evidence":
+        turn = before.get("_learning_reply")
+        if turn is None:
+            fields["dialogue_missing"] = True
+        else:
+            dialogue.append(_dialogue(turn.turn_id, "USER", turn.text, before["pending_evidence_request"].request_id))
+    for key, message_key in (("pending_clarification_request", "clarification_question"),
+                             ("pending_evidence_request", "user_message")):
+        request = update.get(key)
+        if request is not None:
+            dialogue.append(_dialogue(request.request_id, "AGENT", getattr(request, message_key), request.request_id))
+            fields[key.removeprefix("pending_")] = request
+    seen = {turn.turn_ref: turn for event in before["learning_trace"].events for turn in event.dialogue}
+    unique_dialogue = []
+    for turn in dialogue:
+        if turn.turn_ref in seen and seen[turn.turn_ref] != turn:
+            raise ValueError("conflicting dialogue identity")
+        if turn.turn_ref not in seen:
+            unique_dialogue.append(turn)
+            seen[turn.turn_ref] = turn
+    fields["dialogue"] = unique_dialogue
     if name == "parse_request":
         fields["intent"] = update.get("normalized_intent")
         fields["claimed_line_item_ids"] = state.get("claimed_line_item_ids", [])
@@ -120,11 +157,19 @@ def _project(name: str, before: dict, update: dict, sequence: int) -> LearningEv
     return LearningEvent.model_validate(fields)
 
 
+def _dialogue(turn_ref: str, role: str, text: str, request_ref: str | None = None) -> LearningDialogueTurn:
+    safe_text, redacted = redact_learning_dialogue(text)
+    return LearningDialogueTurn(turn_ref=turn_ref, role=role, text=safe_text,
+        request_ref=request_ref, redacted=redacted, trust=("USER_STATEMENT_UNVERIFIED"
+        if role == "USER" else "AGENT_REQUEST_NOT_EXECUTION"))
+
+
 def record_learning_node(name: str, function, limits: LearningTraceLimits):
     """Return checkpoint updates only after a node finishes, never on interrupt."""
     @wraps(function)
     def execute(state):
         update = function(state)
+        reply = update.pop("_learning_reply", None)
         if name == "enqueue_memory_distillation":
             return update
         trace = state.get("learning_trace")
@@ -134,7 +179,7 @@ def record_learning_node(name: str, function, limits: LearningTraceLimits):
         if trace.status != "RECORDING":
             return update | {"learning_trace": trace}
         try:
-            event = _project(name, state, update, len(trace.events) + 1)
+            event = _project(name, state | {"_learning_reply": reply}, update, len(trace.events) + 1)
             validate_safe_learning_text(event.model_dump(mode="json"))
             events = [*trace.events, event]
             if len(events) > limits.max_events:
@@ -147,7 +192,7 @@ def record_learning_node(name: str, function, limits: LearningTraceLimits):
             next_trace = trace.model_copy(update={"status": "LIMIT_EXCEEDED", "failure_code": "TRACE_BUDGET_EXCEEDED"})
         except ValueError:
             next_trace = trace.model_copy(update={"status": "UNSAFE_CONTENT", "failure_code": "UNSAFE_LEARNING_PROJECTION"})
-        except Exception:
+        except Exception:  # noqa: BLE001 - observational learning must not block adjudication
             next_trace = trace.model_copy(update={"status": "INCOMPLETE", "failure_code": "LEARNING_PROJECTION_FAILED"})
         return update | {"learning_trace": next_trace}
     return execute

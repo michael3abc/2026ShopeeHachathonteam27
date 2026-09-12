@@ -1,7 +1,6 @@
 """Pydantic DTOs for the agent's internal and external contracts."""
 
 from typing import Annotated, Literal, TypeAlias
-from .review_gates import ReviewGateResult, HumanReviewRoutingReason
 
 from pydantic import ConfigDict, Field, model_validator
 
@@ -47,6 +46,7 @@ from .enums import (
     VerificationStatus,
     WaivedReturnReasonCode,
 )
+from .review_gates import HumanReviewRoutingReason, ReviewGateResult
 
 ORDER_SUBJECT = "ORDER"
 REVIEW_REVISION_LIMIT = 3
@@ -674,6 +674,28 @@ class LearningHumanDecision(ContractModel):
     review_note: NonEmptyText
 
 
+class LearningDialogueTurn(ContractModel):
+    """Redacted utterance, not independent evidence or a delivery receipt."""
+
+    turn_ref: OpaqueRef
+    role: Literal["USER", "AGENT"]
+    text: NonEmptyText = Field(max_length=2000)
+    request_ref: OpaqueRef | None = None
+    redacted: bool = False
+    trust: Literal["USER_STATEMENT_UNVERIFIED", "AGENT_REQUEST_NOT_EXECUTION"]
+
+    @model_validator(mode="after")
+    def _role_matches_trust(self) -> "LearningDialogueTurn":
+        expected = "USER_STATEMENT_UNVERIFIED" if self.role == "USER" else "AGENT_REQUEST_NOT_EXECUTION"
+        if self.trust != expected:
+            raise ValueError("dialogue role and trust must agree")
+        if self.role == "AGENT" and self.request_ref is None:
+            raise ValueError("agent dialogue must reference its structured request")
+        if self.role == "AGENT" and self.turn_ref != self.request_ref:
+            raise ValueError("agent dialogue identity must be the structured request ID")
+        return self
+
+
 class LearningEvent(ContractModel):
     """Allowlisted observations, never raw state, prompts or media."""
 
@@ -687,6 +709,8 @@ class LearningEvent(ContractModel):
         "await_human_review", "emit_resolution_handoff", "terminate_automation",
     ]
     next_node: NonEmptyText | None = None
+    dialogue: list[LearningDialogueTurn] = Field(default_factory=list, max_length=4)
+    dialogue_missing: bool = False
     intent: IntakeResult | None = None
     claimed_line_item_ids: list[OpaqueRef] = Field(default_factory=list)
     context_snapshot_version: PositiveInt | None = None
@@ -714,6 +738,7 @@ class LearningEvent(ContractModel):
 
 class LearningTrace(ContractModel):
     schema_version: Literal["learning-trace:2"] = "learning-trace:2"
+    dialogue_version: Literal["learning-dialogue:1"] | None = None
     case_ref: OpaqueRef
     thread_id: OpaqueRef
     status: Literal["RECORDING", "COMPLETE", "INCOMPLETE", "LIMIT_EXCEEDED", "UNSAFE_CONTENT"] = "RECORDING"
@@ -726,12 +751,44 @@ class LearningTrace(ContractModel):
             raise ValueError("learning trace must have contiguous event sequence")
         if len({event.event_id for event in self.events}) != len(self.events):
             raise ValueError("learning trace event IDs must be unique")
+        if self.dialogue_version is not None:
+            self._validate_dialogue_provenance()
         if self.status == "COMPLETE" and (
             not self.events or self.events[0].node != "parse_request"
             or self.events[-1].node != "emit_resolution_handoff"
         ):
             raise ValueError("complete trace requires intake and final resolution")
         return self
+
+    def _validate_dialogue_provenance(self) -> None:
+        turns: set[str] = set()
+        requests: set[str] = set()
+        for event in self.events:
+            event_requests = {request.request_id for request in
+                              (event.clarification_request, event.evidence_request)
+                              if request is not None}
+            for turn in event.dialogue:
+                if turn.turn_ref in turns:
+                    raise ValueError("learning dialogue IDs must be unique")
+                turns.add(turn.turn_ref)
+                if turn.role == "AGENT":
+                    if turn.request_ref not in event_requests:
+                        raise ValueError("agent dialogue must cite this event's request")
+                    requests.add(turn.request_ref)
+                elif turn.request_ref is not None and turn.request_ref not in requests:
+                    raise ValueError("user reply must follow its agent request")
+            if not event_requests.issubset(requests):
+                raise ValueError("structured request has no dialogue provenance")
+            if event.dialogue_missing:
+                continue  # Explicitly incomplete legacy reply; Distiller must SKIP.
+            replies = [turn for turn in event.dialogue if turn.role == "USER"]
+            if event.sequence == 1 and (len(replies) != 1 or replies[0].request_ref is not None):
+                raise ValueError("initial dialogue must contain the opening user turn")
+            if event.node in {"request_clarification", "request_evidence"}:
+                if len(replies) != 1 or replies[0].request_ref not in event_requests:
+                    raise ValueError("completed input node must have a linked user reply")
+                if event.node == "request_clarification" and event.response_turn_refs != [replies[0].turn_ref]:
+                    raise ValueError("clarification reply must match its recorded turn")
 
 
 class MemoryCaseReview(ContractModel):

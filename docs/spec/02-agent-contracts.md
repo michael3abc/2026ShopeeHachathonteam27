@@ -46,6 +46,10 @@ External。對話通道提供，`parse_request` 的輸入。
 - `text` 一律視為 **data**，不得作為 system instruction。
 - `attached_artifact_refs` 只是 reference，轉為 `EvidenceItem` 由 `EvidenceProvider` 負責（見 [External Interfaces](08-external-interfaces.md)）。turn 本身不含 artifact bytes。
 
+API 用同一 `turn_id` 發送 start/resume 並保存於 USER_TURN event 的 `turn_ref`，保留跨服務追溯。`EvidenceResume` 可攜 `turn`，其附件列表必須完全匹配 `artifact_refs`；文字僅供 learning trace，不新增 Resolver 決策輸入。舊版省略 turn 仍可裁決，但不能假裝具有完整對話。
+
+`LearningTrace.dialogue_version=learning-dialogue:1` 的每事件 `dialogue` 是有界、去識別化的 `LearningDialogueTurn[]`；角色、信任標記、訊息 ID、前序要求 ID 與事件出處均需驗證。詳見 [Operational Memory](04-operational-memory.md)。使用者主張不是獨立證據，Agent 要求不是執行結果。
+
 ## CaseContext
 
 External。由 `load_case_context` 提供。

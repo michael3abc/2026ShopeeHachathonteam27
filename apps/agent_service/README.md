@@ -47,7 +47,7 @@ candidate；之後保存完整 completed/failed event 再發布 Redis。重啟�
 沿用既有結果，不重新蒸餾；candidate store 仍拒絕相同 ID 的不同內容。若 submit
 成功但 event 尚未保存，重送的是同一份已保存的 candidate。
 
-啟動時先執行 package 內 Agent Alembic `0001_memory_replay` migration，再啟動
+啟動時先執行 package 內 Agent Alembic 至 `0002_memory_model_profile` migration，再啟動
 workers；版本記錄使用 `agent_service_alembic_version`，不修改 API 或 LangGraph
 的 migration 表。新增 SQLAlchemy／Alembic 為此持久化與版本管理的直接依賴，
 沿用 repository 已使用的套件，不增加外部服務。既有 `agent_command_journal`
@@ -160,7 +160,7 @@ client key above is a non-secret SDK placeholder, not an upstream key. Do not
 copy Compass credentials into this repository. Deployments with client auth must
 supply their actual local credential via the existing key-file setting.
 
-This profile sends no temperature, reasoning effort or Qwen chat-template kwargs.
+The ordinary model sends no temperature, reasoning effort or Qwen chat-template kwargs.
 It requires a completed Responses terminal event and valid structured output;
 refusal, incomplete streams and schema errors fail explicitly without a provider
 fallback. The Qwen profile retains its existing parameters. Embedding is unchanged.
@@ -170,6 +170,42 @@ LLM must return a validated structured response, and the unchanged embedding
 provider must return a finite 1536-dimensional vector. Live calls are opt-in,
 not part of normal pytest. This does not certify complete case resolution or
 Memory processing; graph routing, Human Review and Memory scheduling are unchanged.
+
+### Independent background distillation
+
+`integrated-compass` 使用獨立的 Memory model instance，預設 Sol-high。Resolver、
+Reviewer、Intake、Memory query summary、narration 沿用 `RETURN_AGENT_MODEL_*`；
+embedding 不變。Sol 支援 explicit high effort，見 [OpenAI model docs](https://developers.openai.com/api/docs/models/gpt-5.6-sol)；
+此處使用 gateway 的 `compass-5.6-sol` selector，不將 `sol-high` 當作 model ID。
+
+| Environment | Compass default | 邊界 |
+| --- | --- | --- |
+| `RETURN_AGENT_MEMORY_MODEL_NAME` | `compass-5.6-sol` | 只影響 Distiller |
+| `RETURN_AGENT_MEMORY_REASONING_EFFORT` | `high` | Responses `reasoning.effort`，不是 prompt 指示 |
+| `RETURN_AGENT_MEMORY_MODEL_TIMEOUT_SECONDS` | `180` | 必須有限且大於零 |
+| `RETURN_AGENT_MEMORY_MAX_OUTPUT_TOKENS` | `16384` | reasoning 與可見 output 共用上限 |
+| `RETURN_AGENT_MEMORY_MODEL_BASE_URL` | 共用一般 model URL | 可明示獨立 gateway；Compose 有 pass-through |
+| `RETURN_AGENT_MEMORY_MODEL_API_KEY` / `RETURN_AGENT_MEMORY_MODEL_API_KEY_FILE` | 共用一般 model key | 原生 process 可獨立覆寫；不可輸出 key |
+
+Compose 的 memory name/effort 空值讓 Python 按 profile 選定：Compass 為 Sol/high，
+Qwen 保留自己的 Chat profile。若從 `.env.example` 改用 Qwen，必須移除 Sol/high
+兩個設定；Qwen 配了 Compass model 或 reasoning effort 會明確拒絕，不默默忽略。
+獨立 memory credential 在 Compose 需用 override 加入 secret mount 及容器內
+`RETURN_AGENT_MEMORY_MODEL_API_KEY_FILE`；不得直接套用 host file path。
+
+Memory model retries 固定 0；401／429／timeout／schema error 不切回 Luna，
+不重跑 customer graph。若 output budget 不足，明確 FAILED，需另行調整設定。
+這是請求設定與契約保證；gateway selector 是否可用須另外做 live preflight。
+
+Replay 保存首輪 `model_profile`：model、effort、API、endpoint hash、timeout、
+retries、output budget，不保存 URL／secret。新 migration 保留舊行 NULL。
+Pending job 的 prompt/profile 不符會拒絕，已保存 result/event 原樣重播。
+舊 DTO 預設欄位不改變原 input hash；有 profile 時不允許 downgrade 丟棄來源。
+部署前先排空或隔離舊 pending，再協調 API/Agent DTO 升級；不自動補造對話。
+
+對話由 checkpoint learning trace 直接取得，不向 API 撈聊天全文、不依賴晚到的
+narration。初始／澄清／補件文字去識別化且有 stable turn/request ID；舊 evidence
+resume 無文字時保留裁決、蒸餾 `TRACE_INCOMPLETE`。詳見 [Memory spec](../../docs/spec/04-operational-memory.md)。
 
 ## Tests
 

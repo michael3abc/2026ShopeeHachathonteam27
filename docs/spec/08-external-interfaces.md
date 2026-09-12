@@ -610,14 +610,18 @@ Redis delivery 為 at-least-once，因此 consumer 不得依賴「只收到一�
 
 `return-agent.events.v1` 同時有 API projector 與 Memory Enqueue Worker 兩個獨立
 consumer group；兩者都會看到完整事件，不會互相搶走訊息。Memory Enqueue Worker
-只對 `AgentResolvedEvent` 查詢 checkpoint；沒有 correction payload 的 resolution
-直接 ACK，不建立 job。`job_id = "memory:" + handoff_id`，Memory Worker 以 durable
+只對 `AgentResolvedEvent` 查詢 checkpoint；沒有完整蒸餾 input 的 resolution
+直接 ACK，不建立 job。`job_id = "memory-v2:" + handoff_id`，Memory Worker 以 durable
 journal 去重；`submit_candidate` 再以 `memory_id` 冪等，因此重送不得建立重複候選。
 首次模型結果與完整 terminal event 另存於 Agent DB `memory_job_results`，分別在
 candidate submit／Redis publish 前 commit。重播只沿用已保存的 output、prompt
 version、submission reference 與事件，不再呼叫模型；store 的 immutable-content
 conflict 規則保持不變。Agent Service 的 Alembic version table 為
 `agent_service_alembic_version`，不使用 API migration history。
+Agent migration `0002_memory_model_profile` 另存 credential-free 模型設定；pending
+工作不能換 prompt／profile 重算，舊已完成結果不改写。API start／resume command
+與 USER_TURN event 共用訊息 ID；`EvidenceResume.turn` 僅為 learning 對話用途，
+不替代 EvidenceProvider。新舊 DTO 需協調升級；舊缺對話 input 可裁決但蒸餾 SKIP。
 兩個 Memory loops 對 retry-safe 暫時性傳輸例外以 capped exponential backoff
 恢復，stop/cancellation 可中斷等待；永久授權／契約／程式錯誤不得無限重試。
 這個 fan-out 發生在主 Agent command 完成之後，Memory pipeline 的錯誤不得轉成

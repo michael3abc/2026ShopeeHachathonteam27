@@ -7,6 +7,17 @@
 
 PostgreSQL CI 回滾驗證修正：當 `0013` 因既有 Activity 稽核歷程拒絕 downgrade 時，PostgreSQL 會將整筆交易還原至呼叫前 revision（含已升級的 `0014`），SQLite 則可能已完成前段 migration。測試依資料庫交易語意檢查 revision，並確認稽核事件筆數未減少；不放寬 migration 的保護条件。
 
+## 2026-09-12 可追溯對話與 Sol-high
+
+- 在遠端 enhancement commit `d409083` 的隔離 worktree 續作，保留原 worktree 未提交變更；本批沒有推送、部署、重啟現有服務或寫入正式 Memory。
+- 已實作 API transcript/command 共用訊息 ID、learning trace 的去識別化對話／request 來源／信任標記，以及跨澄清與補件 interrupt 的順序驗證。補件文字只進學習，不改 Resolver inputs／裁決／Activity。
+- Distiller prompt 3.1，Compass 的背景模型獨立 Sol/high；Qwen 相容性、Responses wire model/effort/budget、401/429/503 單次失敗及無 fallback 都有測試。
+- `make check`：Contracts 91、API 209、Runtime 110、Service 82、跨服務／重建 23，合計 **515 passed**。
+- 獨立 PostgreSQL 的 `AGENT_TEST_POSTGRES_URL=... uv run --all-packages pytest apps/agent_service/tests/test_memory_worker.py -q`：**24 passed**；包括從 0001 升至 0002、舊 hash/結果保留、pending profile 衝突與保護來源的 downgrade。CI 加入同一 PostgreSQL 測試。
+- `make contracts`／前端 contracts 生成、改動 Python 檔案 Ruff、`git diff --check` 通過。`make check-web`：22 tests、lint、TypeScript／Next production build 通過。API 與 Agent Service Docker build、Compose config 通過。固定 `docs/reconstruction/` 無變更。
+- Live smoke：合成 graph／Provider、真實 `compass-5.6-sol`／Responses high，14 events、3 dialogue turns，單次 49.45 秒產生整案回顧及 `OPERATIONAL_METHOD` candidate。未送 store／embedding／approval，沒有模型 retry。ignored `.artifacts/memory-dialogue-sol-smoke.py` 與 `memory-dialogue-sol-smoke-summary.json` 保留命令及摘錄證據。
+- **限制**：這不是完整真模型 E2E，也不是圖片辨識、退款或 Memory 效益驗證。模型仍提出「可減少重複取證」的未驗證推論；不因此自動核准候選。切換前仍須處理舊 pending 工作並協調 API/Agent DTO 更新。
+
 ## 2026-09-12 全流程 Memory 蒸餾驗證
 
 以下為獨立 `feat/enhance-memory-distill` worktree 的驗證，不變更下方重建里程碑歷史，也未部署或重啟既有服務。

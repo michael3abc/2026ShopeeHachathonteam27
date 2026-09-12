@@ -13,7 +13,11 @@ for (const edge of [
   "await_human_review>await_human_review",
   "record_revision_event>terminate_automation",
   "retrieve_memory>terminate_automation",
-  "emit_resolution_handoff>__end__",
+  "assess_case>evaluate_policy",
+  "evaluate_policy>confirm_policy_path",
+  "confirm_policy_path>retrieve_policy",
+  "emit_resolution_handoff>enqueue_memory_distillation",
+  "enqueue_memory_distillation>__end__",
 ]) {
   assert(
     graphEdges.has(edge),
@@ -47,6 +51,9 @@ assert(
     .find((e) => e.id === "propose_decision")
     .writes.includes("pending_review_result"),
 );
+assert.equal(data.baseline.profiles.agent, "integrated-compass");
+assert(data.entities.find((e) => e.id === "evaluate_policy"));
+assert(data.entities.find((e) => e.id === "confirm_policy_path"));
 assert(
   data.schema.tables.some(
     (t) => t.name === "cases" && t.columns.includes("thread_id"),

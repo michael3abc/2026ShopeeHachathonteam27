@@ -72,7 +72,8 @@ def graph_inventory() -> dict[str, Any]:
     for node in ast.walk(builder):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "add_node":
             names.append(ast.literal_eval(node.args[0]))
-    names.sort(key=lambda name: functions[f"_{name}_node"].lineno)
+    # Keep source registration order.  Some real nodes are supplied by focused
+    # modules (for example Policy v2), not graph.py private helpers.
     known = set(names) | {"__end__"}
 
     def local_functions(name: str, seen: set[str]) -> list[ast.FunctionDef]:
@@ -86,11 +87,36 @@ def graph_inventory() -> dict[str, Any]:
                 result.extend(local_functions(node.func.id, seen))
         return result
 
+    external_nodes = {
+        "evaluate_policy": ("packages/agent_runtime/src/return_agent_runtime/policy.py", "evaluate_policy_node"),
+        "confirm_policy_path": ("packages/agent_runtime/src/return_agent_runtime/policy.py", "confirm_policy_path_node"),
+    }
     inventory = {}
     for name in names:
         routes: dict[str, list[int]] = {}
         reads = set()
-        for fn in local_functions(f"_{name}_node", set()):
+        if name in external_nodes:
+            node_path, node_symbol = external_nodes[name]
+            node_tree = ast.parse(committed(node_path))
+            node_functions = {n.name: n for n in node_tree.body if isinstance(n, ast.FunctionDef)}
+
+            def external_functions(function_name: str, seen: set[str]) -> list[ast.FunctionDef]:
+                if function_name in seen or function_name not in node_functions:
+                    return []
+                seen.add(function_name)
+                function = node_functions[function_name]
+                result = [function]
+                for call in ast.walk(function):
+                    if isinstance(call, ast.Call) and isinstance(call.func, ast.Name):
+                        result.extend(external_functions(call.func.id, seen))
+                return result
+
+            node_functions_to_scan = external_functions(node_symbol, set())
+            node_source = reference(node_path, node_symbol)
+        else:
+            node_functions_to_scan = local_functions(f"_{name}_node", set())
+            node_source = reference(path, f"_{name}_node")
+        for fn in node_functions_to_scan:
             for node in ast.walk(fn):
                 expressions = []
                 if isinstance(node, ast.Dict):
@@ -114,7 +140,7 @@ def graph_inventory() -> dict[str, Any]:
                 and n.func.attr == "add_edge" and isinstance(n.args[0], ast.Constant)
                 and n.args[0].value == "terminate_automation")]
         inventory[name] = {"routes": {k: sorted(set(v)) for k, v in routes.items()},
-                           "reads": sorted(reads), "source": reference(path, f"_{name}_node")}
+                           "reads": sorted(reads), "source": node_source}
     return {"nodes": inventory, "source": reference(path, "build_graph"),
             "registration": "每個 conditional source 共用 destinations；註冊允許不等於業務可達。"}
 

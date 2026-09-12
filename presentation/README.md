@@ -15,13 +15,13 @@ Team 27 的互動式系統介紹網站，提供作品介紹、案件回放、六
 
 ## 版本與能力基準
 
-`baseline.json` 固定於 `main@c70351e4a8f711698def4e5fd9cec28fdae215a9`，描述 API `integrated-demo` 與 Agent `integrated-qwen` 的組裝。
+`baseline.json` 固定於 `main@e0787068e832962ce65254fae4c70517ef6133d4`，描述 API `integrated-demo` 與 Agent `integrated-compass` 的組裝。此 profile 預設以 `compass-5.6-terra`、`reasoning_effort=medium` 走 Responses API；image evidence 的 HTTP adapter 在 service composition 注入。
 
 內容分析只透過 `git show <SHA>:<path>` 讀取 committed source；不混用未提交文件、其他 worktree 或未合併功能。分支名稱是基準記錄，不會在 build 時追蹤最新分支。
 
 五個案例均為 **Illustrative**，用 source 與 test definitions 設計，沒有載入 live execution。Graph、退款與 Memory 的生命週期分開。完整 `Before / After`、token usage、真實 latency 與學習效果均未記錄。
 
-本網站的 LLM Calls 可展開七種 ModelTask 的實際呼叫點、payload expression、packaged prompt、output type 與 adapter；embedding 單獨呈現。HTTP body 沒有被冒充成 captured request，endpoint 形式中的 SDK 推論有明確說明。
+本網站的 LLM Calls 可展開七種 ModelTask 的實際呼叫點、payload expression、packaged prompt、output type 與 adapter；embedding 單獨呈現。它呈現 source-backed 的真實 LLM call contract，但不送出 live call，也不把 SDK request shape 冒充為 captured request。
 
 ## 建置與驗證
 
@@ -50,7 +50,7 @@ npm run test:browser
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs node presentation/verify-browser.mjs
 ```
 
-瀏覽器測試使用臨時、僅 loopback 的 HTTP server；結束時關閉 server 與 browser。測試 Pages subpath、深連結、鍵盤、搜尋、回放、390px 版面、reduced motion、真正 `file://` 與斷網模式。輸出至 `verification-artifacts/`。
+瀏覽器測試使用臨時、僅 loopback 的 HTTP server；結束時關閉 server 與 browser。測試 Pages subpath、深連結、鍵盤、搜尋、回放、真正 `file://` 與斷網模式。輸出至 `verification-artifacts/`；桌面版是本交付的驗收目標。
 
 ## 內容與生成檔
 
@@ -71,7 +71,7 @@ JSON 生成檔供檢視與重現；請修改 Python source，再重新 build，�
 
 ## Graph 的抽取界線
 
-本版 Graph 共用 conditional destinations。`build.py` 從各 node 與 `graph.py` 內 helpers 的 `_route` 寫入抽取候選目的地，再與人工核對的路由條件 catalogue 一致性比對。沒有把全域 destinations 當成所有 nodes 的真實互連。
+本版 Graph 共用 conditional destinations。`build.py` 從各 node 的 `_route` 寫入抽取候選目的地；Policy v2 的 `evaluate_policy`、`confirm_policy_path` 另自 `policy.py` 解析，再與人工核對的路由條件 catalogue 一致性比對。沒有把全域 destinations 當成所有 nodes 的真實互連。
 
 這是針對該版本的 source 分析，不是任意 Python 程式的動態可達性證明。讀取欄位清單包含 `graph.py` 內 helpers；跨檔案 assembly / validators 的完整行為仍應查看 source。Node writes 為 reviewed output fields；示意 patch 會檢查是否屬於該 node。
 
@@ -89,7 +89,7 @@ JSON 生成檔供檢視與重現；請修改 Python source，再重新 build，�
 
 ## 發布 GitHub Pages
 
-本次交付本地 build，尚未發布。
+GitHub Actions workflow 會在 `main` 的 `presentation/**` 更新後發布；仍需 repository Settings → Pages 的 Source 選為 **GitHub Actions**。部署成功後入口為 `https://michael3abc.github.io/2026ShopeeHachathonteam27/`。
 
 以 GitHub Actions 建置後，只上傳 `presentation/dist/` 作為 Pages artifact，使用標準 Pages deployment 工作流程發布。請勿發布整個 repo、`.env`、runtime 資料或 node_modules。
 

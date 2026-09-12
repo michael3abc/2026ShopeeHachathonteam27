@@ -1,9 +1,9 @@
 {
-  "sourceCommit": "c70351e4a8f711698def4e5fd9cec28fdae215a9",
-  "entities": 90,
-  "graphNodes": 16,
-  "graphEdges": 42,
-  "sources": 129,
+  "sourceCommit": "e0787068e832962ce65254fae4c70517ef6133d4",
+  "entities": 103,
+  "graphNodes": 18,
+  "graphEdges": 50,
+  "sources": 142,
   "scenarios": 5,
   "checks": [
     "fixed-commit source references",

@@ -105,7 +105,9 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
         "retrieve_policy": ("檢索政策", "取得適用 PolicyBundle；歧義與缺失必須停止自動化。", "policy_bundle", "policy"),
         "prepare_memory_query": ("準備經驗查詢", "解析初始 evidence，生成經驗檢索摘要。", "evidence_bundle operational_memory memory_query_summary memory_retrieval memory_retrieval_status", "model evidence"),
         "retrieve_memory": ("檢索已核准經驗", "以 market、category、policy version 與 claim scope 篩選 Memory。", "operational_memory memory_retrieval memory_retrieval_status memory_query_summary", "memory"),
-        "assess_case": ("評估證據", "逐 claim 判定證據充分性，不足時產生具體補件要求。", "evidence_bundle evidence_assessment evidence_round pending_evidence_request", "model"),
+        "assess_case": ("評估證據", "逐 claim 判定證據充分性；Policy v2 另由下一個 deterministic node 判定路徑。", "evidence_bundle evidence_assessment evidence_round pending_evidence_request", "model"),
+        "evaluate_policy": ("評估 Policy v2", "deterministic 依 policy bundle、證據與選定路徑判定 eligibility；不是 LLM 決策。", "policy_evaluation pending_policy_confirmation pending_evidence_request evidence_round", "policy"),
+        "confirm_policy_path": ("確認替代政策路徑", "interrupt 取得買家對替代 Policy path 與退回要求的明確確認；確認後重取政策。", "policy_confirmation policy_selection pending_policy_confirmation operational_memory memory_retrieval policy_evaluation", ""),
         "request_evidence": ("等待補件", "interrupt 後解析 artifact_refs，驗證並合併 evidence。", "evidence_bundle", "evidence"),
         "propose_decision": ("建立或修正提案", "Resolver 提出 draft 或補件；Graph 推導金額、ID 與 counters。", "propose_round evidence_round pending_evidence_request current_handoff proposal_history pending_review_result verification_feedback", "model"),
         "external_verification": ("驗證提案", "驗證成功交 Reviewer；失敗在 budget 內回提案修正。", "verification_feedback verification_round", "verification"),
@@ -128,9 +130,16 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
         ("retrieve_memory", "assess_case"): "取得 Memory，或 optional retrieval 不可用後繼續",
         ("request_clarification", "parse_request"): "resume payload 為合法且未重複 USER turn",
         ("assess_case", "request_evidence"): "INSUFFICIENT 且尚有 evidence budget",
+        ("assess_case", "evaluate_policy"): "評估完成；Policy v2 交由 deterministic eligibility evaluation",
         ("assess_case", "propose_decision"): "證據評估非 INSUFFICIENT 且符合契約",
+        ("evaluate_policy", "propose_decision"): "選定 Policy path 為 ELIGIBLE，或 source 指定的可提案分支",
+        ("evaluate_policy", "confirm_policy_path"): "原路徑不合格、Cooling-off 可用，需 buyer 確認替代 path",
+        ("evaluate_policy", "request_evidence"): "Policy evaluation 表示仍需資訊且 evidence budget 尚可用",
+        ("confirm_policy_path", "retrieve_policy"): "合法接受替代路徑；清除依舊 path 的 memory / evaluation 後重取 policy",
+        ("confirm_policy_path", "request_evidence"): "拒絕替代路徑且既有 evidence request 可用",
         ("request_evidence", "prepare_memory_query"): "resume refs 解析、驗證與合併成功",
         ("propose_decision", "request_evidence"): "Resolver 要求合法補件且有 budget",
+        ("propose_decision", "confirm_policy_path"): "提案所需的 Policy path / return requirement 仍須 buyer 確認",
         ("propose_decision", "external_verification"): "合法 draft 已建立新的 handoff",
         ("external_verification", "reviewer"): "Verification PASS",
         ("external_verification", "propose_decision"): "Verification FAIL 且尚有重提 budget",
@@ -274,7 +283,7 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
     groups = [
         {"id": "intake", "title": "理解與範圍", "nodes": ["parse_request", "request_clarification", "load_case_context"]},
         {"id": "context", "title": "政策與經驗", "nodes": ["retrieve_policy", "prepare_memory_query", "retrieve_memory"]},
-        {"id": "assess", "title": "證據與提案", "nodes": ["assess_case", "request_evidence", "propose_decision"]},
+        {"id": "assess", "title": "證據、政策與提案", "nodes": ["assess_case", "evaluate_policy", "confirm_policy_path", "request_evidence", "propose_decision"]},
         {"id": "review", "title": "驗證與審核", "nodes": ["external_verification", "reviewer", "record_revision_event", "await_human_review"]},
         {"id": "handoff", "title": "交付與後續", "nodes": ["emit_resolution_handoff", "enqueue_memory_distillation", "terminate_automation"]},
     ]
@@ -302,9 +311,10 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
         nstep("parse_request"), nstep("load_case_context"), nstep("retrieve_policy"),
         nstep("prepare_memory_query"), nstep("retrieve_memory"),
     ]
-    decision = [nstep("assess_case"), nstep("propose_decision", patch={"propose_round": 1}), nstep("external_verification"), nstep("reviewer")]
+    decision = [nstep("assess_case"), nstep("evaluate_policy"), nstep("propose_decision", patch={"propose_round": 1}), nstep("external_verification"), nstep("reviewer")]
     end = [
         nstep("emit_resolution_handoff"),
+        nstep("enqueue_memory_distillation"),
         step("Graph END", "這次 Graph 到達終點，API 尚須投影結果與執行退款。", "runtime", "worker", "call", [graph["source"], "worker"], node="__end__"),
         step("發布決策結果", "AgentResolvedEvent 送至事件 stream，由 API consumer 投影。", "worker", "redis", "event", ["worker", "streams"]),
         step("API 接收並驗證", "API 驗證事件與 persisted authorization，執行 demo refund application。", "redis", "api", "event", ["bridge", "refund"], status="EXECUTING", ui="退款執行中", db="API DB：projection / refund records", extra=("api_db", "refund")),
@@ -333,7 +343,7 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
         step("發布人工 RESUME", "相同 thread_id，payload 是 poll signal，不把未驗證的前端裁決直接當 Graph state。", "outbox", "redis", "command", ["review"]),
         step("恢復待審節點", "aresume 重新進入 interrupt node；再由 self-loop 取得 provider 保存的人工結果。", "worker", "runtime", "call", ["runtime", "worker"], extra=("agent_db",)),
         nstep("await_human_review"), nstep("emit_resolution_handoff"), nstep("enqueue_memory_distillation"),
-        *end[1:],
+        *end[2:],
     ]
     background = [
         step("獨立 terminal-event consumer", "MemoryEnqueueWorker 依 thread_id 讀 checkpoint 的 input，case UI 不等待此流程。此排列只是可能的非同步順序。", "redis", "memory_worker", "event", ["enqueue"], status="RESOLVED", db="Agent DB checkpoint read", extra=("agent_db",)),
@@ -374,7 +384,7 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
         {"title": "歷史重建規格不是目前 runtime", "detail": "docs/reconstruction 固定於歷史快照；本網站使用 baseline committed source，現行 docs/spec 作語意交叉檢查。", "refs": [refs["spec"], refs["readme"]]},
         {"title": "UI 案件圖不是 Graph 原圖", "detail": "case-graph.mjs 加入 API execute_refund，且未列出所有失敗與 self-loop；Exact View 由 graph.py 與 reviewed routes 建立。", "refs": [ref(web + "lib/case-graph.mjs"), graph["source"]]},
         {"title": "Graph registration 共用 destinations", "detail": "全域 path map 是註冊上限；本網站逐 node / helper 核對 _route，並檢查 curated 路由集與 AST inventory。這不是任意 Python 程式的可達性證明。", "refs": [graph["source"]]},
-        {"title": "Deployment profile 改變可用能力", "detail": "Compose 預設 API unconfigured、Agent demo。本網站專門描述 integrated-demo + integrated-qwen；不把預設 compose healthy 當成相同功能。", "refs": [refs["compose_file"], refs["compose"], refs["readme"]]},
+        {"title": "Deployment profile 改變可用能力", "detail": "Compose 預設 API unconfigured、Agent demo。本網站專門描述 integrated-demo + integrated-compass；Compass 使用 Terra/medium 與 Responses API。不要把預設 compose healthy 當成相同功能。", "refs": [refs["compose_file"], refs["compose"], refs["readme"]]},
         {"title": "實跑證據尚未載入", "detail": "五個回放均為 Illustrative。來源中存在相關 test definitions，但本網站不沿用其他 repo 或舊分支的測試通過數。", "refs": [refs["test_happy"], refs["test_resume"], refs["test_human"]]},
         {"title": "Agent checkpoint 實體 tables 未由本 repo 定義", "detail": "AsyncPostgresSaver.setup() 交由依賴建立 schema。此網站呈現 checkpoint 邏輯資料，不捏造依賴版本的實體欄位與 foreign keys。", "refs": [refs["compose"], refs["runtime"]]},
         {"title": "次序、恢復與 exactly-once 的界線", "detail": "activity seq 是接收順序；journal / event 去重不代表所有外部 side effects exactly-once。Crash 在 node side effect 與 checkpoint 之間的完整保證仍須逐 provider 驗證。", "refs": [refs["progress"], refs["journal"], refs["runtime"]]},
@@ -384,7 +394,7 @@ def create_content(ref: Callable, read: Callable, graph: dict, schema: dict) -> 
         ref(path)
     return {"entities": entities, "edges": edges, "groups": groups, "graph": graph, "schema": schema,
             "llmCalls": llm_calls,
-            "llmTransport": {"summary": "integrated-qwen：main._configured_model → OpenAIStructuredOutputModel → ChatOpenAI.with_structured_output(method=json_schema) → invoke(SystemMessage, HumanMessage)。temperature=0、timeout=180s、max_retries=0、streaming=True、include_schema_in_prompt=True、enable_thinking=False。模型名稱與 base_url 由配置提供，此次未讀取 live secrets／endpoint。Chat Completions endpoint 路徑由 SDK 決定；通常為 base URL 下的 /chat/completions（SDK 協定推論，非 captured request）。integrated-compass 的 Responses 模式不混入本基準。", "failure": "非 object schema 包成 output envelope；解析後 unwrap，再由 Pydantic TypeAdapter 驗證。Node 額外執行 domain validation。SDK streaming 不等於把 raw model tokens 直接推給 Frontend；UI 依 case events 與 activity 投影。Narration 的 timeout / error 只屬觀察流程，不得把失敗 narration 當成案件失敗。", "refs": [adapter_ref, config_ref, embed_ref, ref(agent + "activity_workers.py", "NarrationWorker")]},
+            "llmTransport": {"summary": "integrated-compass：main._configured_model → OpenAIStructuredOutputModel → OpenAI Responses API structured output。預設模型為 compass-5.6-terra、reasoning_effort=medium、timeout=180s、max_retries=0、streaming=True；Compass 不注入 JSON schema 到 prompt，亦不使用 Qwen 的 temperature/enable_thinking 參數。組裝會注入 HttpEvidenceImageProvider，ASSESS、PROPOSE_OR_REVISE、REVIEW 的 evidence 可帶 image attachments。模型名稱、base_url、credential 與實際 endpoint 均由環境配置；本網站未讀取 secrets、未送出 live request，也沒有 captured response。", "failure": "response 先 structured parse，再由 Pydantic TypeAdapter 與 node domain validation 驗證。SDK streaming 不等於把 raw model tokens 或 hidden reasoning 推給 Frontend；UI 依 case events 與 activity projection。Narration timeout/error 是觀察流程，不能當成案件失敗。", "refs": [adapter_ref, config_ref, ref(agent + "composition.py", "compose_integrated_service"), embed_ref, ref(agent + "activity_workers.py", "NarrationWorker")]},
             "scenarios": scenarios, "statuses": statuses, "refs": refs, "discrepancies": discrepancies,
             "uiMappings": [{"status": s, "component": c, "screen": d, "action": a, "next": n, "refs": [refs[r], refs["status"]]} for s, c, d, a, n, r in mappings],
             "designReferences": [{"title": "Collect UI", "url": "https://collectui.com/"}, {"title": "S5-Style", "url": "https://www.s5-style.com/"}],

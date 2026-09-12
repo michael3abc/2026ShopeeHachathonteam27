@@ -1,0 +1,82 @@
+{
+  "$defs": {
+    "TokenPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "TokenPayload",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_ref": {
+      "minLength": 1,
+      "title": "Case Ref",
+      "type": "string"
+    },
+    "node": {
+      "enum": [
+        "parse_request",
+        "request_clarification",
+        "load_case_context",
+        "retrieve_policy",
+        "prepare_memory_query",
+        "retrieve_memory",
+        "assess_case",
+        "request_evidence",
+        "propose_decision",
+        "external_verification",
+        "reviewer",
+        "record_revision_event",
+        "await_human_review",
+        "emit_resolution_handoff",
+        "enqueue_memory_distillation",
+        "distill_memory",
+        "submit_candidate",
+        "external_memory_approval",
+        "terminate_automation"
+      ],
+      "title": "Node",
+      "type": "string"
+    },
+    "payload": {
+      "$ref": "#/$defs/TokenPayload"
+    },
+    "seq": {
+      "minimum": 1,
+      "title": "Seq",
+      "type": "integer"
+    },
+    "ts": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+      "title": "Ts",
+      "type": "string"
+    },
+    "type": {
+      "const": "token",
+      "title": "Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "case_ref",
+    "node",
+    "seq",
+    "ts",
+    "type",
+    "payload"
+  ],
+  "title": "TokenEvent",
+  "type": "object"
+}

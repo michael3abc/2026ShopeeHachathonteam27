@@ -1,0 +1,65 @@
+{
+  "$defs": {
+    "ClarificationRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "clarification_question": {
+          "minLength": 1,
+          "title": "Clarification Question",
+          "type": "string"
+        },
+        "clarification_round": {
+          "minimum": 1,
+          "title": "Clarification Round",
+          "type": "integer"
+        },
+        "missing_fields": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Missing Fields",
+          "type": "array"
+        },
+        "request_id": {
+          "minLength": 1,
+          "title": "Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id",
+        "clarification_round",
+        "missing_fields",
+        "clarification_question"
+      ],
+      "title": "ClarificationRequest",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_ref": {
+      "minLength": 1,
+      "title": "Case Ref",
+      "type": "string"
+    },
+    "kind": {
+      "const": "CLARIFICATION",
+      "title": "Kind",
+      "type": "string"
+    },
+    "request": {
+      "$ref": "#/$defs/ClarificationRequest"
+    }
+  },
+  "required": [
+    "kind",
+    "case_ref",
+    "request"
+  ],
+  "title": "ClarificationInterruptPayload",
+  "type": "object"
+}

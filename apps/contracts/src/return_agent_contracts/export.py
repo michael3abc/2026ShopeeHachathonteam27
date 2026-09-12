@@ -6,13 +6,13 @@ from typing import Any
 
 from pydantic import TypeAdapter
 
-from . import domain, human, memory, messages, providers
+from . import activity, distillation, domain, human, memory, messages, providers, public, workflow
 from .primitives import ContractModel
 
 
 def schemas() -> dict[str, dict[str, Any]]:
     models: dict[str, Any] = {}
-    for module in (domain, human, memory, messages, providers):
+    for module in (domain, human, memory, messages, providers, activity, distillation, public, workflow):
         for name, value in vars(module).items():
             if isinstance(value, type) and issubclass(value, ContractModel) and value.__module__ == module.__name__ and not name.endswith("Base") and name != "ProviderResponse":
                 models[name] = value
@@ -25,6 +25,11 @@ def schemas() -> dict[str, dict[str, Any]]:
         "ResolverOutput": messages.ResolverOutput, "ResumePayload": messages.ResumePayload,
         "RefundApplicationResult": providers.RefundApplicationResult,
         "RefundExecutionRecord": providers.RefundExecutionRecord,
+        "ActivityPayload": activity.ActivityPayload, "MemoryDistillationOutput": distillation.MemoryDistillationOutput,
+        "MemoryServiceEvent": distillation.MemoryServiceEvent, "AgentRunResult": workflow.AgentRunResult,
+        "AgentServiceEvent": workflow.AgentServiceEvent, "InterruptPayload": workflow.InterruptPayload,
+        "AgentEvent": public.AgentEvent, "HumanReviewPayload": public.HumanReviewPayload,
+        "UiInterruptPayload": public.UiInterruptPayload,
     }.items():
         models[name] = value
     return {name: {"$schema": "https://json-schema.org/draft/2020-12/schema", "title": name, **TypeAdapter(model).json_schema(mode="serialization")} for name, model in sorted(models.items())}

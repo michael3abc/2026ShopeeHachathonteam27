@@ -5,7 +5,7 @@
 | 任務 | 狀態 | 證據／未完成 |
 | --- | --- | --- |
 | T01 骨架與依賴 | 骨架驗證通過 | 四個 packages 可安裝；Python 3.12.0、uv.lock、npm lock；3 項架構／health 測試通過，Next build 通過，Compose config 通過。Docker daemon／映像建置未驗證。 |
-| T02 Contracts | 核心契約通過，持續補齊 | 112 份自行生成 schemas、TS、74 項契約測試；Service events、完整 UI／Activity／distillation contracts 與相應驗證仍待補。 |
+| T02 Contracts | 契約層驗證通過 | 192 份生成 schemas、TS、93 項契約測試；Domain／Provider／Runtime／Service events／UI／Activity／Memory。持久化與執行端驗證續於 T03–T08。 |
 | T03 API／DB | 未開始 | 待 T02。 |
 | T04 能力／退款 | 未開始 | 待 T03。 |
 | T05 Graph | 未開始 | 待 T02。 |
@@ -64,7 +64,14 @@ C01–C36、Docker build、DB／Redis／SSE 與 A/B/C 均未驗證。
 | M01-R08 | C06 的早期 proposal 版本、round、event 順序／引用／case、重複 ID。 |
 | M01-R09 | 兩種人審入口、四次 REVISE、人審 gate 重新計算及 config hash 變更拒絕。 |
 | M01-R10 | 原申請 scope 內人工重判、不可超 scope／最新 order 上限；持久化 handoff/result 綁定待 T04。 |
-| M01-R11 | summary 受限內容、Candidate scope／correction provenance／重複 sources；完整 distillation trace 待補。 |
+| M01-R11 | summary 受限內容、Candidate scope／correction provenance／重複 sources；distillation trace 綁 case／latest proposal／版本且必須有 confirmed correction。 |
 | M04-R04 | C10–C11 門檻 below/equal/above、USD、DECLINE、REVISE 不跑 gate；fingerprint 正規化。 |
 
 C01–C06、C10–C11 的上述**契約子案例**通過；C12–C13 僅已驗證純函式部分。尚未執行退款、不宣稱完整 C01–C36 conformance。
+
+## T02 訊息與觀察契約
+
+- 新增 service events、Runtime result／interrupt、公開 case/events、Memory job/result、Activity 與 narration DTO。
+- Activity 排除 Memory 文字、raw object 與額外欄位；Narration 僅接受 facts summary，離線結果要求 text=null；event 必須綁定同 case/thread。
+- `uv run pytest -q`：96 項測試通過（93 contracts＋3 architecture）；完整命令 exit 0，執行時間見交接輸出。生成 192 份 schemas；Python schema check、TS drift check、typecheck、lint 均 exit 0。
+- 這些是契約與安全條件測試；C30–C36 的 Redis／SSE／背景工作時序仍待整合驗證。

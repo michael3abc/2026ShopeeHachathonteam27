@@ -1,0 +1,99 @@
+{
+  "$defs": {
+    "ToolCallPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "arguments": {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "propertyNames": {
+            "minLength": 1
+          },
+          "title": "Arguments",
+          "type": "object"
+        },
+        "call_id": {
+          "minLength": 1,
+          "title": "Call Id",
+          "type": "string"
+        },
+        "tool_name": {
+          "minLength": 1,
+          "title": "Tool Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "call_id",
+        "tool_name"
+      ],
+      "title": "ToolCallPayload",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_ref": {
+      "minLength": 1,
+      "title": "Case Ref",
+      "type": "string"
+    },
+    "node": {
+      "enum": [
+        "parse_request",
+        "request_clarification",
+        "load_case_context",
+        "retrieve_policy",
+        "prepare_memory_query",
+        "retrieve_memory",
+        "assess_case",
+        "request_evidence",
+        "propose_decision",
+        "external_verification",
+        "reviewer",
+        "record_revision_event",
+        "await_human_review",
+        "emit_resolution_handoff",
+        "enqueue_memory_distillation",
+        "distill_memory",
+        "submit_candidate",
+        "external_memory_approval",
+        "terminate_automation"
+      ],
+      "title": "Node",
+      "type": "string"
+    },
+    "payload": {
+      "$ref": "#/$defs/ToolCallPayload"
+    },
+    "seq": {
+      "minimum": 1,
+      "title": "Seq",
+      "type": "integer"
+    },
+    "ts": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+      "title": "Ts",
+      "type": "string"
+    },
+    "type": {
+      "const": "tool_call",
+      "title": "Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "case_ref",
+    "node",
+    "seq",
+    "ts",
+    "type",
+    "payload"
+  ],
+  "title": "ToolCallEvent",
+  "type": "object"
+}

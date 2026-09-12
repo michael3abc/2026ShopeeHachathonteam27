@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "from_status": {
+      "anyOf": [
+        {
+          "enum": [
+            "OBSERVING",
+            "AWAITING_CLARIFICATION",
+            "AWAITING_EVIDENCE",
+            "AWAITING_HUMAN_REVIEW",
+            "EXECUTING",
+            "RESOLVED",
+            "ESCALATED"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "From Status"
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "to_status": {
+      "enum": [
+        "OBSERVING",
+        "AWAITING_CLARIFICATION",
+        "AWAITING_EVIDENCE",
+        "AWAITING_HUMAN_REVIEW",
+        "EXECUTING",
+        "RESOLVED",
+        "ESCALATED"
+      ],
+      "title": "To Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "to_status",
+    "reason"
+  ],
+  "title": "StateChangePayload",
+  "type": "object"
+}

@@ -1,7 +1,7 @@
 import re
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, Field
+from pydantic import AfterValidator, Field, model_validator
 
 from .domain import ClaimId, ReasonCode
 from .primitives import ContractModel, Ref, UTCDateTime, unique
@@ -61,6 +61,22 @@ class ApprovedMemory(MemoryBase):
 class MemorySearchHit(ContractModel):
     memory: ApprovedMemory
     similarity: Annotated[float, Field(ge=-1, le=1, allow_inf_nan=False)]
+
+
+class MemoryRetrievalObservation(ContractModel):
+    status: Literal["OK", "UNAVAILABLE"]
+    query_summary: Summary | None = None
+    hits: Annotated[list[MemorySearchHit], Field(max_length=3)] = Field(default_factory=list)
+    error_code: Literal["SUMMARY_UNAVAILABLE", "RETRIEVAL_UNAVAILABLE"] | None = None
+
+    @model_validator(mode="after")
+    def coherent_result(self):
+        unique([hit.memory.memory_id for hit in self.hits], "retrieved memory")
+        if self.status == "OK" and (self.query_summary is None or self.error_code is not None):
+            raise ValueError("Successful memory retrieval needs a query and no error")
+        if self.status == "UNAVAILABLE" and (self.hits or self.error_code is None):
+            raise ValueError("Unavailable memory must clear hits and expose a safe error")
+        return self
 
 
 def validate_candidate(candidate: MemoryCandidate, allowed_scope: MemoryScope, case_refs: list[str], correction_refs: list[str], policy_version: str, registry_version: str) -> None:

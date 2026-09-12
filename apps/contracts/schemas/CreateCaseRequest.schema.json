@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attached_artifact_refs": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Attached Artifact Refs",
+      "type": "array"
+    },
+    "initial_message": {
+      "minLength": 1,
+      "title": "Initial Message",
+      "type": "string"
+    },
+    "order_ref": {
+      "minLength": 1,
+      "title": "Order Ref",
+      "type": "string"
+    },
+    "user_ref": {
+      "minLength": 1,
+      "title": "User Ref",
+      "type": "string"
+    }
+  },
+  "required": [
+    "order_ref",
+    "user_ref",
+    "initial_message"
+  ],
+  "title": "CreateCaseRequest",
+  "type": "object"
+}

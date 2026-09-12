@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_ref": {
+      "minLength": 1,
+      "title": "Artifact Ref",
+      "type": "string"
+    },
+    "caption": {
+      "minLength": 1,
+      "title": "Caption",
+      "type": "string"
+    },
+    "evidence_id": {
+      "minLength": 1,
+      "title": "Evidence Id",
+      "type": "string"
+    },
+    "subject": {
+      "minLength": 1,
+      "title": "Subject",
+      "type": "string"
+    },
+    "type": {
+      "enum": [
+        "IMAGE",
+        "VIDEO",
+        "TEXT",
+        "DOCUMENT"
+      ],
+      "title": "Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "evidence_id",
+    "artifact_ref",
+    "caption",
+    "subject",
+    "type"
+  ],
+  "title": "EvidenceDisplayRef",
+  "type": "object"
+}

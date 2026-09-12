@@ -87,6 +87,55 @@ class RejectedAgentEventRow(Base):
     rejected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
+class TrustedOrderRow(Base):
+    __tablename__ = "trusted_orders"
+    order_ref: Mapped[str] = mapped_column(Text, primary_key=True)
+    market: Mapped[str] = mapped_column(Text)
+    snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB)
+
+
+class EvidenceRow(Base):
+    __tablename__ = "evidence_metadata"
+    artifact_ref: Mapped[str] = mapped_column(Text, primary_key=True)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
+
+
+class PolicyClauseRow(Base):
+    __tablename__ = "policy_clauses"
+    clause_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    policy_version: Mapped[str] = mapped_column(Text, primary_key=True)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
+
+
+class PolicyRetrievalRow(Base):
+    __tablename__ = "policy_retrievals"
+    bundle_version: Mapped[str] = mapped_column(Text, primary_key=True)
+    case_ref: Mapped[str] = mapped_column(ForeignKey("cases.case_ref"), index=True)
+    request: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    bundle: Mapped[dict[str, Any]] = mapped_column(JSONB)
+
+
+class VerificationRow(Base):
+    __tablename__ = "handoff_verifications"
+    handoff_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    case_ref: Mapped[str] = mapped_column(ForeignKey("cases.case_ref"), index=True)
+    payload_hash: Mapped[str] = mapped_column(String(64))
+    handoff: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    result: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class HumanReviewRow(Base):
+    __tablename__ = "human_reviews"
+    review_ref: Mapped[str] = mapped_column(Text, primary_key=True)
+    handoff_id: Mapped[str] = mapped_column(ForeignKey("handoff_verifications.handoff_id"), unique=True)
+    case_ref: Mapped[str] = mapped_column(ForeignKey("cases.case_ref"), index=True)
+    payload_hash: Mapped[str] = mapped_column(String(64))
+    request: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    result: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 def make_engine(settings: Settings, *, schema: str | None = None) -> Engine:
     if not settings.database_url:
         raise ValueError("API_DATABASE_URL is required")

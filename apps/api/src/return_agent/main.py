@@ -13,6 +13,9 @@ from return_agent_contracts.public import CaseDetail, CreateCaseRequest, CreateC
 from .cases import CaseNotFound, CaseStateConflict, CaseStore, MissingEvidence
 from .db import make_engine, make_sessions
 from .settings import Settings
+from .capabilities import CapabilityNotFound, CapabilityStore
+from .internal import internal_router
+from return_agent_contracts.providers import ContractConflict, ProviderUnavailable
 
 
 def create_app(settings: Settings | None = None, *, store: CaseStore | None = None) -> FastAPI:
@@ -29,6 +32,7 @@ def create_app(settings: Settings | None = None, *, store: CaseStore | None = No
             engine.dispose()
 
     app = FastAPI(title="退貨案件 API", version="0.1.0", lifespan=lifespan)
+    app.include_router(internal_router(settings, CapabilityStore(store) if store else None))
 
     def case_store() -> CaseStore:
         if store is None:
@@ -50,6 +54,22 @@ def create_app(settings: Settings | None = None, *, store: CaseStore | None = No
     @app.exception_handler(SQLAlchemyError)
     async def database_unavailable(request: Request, exc: SQLAlchemyError):
         return JSONResponse(status_code=503, content={"detail": "Case persistence is unavailable"})
+
+    @app.exception_handler(CapabilityNotFound)
+    async def capability_not_found(request: Request, exc: CapabilityNotFound):
+        return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+    @app.exception_handler(ContractConflict)
+    async def contract_conflict(request: Request, exc: ContractConflict):
+        return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+    @app.exception_handler(ProviderUnavailable)
+    async def provider_unavailable(request: Request, exc: ProviderUnavailable):
+        return JSONResponse(status_code=503, content={"detail": "Provider is unavailable"})
+
+    @app.exception_handler(ValueError)
+    async def invalid_semantics(request: Request, exc: ValueError):
+        return JSONResponse(status_code=422, content={"detail": "Input failed semantic validation"})
 
     @app.get("/health")
     def health() -> dict[str, str]:

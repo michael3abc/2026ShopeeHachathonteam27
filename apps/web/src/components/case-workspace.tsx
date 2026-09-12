@@ -363,16 +363,10 @@ function ConversationPanel({
     const startedAt = new Date(detail.created_at).getTime();
     const items: ConversationItem[] = [
       {
-        id: "case-created",
-        role: "user",
-        text: `已送出訂單 ${detail.order_ref} 的退貨退款申請。`,
-        ts: new Date(startedAt).toISOString(),
-      },
-      {
         id: "agent-started",
         role: "agent",
         text: "我已收到案件，正在檢查訂單、政策與佐證資料。",
-        ts: new Date(startedAt + 1).toISOString(),
+        ts: new Date(Math.max(startedAt, history?.turns[0] ? Date.parse(history.turns[0].created_at) : startedAt) + 1).toISOString(),
       },
     ];
 
@@ -393,9 +387,7 @@ function ConversationPanel({
     }
 
     if (history) {
-      const initialIndex = items.findIndex(i => i.id === "case-created");
-      if (initialIndex >= 0) items.splice(initialIndex, 1);
-      for (const turn of history.turns) items.push({
+      for (const turn of new Map(history.turns.map(turn => [turn.seq, turn])).values()) items.push({
         id: `turn-${turn.seq}`, role: "user", text: turn.message, ts: turn.created_at,
         attachments: turn.attachments,
         artifactRef: turn.attached_artifact_refs.filter(ref => !ref.startsWith("artifact://upload/")).join(", ") || undefined,
@@ -411,7 +403,7 @@ function ConversationPanel({
       });
     }
     return items.sort((left, right) => Date.parse(left.ts) - Date.parse(right.ts));
-  }, [detail.created_at, detail.order_ref, events, localMessages, history]);
+  }, [detail.created_at, events, localMessages, history]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -460,6 +452,8 @@ function ConversationPanel({
         <Badge className="border-orange-100 bg-orange-50 text-orange-700">固定使用者</Badge>
       </div>
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-gradient-to-b from-white to-stone-50/70 p-5">
+        {!history && !historyError && <p role="status" className="text-sm text-stone-500">正在載入對話…</p>}
+        {history && history.turns.length === 0 && <p role="status" className="text-sm text-stone-500">未保存初始申請內容</p>}
         {conversation.map((item) => (
           <ConversationBubble key={item.id} item={item} />
         ))}
@@ -534,7 +528,7 @@ function ConversationBubble({ item }: { item: ConversationItem }) {
             : "rounded-tl-sm border-stone-200 bg-white text-stone-700",
         )}
       >
-        <p>{item.text}</p>
+        <p className="whitespace-pre-wrap break-words">{item.text}</p>
         {item.attachments?.length ? <div className="mt-2 flex flex-wrap gap-2">{item.attachments.map(a => <AttachmentImage key={a.attachment_id} attachment={a} />)}</div> : null}
         {item.artifactRef ? (
           <div className="mt-3 flex items-center gap-3 rounded-xl bg-white/95 p-2.5 text-stone-700">

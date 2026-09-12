@@ -285,3 +285,7 @@ MM-11 是 Adaptive 訴求的唯一直接證據。驗收方式是**對照**：CAS
 - PostgreSQL 空 DB 與既有 0013 schema 升級 0014，與並行案件綁定測試；HTTP／瀏覽器使用隔離環境。live GPT-5.6 需實際配置 endpoint/key，未執行須標明。
 
 2026-09-12 本機隔離驗證：`make check` 492 項（Contracts 80、API 223、Runtime 97、Agent Service 68、跨服務 24）；PostgreSQL migration／併發寫入 3 項；Web 單元測試 22 項、瀏覽器 13 項，lint／TypeScript／production build 及 API／Agent Service／Web Docker build 通過。真實 HTTP 經 Next proxy 上傳 10 MiB 回傳 201，多 1 byte 回傳 413；建立案件、刷新還原與桌面／手機縮圖確認通過。測試圖片及模型回答均為 synthetic；實際檔案經受控 API 進入 Resolver Assessment／Proposal 及 Reviewer mock，Redis／checkpoint 只含引用。未配置模型 endpoint/key，因此 **真實 GPT-5.6 看圖驗收未完成**；未 push、未部署既有服務。
+
+## 申請理解展示
+
+理解結果需驗證 DTO 安全欄位、舊紀錄相容、快照保存與無額外 Intake 呼叫。對話移除固定買家替代訊息，保存換行及附件；新增理解結果的桌面／手機與延遲事件瀏覽器專項驗收仍待補齊。Terra medium Resolver 已以 258 KB synthetic JPEG 完成看圖並要求補件；gateway 大圖及完整真實模型流程未驗收。

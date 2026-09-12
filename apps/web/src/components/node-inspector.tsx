@@ -101,6 +101,10 @@ export function NodeInspector({
                 <p className="text-xs text-stone-400">這次沒有呼叫工具或模型。</p>
               )}
               <NarrationNote narration={visit.narration} />
+              {["parse_request", "load_case_context"].includes(node) && (
+                visit.intents?.length ? visit.intents.map(item => <IntentResult key={item.id} value={item.value} />) :
+                <p className="text-xs text-stone-500">{state === "active" ? "理解結果尚未完成" : "未記錄理解結果"}</p>
+              )}
             </section>
           ))
         )}
@@ -114,6 +118,25 @@ export function NodeInspector({
       </div>
     </section>
   );
+}
+
+function IntentResult({value}: {value: import("@/contracts/activity-event").IntentDisplay}) {
+  const items = value.claimed_line_item_ids ?? [];
+  const fields = value.missing_fields ?? [];
+  const reasons: Record<string, string> = {ITEM_DAMAGED:"商品損壞", ITEM_NOT_AS_DESCRIBED:"商品與描述不符", MISSING_ITEM:"缺少商品", WRONG_ITEM:"收到錯誤商品", QUALITY_ISSUE:"品質問題", CHANGED_MIND:"改變心意"};
+  const actions: Record<string, string> = {REFUND:"退款", RETURN_AND_REFUND:"退貨退款", EXCHANGE:"換貨", UNSPECIFIED:"尚未明確"};
+  const missing: Record<string, string> = {ORDER:"訂單資訊", REASON:"申請原因", ACTION:"希望的處理方式", ITEMS:"申請商品範圍", OTHER:"其他待補充資訊"};
+  return <section aria-label="理解結果" className="rounded-xl border border-orange-100 bg-orange-50/40 p-3 text-xs">
+    <h4 className="mb-2 font-semibold">理解結果</h4>
+    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2">
+      <dt>申請原因</dt><dd>{value.reason_code ? reasons[value.reason_code] ?? "尚未辨識" : "尚未辨識"}</dd>
+      <dt>希望的處理</dt><dd>{actions[value.requested_action] ?? "尚未明確"}</dd>
+      <dt>申請商品</dt><dd className="break-all">{items.length ? items.join("、") : "尚未綁定"}</dd>
+      <dt>資訊完整度</dt><dd>{value.completeness === "COMPLETE" ? "已足夠進入下一步" : "需要補充說明"}</dd>
+      <dt>待補充資訊</dt><dd>{fields.length ? fields.map(key => missing[key] ?? missing.OTHER).join("、") : "無"}</dd>
+    </dl>
+    <p className="mt-3 text-stone-500">理解結果不代表退款核准</p>
+  </section>;
 }
 
 function OperationRow({ operation }: { operation: OperationRun }) {

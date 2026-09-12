@@ -85,3 +85,7 @@ UI_E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e:live
 
 This is explicitly opt-in and is not run by CI. See
 [`scripts/README.md`](../../scripts/README.md) for prerequisites and artifacts.
+
+## 申請理解展示
+
+理解節點與讀取訂單節點顯示各次執行的理解結果；商品先顯示識別碼。缺少歷史結果時明示，理解不代表退款核准。對話保留買家原文換行與圖片，載入／失敗／未保存分別提示。

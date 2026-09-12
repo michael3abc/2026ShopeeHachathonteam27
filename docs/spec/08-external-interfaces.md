@@ -845,3 +845,7 @@ UI 消費 status/query_summary/hits/error_code，依 seq 只保留最新整批�
 - `GET /cases/{case_ref}/conversation`：持久化使用者訊息與附件，case seq 排序；不取代 Agent event／Activity SSE。
 
 未知引用 404、越界綁定 403、案件狀態衝突 409、大小限制 413、格式不符 415、無法解碼／無效品項 422、Provider 或儲存不可用 503。初次附件於 create transaction 綁定，補件沿用 message transaction 與單次狀態轉移。保留原本 metadata-only fixture Provider，不把使用者描述當作已看圖結果。
+
+## 申請理解展示
+
+Activity 既有 JSON、分頁與 SSE 傳送可選 intent_display；run／attempt／operation 對應快照，重播去重。Narration 仍只取得安全 facts，不新增展示資料輸入。

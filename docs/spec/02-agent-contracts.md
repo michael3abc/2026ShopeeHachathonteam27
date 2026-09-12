@@ -760,3 +760,7 @@ Schema 在 agent/v1 與 ui/v1，Web generated types 在 `src/contracts/activity-
 共享 `attachments.py` 定義 `AttachmentView`（ID、artifact/evidence refs、subject、MIME、尺寸、位元組數及 SHA-256）、`UploadOptions`（限制與可信品項）、`ConversationTurn`／`ConversationPage`（seq、時間、文字與附件）。UI schemas 及 TypeScript 由同一份 DTO 生成。建立案件／補件仍以 `attached_artifact_refs` 傳遞引用。
 
 `OrderUploadProvider.load_order_snapshot` 在案件建立前提供可信品項；`EvidenceImageProvider.load_image(case_ref, artifact_ref)` 回傳短暫 `ImageContent`，不是可持久化 graph DTO。上傳 metadata 不宣稱圖片中的商品狀態，且 handoff 保持原 metadata，Verification 可逐欄核對。
+
+## 申請理解展示
+
+可選 `NodeSummary.intent_display` 使用共享 `IntentDisplay`，包含 reason_code、requested_action、claimed_line_item_ids、completeness 與允許的 missing_fields 分類。旧紀錄可省略；不包含自由文字、原始 prompt、附件 URL。

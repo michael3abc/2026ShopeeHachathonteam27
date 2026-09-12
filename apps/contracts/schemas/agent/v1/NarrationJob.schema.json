@@ -494,6 +494,67 @@
       "title": "ClaimStatus",
       "type": "string"
     },
+    "IntakeCompleteness": {
+      "enum": [
+        "COMPLETE",
+        "INCOMPLETE"
+      ],
+      "title": "IntakeCompleteness",
+      "type": "string"
+    },
+    "IntentDisplay": {
+      "additionalProperties": false,
+      "description": "Safe snapshot of a validated intake, never model prose.",
+      "properties": {
+        "claimed_line_item_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_:.-]+$",
+            "type": "string"
+          },
+          "title": "Claimed Line Item Ids",
+          "type": "array"
+        },
+        "completeness": {
+          "$ref": "#/$defs/IntakeCompleteness"
+        },
+        "missing_fields": {
+          "items": {
+            "enum": [
+              "ORDER",
+              "REASON",
+              "ACTION",
+              "ITEMS",
+              "OTHER"
+            ],
+            "type": "string"
+          },
+          "title": "Missing Fields",
+          "type": "array"
+        },
+        "reason_code": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReasonCode"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "requested_action": {
+          "$ref": "#/$defs/RequestedAction"
+        }
+      },
+      "required": [
+        "requested_action",
+        "completeness"
+      ],
+      "title": "IntentDisplay",
+      "type": "object"
+    },
     "Lifecycle": {
       "additionalProperties": false,
       "properties": {
@@ -810,6 +871,17 @@
         "facts": {
           "$ref": "#/$defs/ActivityFacts"
         },
+        "intent_display": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IntentDisplay"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "memory_retrieval": {
           "anyOf": [
             {
@@ -855,6 +927,16 @@
         "CHANGED_MIND"
       ],
       "title": "ReasonCode",
+      "type": "string"
+    },
+    "RequestedAction": {
+      "enum": [
+        "REFUND",
+        "RETURN_AND_REFUND",
+        "EXCHANGE",
+        "UNSPECIFIED"
+      ],
+      "title": "RequestedAction",
       "type": "string"
     },
     "ReviewGateResult": {

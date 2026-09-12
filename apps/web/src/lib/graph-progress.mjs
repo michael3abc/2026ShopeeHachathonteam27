@@ -19,7 +19,7 @@ const OFFLINE_NARRATION = "NARRATION_DISABLED_OFFLINE_DEMO";
  *   facts?: ActivityFacts,
  * }} OperationRun
  * @typedef {{ status: "completed", text: string } | { status: "disabled" } | { status: "unavailable" }} VisitNarration
- * @typedef {{ attemptIds: string[], operations: OperationRun[], narration?: VisitNarration }} NodeVisit
+ * @typedef {{ attemptIds: string[], operations: OperationRun[], narration?: VisitNarration, intents?: {id: string, value: import("../contracts/activity-event").IntentDisplay}[] }} NodeVisit
  * @typedef {{ used: number, max: number }} BudgetUsage
  */
 
@@ -70,9 +70,11 @@ export function graphProgress(activities) {
   /**
    * @param {string} node
    * @param {string} attemptId
+   * @param {string} runId
    */
-  function visitFor(node, attemptId) {
-    const known = visitByAttempt.get(attemptId);
+  function visitFor(node, attemptId, runId) {
+    const key = runId + ":" + node + ":" + attemptId;
+    const known = visitByAttempt.get(key);
     if (known) return known;
     if (node !== lastStartedNode) {
       visits[node].push({ attemptIds: [], operations: [] });
@@ -80,7 +82,7 @@ export function graphProgress(activities) {
     }
     const visit = visits[node][visits[node].length - 1];
     visit.attemptIds.push(attemptId);
-    visitByAttempt.set(attemptId, visit);
+    visitByAttempt.set(key, visit);
     return visit;
   }
 
@@ -109,7 +111,7 @@ export function graphProgress(activities) {
       continue;
     }
 
-    const visit = visitFor(node, activity.attempt_id);
+    const visit = visitFor(node, activity.attempt_id, activity.run_id);
     if (payload.type === "node") {
       lastNode = node;
       if (payload.phase === "STARTED") {
@@ -142,6 +144,11 @@ export function graphProgress(activities) {
         }
       }
     } else if (payload.type === "node_summary") {
+      if (payload.intent_display) {
+        visit.intents ??= [];
+        const id = activity.run_id + ":" + activity.attempt_id + ":" + activity.operation_id;
+        if (!visit.intents.some(item => item.id === id)) visit.intents.push({id, value: payload.intent_display});
+      }
       visitBySummary.set(activity.event_id, visit);
       if (payload.facts.next_node) traverse(edgeId(node, payload.facts.next_node));
       // A refund the API rejected still finished its step; show it as the failure it is.

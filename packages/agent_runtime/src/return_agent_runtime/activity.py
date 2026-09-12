@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.config import get_stream_writer
-from return_agent_contracts.activity import ActivityFacts
+from return_agent_contracts.activity import ActivityFacts, IntentDisplay, safe_reference
 from return_agent_contracts.activity_observer import (
     CURRENT_ACTIVITY,
     ActivityContext,
@@ -70,6 +70,32 @@ def traced_node(name, function):
                 if name == "terminate_automation":
                     facts.next_node = "__end__"
                 outcome["facts"] = facts
+                intent = result.get("normalized_intent")
+                if (
+                    name in {"parse_request", "load_case_context"}
+                    and intent is not None
+                ):
+                    categories = {
+                        "order_ref": "ORDER",
+                        "reason_code": "REASON",
+                        "reason_summary": "REASON",
+                        "requested_action": "ACTION",
+                        "claimed_line_item_ids": "ITEMS",
+                    }
+                    outcome["intent_display"] = IntentDisplay(
+                        reason_code=intent.reason_code,
+                        requested_action=intent.requested_action,
+                        claimed_line_item_ids=[
+                            safe_reference(ref) for ref in intent.claimed_line_item_ids
+                        ],
+                        completeness=intent.completeness,
+                        missing_fields=list(
+                            dict.fromkeys(
+                                categories.get(field, "OTHER")
+                                for field in intent.missing_fields
+                            )
+                        ),
+                    )
                 outcome["memory_retrieval"] = result.get("memory_retrieval")
                 outcome["review_gate"] = result.get("review_gate")
                 return result

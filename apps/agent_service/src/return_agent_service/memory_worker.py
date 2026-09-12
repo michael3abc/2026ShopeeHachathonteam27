@@ -132,7 +132,8 @@ class MemoryWorker:
     async def _execute(
         self, message: BrokerMessage, job: MemoryDistillationJob
     ) -> None:
-        replay = await self._replay_store.load(job, self._distiller.prompt_version)
+        replay = await self._replay_store.load(job, self._distiller.prompt_version,
+            getattr(self._distiller, "model_profile", None))
         if replay.terminal_event is not None:
             await self._publish_terminal(message, job, replay.terminal_event)
             return

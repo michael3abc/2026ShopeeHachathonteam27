@@ -98,3 +98,13 @@ def test_node_observation_requires_error_only_for_error_phase() -> None:
             task_ref="TASK-001",
             error_message="not allowed",
         )
+
+
+def test_evidence_reply_requires_matching_artifact_provenance():
+    from return_agent_contracts.runtime import EvidenceResume
+    turn = {"turn_id": "TURN-REPLY", "role": "USER", "text": "補件",
+                "attached_artifact_refs": ["artifact://one"], "received_at": "2026-09-12T00:00:00Z"}
+    assert EvidenceResume(kind="EVIDENCE_REQUEST", artifact_refs=["artifact://one"], turn=turn).turn.turn_id == "TURN-REPLY"
+    assert EvidenceResume(kind="EVIDENCE_REQUEST", artifact_refs=["artifact://one"]).turn is None
+    with pytest.raises(ValidationError, match="submitted artifacts"):
+        EvidenceResume(kind="EVIDENCE_REQUEST", artifact_refs=["artifact://two"], turn=turn)

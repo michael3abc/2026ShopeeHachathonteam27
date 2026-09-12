@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -68,6 +69,8 @@ class OpenAIStructuredOutputModel:
     include_schema_in_prompt: bool = False
     use_responses_api: bool = False
     streaming: bool = False
+    reasoning_effort: str | None = None
+    max_output_tokens: int | None = None
     _model: ChatOpenAI = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -75,7 +78,7 @@ class OpenAIStructuredOutputModel:
             raise ValueError("model_name must not be blank")
         if self.base_url is not None and not self.base_url.strip():
             raise ValueError("base_url must not be blank")
-        if self.timeout_seconds <= 0:
+        if not math.isfinite(self.timeout_seconds) or self.timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be positive")
         if self.max_retries < 0:
             raise ValueError("max_retries must be non-negative")
@@ -97,6 +100,14 @@ class OpenAIStructuredOutputModel:
             kwargs["base_url"] = self.base_url
         if self.extra_body is not None:
             kwargs["extra_body"] = dict(self.extra_body)
+        if self.reasoning_effort is not None:
+            if not self.use_responses_api or self.reasoning_effort not in {"none", "low", "medium", "high", "xhigh", "max"}:
+                raise ValueError("reasoning effort requires a supported Responses profile")
+            kwargs["reasoning"] = {"effort": self.reasoning_effort}
+        if self.max_output_tokens is not None:
+            if self.max_output_tokens < 1:
+                raise ValueError("max output tokens must be positive")
+            kwargs["max_tokens"] = self.max_output_tokens
         self._model = ChatOpenAI(**kwargs)
 
     def generate(

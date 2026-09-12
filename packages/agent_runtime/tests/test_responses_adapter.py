@@ -101,13 +101,13 @@ def test_responses_wire_and_streamed_schema(memory):
 
 
 def memory_reflection():
-    return dict(
-        case_review=dict(key_issue="Evidence context matters.", actions_taken=["Assessed evidence."],
-            observations=["Observed damage."], judgment_changes=[], final_action="FULL_REFUND",
-            limitations=["Execution and causal benefit not verified."], source_event_refs=["EVENT-1"], downstream_execution_verified=False),
-        learning=dict(category="OPERATIONAL_METHOD", explanation="A context-aware observation.",
-            source_event_refs=["EVENT-1"]),
-    )
+    return {
+        "case_review": {"key_issue": "Evidence context matters.", "actions_taken": ["Assessed evidence."],
+            "observations": ["Observed damage."], "judgment_changes": [], "final_action": "FULL_REFUND",
+            "limitations": ["Execution and causal benefit not verified."], "source_event_refs": ["EVENT-1"], "downstream_execution_verified": False},
+        "learning": {"category": "OPERATIONAL_METHOD", "explanation": "A context-aware observation.",
+            "source_event_refs": ["EVENT-1"]},
+    }
 
 
 @pytest.mark.parametrize(
@@ -271,3 +271,32 @@ def test_completed_refusal_is_not_a_valid_output():
             payload={},
             output_schema=INTAKE_SCHEMA,
         )
+
+@pytest.mark.parametrize("status", [200, 401, 429, 503])
+def test_memory_sol_high_actual_responses_wire_no_fallback(status):
+    from openai import APIStatusError
+
+    adapter = OpenAIStructuredOutputModel(
+        model_name="compass-5.6-sol", api_key="local-router",
+        base_url="http://compass.test/v1", use_responses_api=True, streaming=True,
+        temperature=None, reasoning_effort="high", max_output_tokens=16384, max_retries=0,
+    )
+    with respx.mock as router:
+        route = router.post("http://compass.test/v1/responses").mock(return_value=httpx.Response(
+            status, text=stream_body({"output": {"result_type": "SKIP",
+                "reason_code": "NO_GENERALIZABLE_LESSON"}}) if status == 200 else "error",
+            headers={"content-type": "text/event-stream"} if status == 200 else {}))
+        kwargs = {"task": ModelTask.MEMORY_DISTILL, "system_prompt": "test", "payload": {}, "output_schema": MEMORY_OUTPUT_SCHEMA}
+        if status == 200:
+            assert adapter.generate(**kwargs).result_type == "SKIP"
+        else:
+            with pytest.raises(APIStatusError):
+                adapter.generate(**kwargs)
+        assert route.call_count == 1
+        request = json.loads(route.calls[0].request.content)
+        assert request["model"] == "compass-5.6-sol"
+        assert request["reasoning"] == {"effort": "high"}
+        assert request["max_output_tokens"] == 16384
+        assert request["text"]["format"]["type"] == "json_schema"
+        assert request["stream"] is True
+        assert not {"temperature", "chat_template_kwargs"} & request.keys()

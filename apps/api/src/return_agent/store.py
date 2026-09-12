@@ -10,7 +10,6 @@ that needs the previous value, which is application knowledge.
 """
 
 from __future__ import annotations
-from return_agent_contracts.models import ReviewResult
 
 from datetime import UTC, datetime
 from uuid import uuid4
@@ -22,6 +21,7 @@ from return_agent_contracts.models import (
     HumanReviewDossier,
     HumanReviewResult,
     ProposedDecisionHandoff,
+    ReviewResult,
 )
 from return_agent_contracts.ui import (
     CaseDetail,
@@ -82,7 +82,7 @@ class CaseStore:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def create(self, request: CreateCaseRequest) -> CaseRecord:
+    def create(self, request: CreateCaseRequest, *, turn_ref: str | None = None) -> CaseRecord:
         case = CaseRecord(
             case_ref=f"CASE-{uuid4().hex[:8].upper()}",
             # Backend-private and never reused; the UI only ever sees case_ref.
@@ -98,6 +98,7 @@ class CaseStore:
             case.case_ref,
             {
                 "message": request.initial_message,
+                **({"turn_ref": turn_ref} if turn_ref else {}),
                 "attached_artifact_refs": list(request.attached_artifact_refs),
             },
             kind=USER_TURN,
@@ -120,7 +121,7 @@ class CaseStore:
             raise CaseNotFoundError(case_ref)
         return case
 
-    def append_turn(self, case_ref: str, request: SendMessageRequest) -> CaseRecord:
+    def append_turn(self, case_ref: str, request: SendMessageRequest, *, turn_ref: str | None = None) -> CaseRecord:
         case = self.lock(case_ref)
         if not ALLOWED_TRANSITIONS[CaseStatus(case.status)]:
             raise IllegalTransitionError(f"case {case_ref} is terminal ({case.status})")
@@ -129,6 +130,7 @@ class CaseStore:
             case_ref,
             {
                 "message": request.message,
+                **({"turn_ref": turn_ref} if turn_ref else {}),
                 "attached_artifact_refs": list(request.attached_artifact_refs),
             },
             kind=USER_TURN,
@@ -215,16 +217,15 @@ def to_case_detail(store: CaseStore, case: CaseRecord) -> CaseDetail:
         CaseStatus.AWAITING_CLARIFICATION,
         CaseStatus.AWAITING_EVIDENCE,
         CaseStatus.AWAITING_HUMAN_REVIEW,
-    ):
-        if interrupt is not None:
-            payload = interrupt.payload
-            # A case only advertises the interrupt its status is waiting on.
-            if status is CaseStatus.AWAITING_CLARIFICATION:
-                clarification_request = getattr(payload, "request", None)
-            elif status is CaseStatus.AWAITING_EVIDENCE:
-                evidence_request = getattr(payload, "request", None)
-            else:
-                human_review = getattr(payload, "review", None)
+    ) and interrupt is not None:
+        payload = interrupt.payload
+        # A case only advertises the interrupt its status is waiting on.
+        if status is CaseStatus.AWAITING_CLARIFICATION:
+            clarification_request = getattr(payload, "request", None)
+        elif status is CaseStatus.AWAITING_EVIDENCE:
+            evidence_request = getattr(payload, "request", None)
+        else:
+            human_review = getattr(payload, "review", None)
 
     human_result = None
     if record is not None and record.dossier_payload is not None:

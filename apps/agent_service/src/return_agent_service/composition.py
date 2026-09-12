@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import os
 from contextlib import asynccontextmanager
+from hashlib import sha256
 
 import httpx
 from fastapi import FastAPI
@@ -25,8 +26,11 @@ from return_agent_runtime import (
     ReturnAgentRuntime,
     create_checkpoint_serializer,
 )
-from return_agent_runtime.model import StructuredOutputModel
 from return_agent_runtime.learning import LearningTraceLimits
+from return_agent_runtime.model import (
+    OpenAIStructuredOutputModel,
+    StructuredOutputModel,
+)
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 
@@ -40,6 +44,15 @@ from .memory_supervision import MemoryRetryPolicy
 from .memory_worker import MemoryWorker
 from .settings import AgentServiceSettings
 from .worker import AgentWorker, ObservableAgentRuntime
+
+
+def _memory_model_profile(model: OpenAIStructuredOutputModel) -> dict[str, object]:
+    """Auditable execution settings without credentials or a private endpoint."""
+    return {"model": model.model_name, "reasoning_effort": model.reasoning_effort,
+            "api": "responses" if model.use_responses_api else "chat",
+            "endpoint_hash": sha256((model.base_url or "").encode()).hexdigest(),
+            "timeout_seconds": model.timeout_seconds, "max_retries": model.max_retries,
+            "max_output_tokens": model.max_output_tokens}
 
 
 def activity_workers(
@@ -94,6 +107,7 @@ def compose_integrated_service(
     *,
     settings: AgentServiceSettings,
     model: object,
+    memory_model: OpenAIStructuredOutputModel,
 ) -> FastAPI:
     """Compose Qwen with API-backed Providers and Agent-owned persistence."""
 
@@ -169,7 +183,8 @@ def compose_integrated_service(
                 )
                 memory_worker = MemoryWorker(
                     activity_sink=publisher.submit,
-                    distiller=MemoryDistiller(model=ObservedProvider(model, "model", "model"), trace_limits=dependencies.learning_trace_limits),
+                    distiller=MemoryDistiller(model=ObservedProvider(memory_model, "model", "model"),
+                        trace_limits=dependencies.learning_trace_limits, model_profile=_memory_model_profile(memory_model)),
                     store=ObservedProvider(dependencies.operational_memory_store, "operational_memory_store"),
                     broker=broker,
                     journal=journal,

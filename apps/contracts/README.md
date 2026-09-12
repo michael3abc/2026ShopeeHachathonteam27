@@ -14,6 +14,8 @@ union；stream entry 只放一個 `body` JSON 欄位。Transport owner 不得把
 
 同一 module 也定義非同步 Operational Memory 的 job/completed/failed/DLQ DTO。
 Memory 使用 v2 schema／streams／ID namespace（主案件 commands/events 仍為 v1）。`LearningTrace` 是 typed、allowlisted、有界歷程；輸出含回顧、學習判定與至多一則經驗。`source_event_refs` 取代 correction-only 欄位，核准後仍保留適用限制與不可推論事項。JSON Schema 目錄保持既有路徑，Memory DTO 的版本以其 schema_version 與 stream 為準。
+
+`LearningTrace.dialogue_version=learning-dialogue:1` 新增逐事件、去識別化對話及 turn/request 追溯；未驗證主張與 Agent 要求分別標記。`EvidenceResume.turn` 可選但附件必須一致；缺失可裁決、不可假造完整學習輸入。主 commands 仍為 v1，嚴格 DTO consumer 必須與 producer 協調更新。
 `MemoryDistillationCompletedEvent` 以 schema-visible union 保證 candidate 必有
 `submission_ref`、`SKIP` 必為 `null`；跨物件的 case/trace 一致性則仍由 Pydantic
 semantic validator 強制。

@@ -1427,6 +1427,65 @@
       "title": "LearningDecision",
       "type": "object"
     },
+    "LearningDialogueTurn": {
+      "additionalProperties": false,
+      "description": "Redacted utterance, not independent evidence or a delivery receipt.",
+      "properties": {
+        "redacted": {
+          "default": false,
+          "title": "Redacted",
+          "type": "boolean"
+        },
+        "request_ref": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Request Ref"
+        },
+        "role": {
+          "enum": [
+            "USER",
+            "AGENT"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "trust": {
+          "enum": [
+            "USER_STATEMENT_UNVERIFIED",
+            "AGENT_REQUEST_NOT_EXECUTION"
+          ],
+          "title": "Trust",
+          "type": "string"
+        },
+        "turn_ref": {
+          "minLength": 1,
+          "title": "Turn Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "turn_ref",
+        "role",
+        "text",
+        "trust"
+      ],
+      "title": "LearningDialogueTurn",
+      "type": "object"
+    },
     "LearningEvent": {
       "additionalProperties": false,
       "description": "Allowlisted observations, never raw state, prompts or media.",
@@ -1516,6 +1575,19 @@
             }
           ],
           "default": null
+        },
+        "dialogue": {
+          "items": {
+            "$ref": "#/$defs/LearningDialogueTurn"
+          },
+          "maxItems": 4,
+          "title": "Dialogue",
+          "type": "array"
+        },
+        "dialogue_missing": {
+          "default": false,
+          "title": "Dialogue Missing",
+          "type": "boolean"
         },
         "error_code": {
           "anyOf": [
@@ -1905,6 +1977,19 @@
           "minLength": 1,
           "title": "Case Ref",
           "type": "string"
+        },
+        "dialogue_version": {
+          "anyOf": [
+            {
+              "const": "learning-dialogue:1",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dialogue Version"
         },
         "events": {
           "items": {

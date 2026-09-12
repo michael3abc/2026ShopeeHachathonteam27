@@ -28,6 +28,7 @@ RESULTS = Table(
     Column("job_id", String(256), primary_key=True),
     Column("input_hash", String(64), nullable=False),
     Column("prompt_version", String(256), nullable=False),
+    Column("model_profile", JSON(none_as_null=True)),
     Column("result", JSON(none_as_null=True)),
     Column("terminal_event", JSON(none_as_null=True)),
 )
@@ -38,6 +39,7 @@ class MemoryReplay:
     prompt_version: str
     result: MemoryDistillationOutput | None
     terminal_event: MemoryServiceEvent | None
+    model_profile: dict[str, object] | None = None
 
 
 class MemoryReplayConflictError(ValueError):
@@ -66,9 +68,9 @@ class SqlAlchemyMemoryReplayStore:
             command.upgrade(config, "head")
 
     async def load(
-        self, job: MemoryDistillationJob, prompt_version: str
+        self, job: MemoryDistillationJob, prompt_version: str, model_profile: dict[str, object] | None = None
     ) -> MemoryReplay:
-        return await asyncio.to_thread(self._load, job, prompt_version)
+        return await asyncio.to_thread(self._load, job, prompt_version, model_profile)
 
     async def save_result(
         self, job: MemoryDistillationJob, result: MemoryDistillationOutput
@@ -88,6 +90,16 @@ class SqlAlchemyMemoryReplayStore:
     def _hash(job: MemoryDistillationJob) -> str:
         # Enqueue redelivery may have a new issued_at; everything else must match.
         payload = job.model_dump(mode="json", exclude={"issued_at"})
+        trace = payload["payload"]["input"].get("learning_trace")
+        # Preserve pre-dialogue hashes without ignoring any actual new content.
+        # Do not use exclude_defaults: it would change other legacy fields.
+        if trace is not None and trace.get("dialogue_version") is None:
+            trace.pop("dialogue_version", None)
+            for event in trace["events"]:
+                if not event.get("dialogue"):
+                    event.pop("dialogue", None)
+                if event.get("dialogue_missing") is False:
+                    event.pop("dialogue_missing", None)
         return sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
     @staticmethod
@@ -98,6 +110,7 @@ class SqlAlchemyMemoryReplayStore:
             raise MemoryReplayConflictError("memory job ID has conflicting input")
         return MemoryReplay(
             prompt_version=row["prompt_version"],
+            model_profile=row["model_profile"],
             result=_OUTPUT.validate_python(row["result"])
             if row["result"] is not None
             else None,
@@ -106,7 +119,7 @@ class SqlAlchemyMemoryReplayStore:
             else None,
         )
 
-    def _load(self, job: MemoryDistillationJob, prompt_version: str) -> MemoryReplay:
+    def _load(self, job: MemoryDistillationJob, prompt_version: str, model_profile: dict[str, object] | None) -> MemoryReplay:
         with self._engine.begin() as connection:
             insert = (
                 pg_insert if connection.dialect.name == "postgresql" else sqlite_insert
@@ -117,6 +130,7 @@ class SqlAlchemyMemoryReplayStore:
                     job_id=job.job_id,
                     input_hash=self._hash(job),
                     prompt_version=prompt_version,
+                    model_profile=model_profile,
                 )
                 .on_conflict_do_nothing(index_elements=["job_id"])
             )
@@ -130,6 +144,8 @@ class SqlAlchemyMemoryReplayStore:
             replay = self._decode(row, job)
             if replay.result is None and replay.terminal_event is None and replay.prompt_version != prompt_version:
                 raise MemoryReplayConflictError("pending memory job belongs to a different prompt version")
+            if replay.result is None and replay.terminal_event is None and replay.model_profile != model_profile:
+                raise MemoryReplayConflictError("pending memory job belongs to a different model profile")
             return replay
 
     def _save(

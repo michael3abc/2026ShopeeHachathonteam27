@@ -1,0 +1,109 @@
+{
+  "$defs": {
+    "QueryApprovedMemoryParams": {
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Categories",
+          "type": "array"
+        },
+        "claim_registry_major": {
+          "minimum": 1,
+          "title": "Claim Registry Major",
+          "type": "integer"
+        },
+        "market": {
+          "minLength": 1,
+          "title": "Market",
+          "type": "string"
+        },
+        "policy_versions": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Policy Versions",
+          "type": "array"
+        },
+        "query_summary": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Query Summary",
+          "type": "string"
+        },
+        "reason_code": {
+          "enum": [
+            "ITEM_DAMAGED",
+            "ITEM_NOT_AS_DESCRIBED",
+            "MISSING_ITEM",
+            "WRONG_ITEM",
+            "QUALITY_ISSUE",
+            "CHANGED_MIND"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "required_claim_ids": {
+          "items": {
+            "enum": [
+              "DELIVERY_CONFIRMED",
+              "ORDER_WITHIN_RETURN_WINDOW",
+              "SHIPMENT_SEAL_INTACT",
+              "ITEM_PHYSICALLY_DAMAGED",
+              "DAMAGE_PRESENT_ON_ARRIVAL",
+              "ITEM_FUNCTIONALLY_IMPAIRED",
+              "ITEM_DIFFERS_FROM_LISTING",
+              "WRONG_ITEM_RECEIVED",
+              "ITEM_NOT_IN_SHIPMENT",
+              "ITEM_UNUSED"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Required Claim Ids",
+          "type": "array"
+        },
+        "top_k": {
+          "default": 3,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Top K",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "query_summary",
+        "market",
+        "reason_code",
+        "required_claim_ids",
+        "policy_versions",
+        "claim_registry_major"
+      ],
+      "title": "QueryApprovedMemoryParams",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "method": {
+      "const": "OperationalMemoryStore.query_approved",
+      "title": "Method",
+      "type": "string"
+    },
+    "params": {
+      "$ref": "#/$defs/QueryApprovedMemoryParams"
+    }
+  },
+  "required": [
+    "method",
+    "params"
+  ],
+  "title": "QueryApprovedMemoryRequest",
+  "type": "object"
+}

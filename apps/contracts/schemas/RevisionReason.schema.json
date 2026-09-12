@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "enum": [
+        "EVIDENCE_INSUFFICIENT",
+        "POLICY_MISMATCH",
+        "DECISION_UNSUPPORTED",
+        "DECISION_INCONSISTENT",
+        "SCOPE_UNSUPPORTED",
+        "RETURN_REQUIREMENT_INCONSISTENT",
+        "HANDOFF_INCOMPLETE",
+        "OTHER"
+      ],
+      "title": "Code",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "message": {
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "policy_refs": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Policy Refs",
+      "type": "array"
+    },
+    "required_change": {
+      "minLength": 1,
+      "title": "Required Change",
+      "type": "string"
+    },
+    "subject": {
+      "minLength": 1,
+      "title": "Subject",
+      "type": "string"
+    }
+  },
+  "required": [
+    "code",
+    "subject",
+    "message",
+    "required_change"
+  ],
+  "title": "RevisionReason",
+  "type": "object"
+}

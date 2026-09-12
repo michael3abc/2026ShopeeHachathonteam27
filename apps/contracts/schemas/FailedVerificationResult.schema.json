@@ -1,0 +1,60 @@
+{
+  "$defs": {
+    "VerificationIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "field_path": {
+          "minLength": 1,
+          "title": "Field Path",
+          "type": "string"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "field_path",
+        "message"
+      ],
+      "title": "VerificationIssue",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "issues": {
+      "items": {
+        "$ref": "#/$defs/VerificationIssue"
+      },
+      "minItems": 1,
+      "title": "Issues",
+      "type": "array"
+    },
+    "status": {
+      "const": "FAIL",
+      "title": "Status",
+      "type": "string"
+    },
+    "verification_version": {
+      "minLength": 1,
+      "title": "Verification Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "verification_version",
+    "issues"
+  ],
+  "title": "FailedVerificationResult",
+  "type": "object"
+}

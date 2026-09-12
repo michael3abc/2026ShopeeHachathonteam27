@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_ref": {
+      "minLength": 1,
+      "title": "Artifact Ref",
+      "type": "string"
+    },
+    "collected_at": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+      "title": "Collected At",
+      "type": "string"
+    },
+    "evidence_id": {
+      "minLength": 1,
+      "title": "Evidence Id",
+      "type": "string"
+    },
+    "extracted_summary": {
+      "minLength": 1,
+      "title": "Extracted Summary",
+      "type": "string"
+    },
+    "source": {
+      "enum": [
+        "USER",
+        "ORDER_TOOL",
+        "LOGISTICS_TOOL",
+        "SYSTEM"
+      ],
+      "title": "Source",
+      "type": "string"
+    },
+    "subject": {
+      "minLength": 1,
+      "title": "Subject",
+      "type": "string"
+    },
+    "type": {
+      "enum": [
+        "IMAGE",
+        "VIDEO",
+        "TEXT",
+        "DOCUMENT"
+      ],
+      "title": "Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "evidence_id",
+    "artifact_ref",
+    "type",
+    "source",
+    "subject",
+    "extracted_summary",
+    "collected_at"
+  ],
+  "title": "EvidenceItem",
+  "type": "object"
+}

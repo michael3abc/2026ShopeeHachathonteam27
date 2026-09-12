@@ -1,0 +1,87 @@
+{
+  "$defs": {
+    "RequiredReturnRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "reason_code": {
+          "enum": [
+            "RESALE_VALUE_RETAINED",
+            "RETURN_REQUIRED_FOR_INSPECTION"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "required": {
+          "const": true,
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "required",
+        "reason_code"
+      ],
+      "title": "RequiredReturnRequirement",
+      "type": "object"
+    },
+    "WaivedReturnRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "reason_code": {
+          "enum": [
+            "ITEM_UNSALVAGEABLE",
+            "HYGIENE_RISK",
+            "RETURN_UNECONOMICAL",
+            "EVIDENCE_SUFFICIENT_WITHOUT_RETURN"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "required": {
+          "const": false,
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "required",
+        "reason_code"
+      ],
+      "title": "WaivedReturnRequirement",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "requirement": {
+      "discriminator": {
+        "mapping": {
+          "False": "#/$defs/WaivedReturnRequirement",
+          "True": "#/$defs/RequiredReturnRequirement"
+        },
+        "propertyName": "required"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/RequiredReturnRequirement"
+        },
+        {
+          "$ref": "#/$defs/WaivedReturnRequirement"
+        }
+      ],
+      "title": "Requirement"
+    },
+    "source": {
+      "const": "HUMAN_REVIEW",
+      "title": "Source",
+      "type": "string"
+    }
+  },
+  "required": [
+    "source",
+    "requirement"
+  ],
+  "title": "HumanReviewReturnDecision",
+  "type": "object"
+}

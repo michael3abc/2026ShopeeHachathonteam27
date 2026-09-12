@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "application_ref": {
+      "minLength": 1,
+      "title": "Application Ref",
+      "type": "string"
+    },
+    "applied_at": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+      "title": "Applied At",
+      "type": "string"
+    },
+    "status": {
+      "const": "APPLIED",
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "application_ref",
+    "applied_at"
+  ],
+  "title": "AppliedRefundApplicationResult",
+  "type": "object"
+}

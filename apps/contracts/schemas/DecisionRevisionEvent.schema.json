@@ -1,0 +1,267 @@
+{
+  "$defs": {
+    "ApprovedReviewResult": {
+      "additionalProperties": false,
+      "properties": {
+        "reviewed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Reviewed At",
+          "type": "string"
+        },
+        "reviewer_claim_findings": {
+          "items": {
+            "$ref": "#/$defs/ClaimFinding"
+          },
+          "minItems": 1,
+          "title": "Reviewer Claim Findings",
+          "type": "array"
+        },
+        "reviewer_prompt_version": {
+          "minLength": 1,
+          "title": "Reviewer Prompt Version",
+          "type": "string"
+        },
+        "revision_reasons": {
+          "items": {
+            "$ref": "#/$defs/RevisionReason"
+          },
+          "maxItems": 0,
+          "title": "Revision Reasons",
+          "type": "array"
+        },
+        "verdict": {
+          "const": "APPROVE",
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reviewed_at",
+        "reviewer_prompt_version",
+        "reviewer_claim_findings",
+        "verdict"
+      ],
+      "title": "ApprovedReviewResult",
+      "type": "object"
+    },
+    "ClaimFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_id": {
+          "enum": [
+            "DELIVERY_CONFIRMED",
+            "ORDER_WITHIN_RETURN_WINDOW",
+            "SHIPMENT_SEAL_INTACT",
+            "ITEM_PHYSICALLY_DAMAGED",
+            "DAMAGE_PRESENT_ON_ARRIVAL",
+            "ITEM_FUNCTIONALLY_IMPAIRED",
+            "ITEM_DIFFERS_FROM_LISTING",
+            "WRONG_ITEM_RECEIVED",
+            "ITEM_NOT_IN_SHIPMENT",
+            "ITEM_UNUSED"
+          ],
+          "title": "Claim Id",
+          "type": "string"
+        },
+        "explanation": {
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "SUPPORTED",
+            "UNSUPPORTED",
+            "CONTRADICTED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "subject": {
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        },
+        "supporting_evidence_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Supporting Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "claim_id",
+        "subject",
+        "status",
+        "explanation"
+      ],
+      "title": "ClaimFinding",
+      "type": "object"
+    },
+    "RevisedReviewResult": {
+      "additionalProperties": false,
+      "properties": {
+        "reviewed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Reviewed At",
+          "type": "string"
+        },
+        "reviewer_claim_findings": {
+          "items": {
+            "$ref": "#/$defs/ClaimFinding"
+          },
+          "minItems": 1,
+          "title": "Reviewer Claim Findings",
+          "type": "array"
+        },
+        "reviewer_prompt_version": {
+          "minLength": 1,
+          "title": "Reviewer Prompt Version",
+          "type": "string"
+        },
+        "revision_reasons": {
+          "items": {
+            "$ref": "#/$defs/RevisionReason"
+          },
+          "minItems": 1,
+          "title": "Revision Reasons",
+          "type": "array"
+        },
+        "verdict": {
+          "const": "REVISE",
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reviewed_at",
+        "reviewer_prompt_version",
+        "reviewer_claim_findings",
+        "verdict",
+        "revision_reasons"
+      ],
+      "title": "RevisedReviewResult",
+      "type": "object"
+    },
+    "RevisionReason": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "EVIDENCE_INSUFFICIENT",
+            "POLICY_MISMATCH",
+            "DECISION_UNSUPPORTED",
+            "DECISION_INCONSISTENT",
+            "SCOPE_UNSUPPORTED",
+            "RETURN_REQUIREMENT_INCONSISTENT",
+            "HANDOFF_INCOMPLETE",
+            "OTHER"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "policy_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Policy Refs",
+          "type": "array"
+        },
+        "required_change": {
+          "minLength": 1,
+          "title": "Required Change",
+          "type": "string"
+        },
+        "subject": {
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "subject",
+        "message",
+        "required_change"
+      ],
+      "title": "RevisionReason",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_ref": {
+      "minLength": 1,
+      "title": "Case Ref",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+      "title": "Created At",
+      "type": "string"
+    },
+    "event_id": {
+      "minLength": 1,
+      "title": "Event Id",
+      "type": "string"
+    },
+    "handoff_before_ref": {
+      "minLength": 1,
+      "title": "Handoff Before Ref",
+      "type": "string"
+    },
+    "review_result": {
+      "discriminator": {
+        "mapping": {
+          "APPROVE": "#/$defs/ApprovedReviewResult",
+          "REVISE": "#/$defs/RevisedReviewResult"
+        },
+        "propertyName": "verdict"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ApprovedReviewResult"
+        },
+        {
+          "$ref": "#/$defs/RevisedReviewResult"
+        }
+      ],
+      "title": "Review Result"
+    },
+    "revision_round": {
+      "minimum": 1,
+      "title": "Revision Round",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "event_id",
+    "case_ref",
+    "handoff_before_ref",
+    "review_result",
+    "revision_round",
+    "created_at"
+  ],
+  "title": "DecisionRevisionEvent",
+  "type": "object"
+}

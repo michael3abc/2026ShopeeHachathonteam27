@@ -1,0 +1,66 @@
+{
+  "$defs": {
+    "RevisionConflictReport": {
+      "additionalProperties": false,
+      "properties": {
+        "conflicting_reason_codes": {
+          "items": {
+            "enum": [
+              "EVIDENCE_INSUFFICIENT",
+              "POLICY_MISMATCH",
+              "DECISION_UNSUPPORTED",
+              "DECISION_INCONSISTENT",
+              "SCOPE_UNSUPPORTED",
+              "RETURN_REQUIREMENT_INCONSISTENT",
+              "HANDOFF_INCOMPLETE",
+              "OTHER"
+            ],
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Conflicting Reason Codes",
+          "type": "array"
+        },
+        "conflicting_review_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Conflicting Review Refs",
+          "type": "array"
+        },
+        "explanation": {
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "conflicting_reason_codes",
+        "conflicting_review_refs",
+        "explanation"
+      ],
+      "title": "RevisionConflictReport",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "conflict": {
+      "$ref": "#/$defs/RevisionConflictReport"
+    },
+    "result_type": {
+      "const": "CONFLICTING_REVISIONS",
+      "title": "Result Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "result_type",
+    "conflict"
+  ],
+  "title": "ResolverConflictOutput",
+  "type": "object"
+}

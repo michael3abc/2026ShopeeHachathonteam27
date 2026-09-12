@@ -1,0 +1,37 @@
+{
+  "$defs": {
+    "FetchHumanReviewParams": {
+      "additionalProperties": false,
+      "properties": {
+        "review_ref": {
+          "minLength": 1,
+          "title": "Review Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "review_ref"
+      ],
+      "title": "FetchHumanReviewParams",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "method": {
+      "const": "HumanReviewProvider.fetch_result",
+      "title": "Method",
+      "type": "string"
+    },
+    "params": {
+      "$ref": "#/$defs/FetchHumanReviewParams"
+    }
+  },
+  "required": [
+    "method",
+    "params"
+  ],
+  "title": "FetchHumanReviewRequest",
+  "type": "object"
+}

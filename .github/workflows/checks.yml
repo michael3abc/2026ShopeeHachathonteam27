@@ -10,12 +10,14 @@ jobs:
           version: "0.12.13"
       - run: uv sync --frozen --all-packages
       - run: uv run pytest
+      - run: uv run return-agent-export-schemas --check
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - run: npm --prefix apps/web ci
+      - run: npm --prefix apps/web run contracts -- --check
       - run: npm --prefix apps/web run lint
       - run: npm --prefix apps/web run typecheck
       - run: npm --prefix apps/web run build

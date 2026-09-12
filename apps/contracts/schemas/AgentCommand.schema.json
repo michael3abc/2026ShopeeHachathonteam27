@@ -1,0 +1,273 @@
+{
+  "$defs": {
+    "AgentResumeCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "command_id": {
+          "minLength": 1,
+          "title": "Command Id",
+          "type": "string"
+        },
+        "command_type": {
+          "const": "RESUME",
+          "title": "Command Type",
+          "type": "string"
+        },
+        "issued_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Issued At",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/AgentResumePayload"
+        },
+        "schema_version": {
+          "const": "v1",
+          "default": "v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "thread_id": {
+          "minLength": 1,
+          "title": "Thread Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "command_id",
+        "case_ref",
+        "thread_id",
+        "issued_at",
+        "command_type",
+        "payload"
+      ],
+      "title": "AgentResumeCommand",
+      "type": "object"
+    },
+    "AgentResumePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "resume": {
+          "discriminator": {
+            "mapping": {
+              "CLARIFICATION": "#/$defs/ClarificationResume",
+              "EVIDENCE_REQUEST": "#/$defs/EvidenceResume",
+              "HUMAN_REVIEW": "#/$defs/HumanReviewPollResume"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ClarificationResume"
+            },
+            {
+              "$ref": "#/$defs/EvidenceResume"
+            },
+            {
+              "$ref": "#/$defs/HumanReviewPollResume"
+            }
+          ],
+          "title": "Resume"
+        }
+      },
+      "required": [
+        "resume"
+      ],
+      "title": "AgentResumePayload",
+      "type": "object"
+    },
+    "AgentStartCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "command_id": {
+          "minLength": 1,
+          "title": "Command Id",
+          "type": "string"
+        },
+        "command_type": {
+          "const": "START",
+          "title": "Command Type",
+          "type": "string"
+        },
+        "issued_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Issued At",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/AgentStartPayload"
+        },
+        "schema_version": {
+          "const": "v1",
+          "default": "v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "thread_id": {
+          "minLength": 1,
+          "title": "Thread Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "command_id",
+        "case_ref",
+        "thread_id",
+        "issued_at",
+        "command_type",
+        "payload"
+      ],
+      "title": "AgentStartCommand",
+      "type": "object"
+    },
+    "AgentStartPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "initial_turn": {
+          "$ref": "#/$defs/AgentUserTurn"
+        },
+        "order_ref": {
+          "minLength": 1,
+          "title": "Order Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "order_ref",
+        "initial_turn"
+      ],
+      "title": "AgentStartPayload",
+      "type": "object"
+    },
+    "AgentUserTurn": {
+      "additionalProperties": false,
+      "properties": {
+        "attached_artifact_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Attached Artifact Refs",
+          "type": "array"
+        },
+        "received_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Received At",
+          "type": "string"
+        },
+        "role": {
+          "const": "USER",
+          "title": "Role",
+          "type": "string"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "turn_id": {
+          "minLength": 1,
+          "title": "Turn Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "turn_id",
+        "role",
+        "text",
+        "received_at"
+      ],
+      "title": "AgentUserTurn",
+      "type": "object"
+    },
+    "ClarificationResume": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "CLARIFICATION",
+          "title": "Kind",
+          "type": "string"
+        },
+        "turn": {
+          "$ref": "#/$defs/AgentUserTurn"
+        }
+      },
+      "required": [
+        "kind",
+        "turn"
+      ],
+      "title": "ClarificationResume",
+      "type": "object"
+    },
+    "EvidenceResume": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Artifact Refs",
+          "type": "array"
+        },
+        "kind": {
+          "const": "EVIDENCE_REQUEST",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "artifact_refs"
+      ],
+      "title": "EvidenceResume",
+      "type": "object"
+    },
+    "HumanReviewPollResume": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "HUMAN_REVIEW",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "HumanReviewPollResume",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "discriminator": {
+    "mapping": {
+      "RESUME": "#/$defs/AgentResumeCommand",
+      "START": "#/$defs/AgentStartCommand"
+    },
+    "propertyName": "command_type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/AgentStartCommand"
+    },
+    {
+      "$ref": "#/$defs/AgentResumeCommand"
+    }
+  ],
+  "title": "AgentCommand"
+}

@@ -1,0 +1,41 @@
+{
+  "$defs": {
+    "EmptyRefundScope": {
+      "additionalProperties": false,
+      "properties": {
+        "line_item_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 0,
+          "title": "Line Item Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "line_item_ids"
+      ],
+      "title": "EmptyRefundScope",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "const": "DECLINE",
+      "title": "Action",
+      "type": "string"
+    },
+    "refund_scope": {
+      "$ref": "#/$defs/EmptyRefundScope"
+    }
+  },
+  "required": [
+    "action",
+    "refund_scope"
+  ],
+  "title": "CorrectedDeclineDecision",
+  "type": "object"
+}

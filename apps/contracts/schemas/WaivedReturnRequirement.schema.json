@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "reason_code": {
+      "enum": [
+        "ITEM_UNSALVAGEABLE",
+        "HYGIENE_RISK",
+        "RETURN_UNECONOMICAL",
+        "EVIDENCE_SUFFICIENT_WITHOUT_RETURN"
+      ],
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "required": {
+      "const": false,
+      "title": "Required",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "required",
+    "reason_code"
+  ],
+  "title": "WaivedReturnRequirement",
+  "type": "object"
+}

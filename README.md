@@ -2,7 +2,7 @@
 
 依行為規格從零重建的內部退貨 Demo。使用合成資料與模擬退款，不接真實金流。
 
-目前處於 T01 骨架階段，案件互動尚未完成；進度與實際驗證見 [進度紀錄](docs/progress.md)，資產使用與差異見 [決策紀錄](docs/decisions.md)。
+T01 骨架已驗證，T02 契約正在實作，案件互動尚未完成；進度與實際驗證見 [進度紀錄](docs/progress.md)，資產使用與差異見 [決策紀錄](docs/decisions.md)。
 
 ## 開發環境
 
@@ -45,12 +45,16 @@ Compose 的資料庫密碼是明示的本機示範值；連接埠只綁 loopback
 
 ```bash
 uv run pytest
+uv run return-agent-export-schemas --check
+npm --prefix apps/web run contracts -- --check
 npm --prefix apps/web run lint
 npm --prefix apps/web run typecheck
 npm --prefix apps/web run build
 ```
 
 測試使用本專案重新撰寫的資料。公開專案不需要本機 `reference/`，也不執行原規格包的工具。真模型驗收將獨立啟用，不列入 CI 必要條件。
+
+修改共享 DTO 後，依序執行 `uv run return-agent-export-schemas` 與 `npm --prefix apps/web run contracts`，並提交生成的 schemas 與 TypeScript。跨物件授權條件由 Python validators 驗證，不能僅憑 JSON Schema 通過而退款。
 
 ## 架構
 

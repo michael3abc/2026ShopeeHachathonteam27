@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_ref": {
+      "minLength": 1,
+      "title": "Case Ref",
+      "type": "string"
+    }
+  },
+  "required": [
+    "case_ref"
+  ],
+  "title": "LoadCaseContextParams",
+  "type": "object"
+}

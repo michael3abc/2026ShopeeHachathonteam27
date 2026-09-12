@@ -1,0 +1,985 @@
+{
+  "$defs": {
+    "AgentFullRefundFinalDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "FULL_REFUND",
+          "title": "Action",
+          "type": "string"
+        },
+        "amount": {
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+          "title": "Amount",
+          "type": "string"
+        },
+        "currency": {
+          "maxLength": 3,
+          "minLength": 3,
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "reason_code": {
+          "enum": [
+            "ITEM_DAMAGED",
+            "ITEM_NOT_AS_DESCRIBED",
+            "MISSING_ITEM",
+            "WRONG_ITEM",
+            "QUALITY_ISSUE",
+            "CHANGED_MIND"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "refund_scope": {
+          "$ref": "#/$defs/NonEmptyRefundScope"
+        },
+        "return_decision": {
+          "discriminator": {
+            "mapping": {
+              "MODEL_JUDGMENT": "#/$defs/ModelJudgmentReturnDecision",
+              "POLICY": "#/$defs/PolicyReturnDecision"
+            },
+            "propertyName": "source"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/PolicyReturnDecision"
+            },
+            {
+              "$ref": "#/$defs/ModelJudgmentReturnDecision"
+            }
+          ],
+          "title": "Return Decision"
+        }
+      },
+      "required": [
+        "amount",
+        "currency",
+        "reason_code",
+        "action",
+        "refund_scope",
+        "return_decision"
+      ],
+      "title": "AgentFullRefundFinalDecision",
+      "type": "object"
+    },
+    "ApprovedReviewResult": {
+      "additionalProperties": false,
+      "properties": {
+        "reviewed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Reviewed At",
+          "type": "string"
+        },
+        "reviewer_claim_findings": {
+          "items": {
+            "$ref": "#/$defs/ClaimFinding"
+          },
+          "minItems": 1,
+          "title": "Reviewer Claim Findings",
+          "type": "array"
+        },
+        "reviewer_prompt_version": {
+          "minLength": 1,
+          "title": "Reviewer Prompt Version",
+          "type": "string"
+        },
+        "revision_reasons": {
+          "items": {
+            "$ref": "#/$defs/RevisionReason"
+          },
+          "maxItems": 0,
+          "title": "Revision Reasons",
+          "type": "array"
+        },
+        "verdict": {
+          "const": "APPROVE",
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reviewed_at",
+        "reviewer_prompt_version",
+        "reviewer_claim_findings",
+        "verdict"
+      ],
+      "title": "ApprovedReviewResult",
+      "type": "object"
+    },
+    "ClaimFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_id": {
+          "enum": [
+            "DELIVERY_CONFIRMED",
+            "ORDER_WITHIN_RETURN_WINDOW",
+            "SHIPMENT_SEAL_INTACT",
+            "ITEM_PHYSICALLY_DAMAGED",
+            "DAMAGE_PRESENT_ON_ARRIVAL",
+            "ITEM_FUNCTIONALLY_IMPAIRED",
+            "ITEM_DIFFERS_FROM_LISTING",
+            "WRONG_ITEM_RECEIVED",
+            "ITEM_NOT_IN_SHIPMENT",
+            "ITEM_UNUSED"
+          ],
+          "title": "Claim Id",
+          "type": "string"
+        },
+        "explanation": {
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "SUPPORTED",
+            "UNSUPPORTED",
+            "CONTRADICTED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "subject": {
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        },
+        "supporting_evidence_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Supporting Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "claim_id",
+        "subject",
+        "status",
+        "explanation"
+      ],
+      "title": "ClaimFinding",
+      "type": "object"
+    },
+    "DeclineFinalDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "DECLINE",
+          "title": "Action",
+          "type": "string"
+        },
+        "amount": {
+          "pattern": "^0(?:\\.0+)?$",
+          "title": "Amount",
+          "type": "string"
+        },
+        "currency": {
+          "maxLength": 3,
+          "minLength": 3,
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "reason_code": {
+          "enum": [
+            "ITEM_DAMAGED",
+            "ITEM_NOT_AS_DESCRIBED",
+            "MISSING_ITEM",
+            "WRONG_ITEM",
+            "QUALITY_ISSUE",
+            "CHANGED_MIND"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "refund_scope": {
+          "$ref": "#/$defs/EmptyRefundScope"
+        }
+      },
+      "required": [
+        "amount",
+        "currency",
+        "reason_code",
+        "action",
+        "refund_scope"
+      ],
+      "title": "DeclineFinalDecision",
+      "type": "object"
+    },
+    "EmptyRefundScope": {
+      "additionalProperties": false,
+      "properties": {
+        "line_item_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 0,
+          "title": "Line Item Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "line_item_ids"
+      ],
+      "title": "EmptyRefundScope",
+      "type": "object"
+    },
+    "HumanApproveResolutionHandoff": {
+      "additionalProperties": false,
+      "properties": {
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "emitted_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Emitted At",
+          "type": "string"
+        },
+        "execution_blocked": {
+          "const": false,
+          "title": "Execution Blocked",
+          "type": "boolean"
+        },
+        "final_decision": {
+          "discriminator": {
+            "mapping": {
+              "DECLINE": "#/$defs/DeclineFinalDecision",
+              "FULL_REFUND": "#/$defs/AgentFullRefundFinalDecision"
+            },
+            "propertyName": "action"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/AgentFullRefundFinalDecision"
+            },
+            {
+              "$ref": "#/$defs/DeclineFinalDecision"
+            }
+          ],
+          "title": "Final Decision"
+        },
+        "handoff_id": {
+          "minLength": 1,
+          "title": "Handoff Id",
+          "type": "string"
+        },
+        "outcome_source": {
+          "const": "HUMAN_APPROVE",
+          "title": "Outcome Source",
+          "type": "string"
+        },
+        "review_gate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReviewGateResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "review_result": {
+          "discriminator": {
+            "mapping": {
+              "APPROVE": "#/$defs/ApprovedReviewResult",
+              "REVISE": "#/$defs/RevisedReviewResult"
+            },
+            "propertyName": "verdict"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ApprovedReviewResult"
+            },
+            {
+              "$ref": "#/$defs/RevisedReviewResult"
+            }
+          ],
+          "title": "Review Result"
+        }
+      },
+      "required": [
+        "handoff_id",
+        "case_ref",
+        "emitted_at",
+        "execution_blocked",
+        "outcome_source",
+        "final_decision",
+        "review_result"
+      ],
+      "title": "HumanApproveResolutionHandoff",
+      "type": "object"
+    },
+    "HumanEditResolutionHandoff": {
+      "additionalProperties": false,
+      "properties": {
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "emitted_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Emitted At",
+          "type": "string"
+        },
+        "execution_blocked": {
+          "const": false,
+          "title": "Execution Blocked",
+          "type": "boolean"
+        },
+        "final_decision": {
+          "discriminator": {
+            "mapping": {
+              "DECLINE": "#/$defs/DeclineFinalDecision",
+              "FULL_REFUND": "#/$defs/HumanEditedFullRefundFinalDecision"
+            },
+            "propertyName": "action"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/HumanEditedFullRefundFinalDecision"
+            },
+            {
+              "$ref": "#/$defs/DeclineFinalDecision"
+            }
+          ],
+          "title": "Final Decision"
+        },
+        "handoff_id": {
+          "minLength": 1,
+          "title": "Handoff Id",
+          "type": "string"
+        },
+        "outcome_source": {
+          "const": "HUMAN_EDIT",
+          "title": "Outcome Source",
+          "type": "string"
+        },
+        "review_gate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReviewGateResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "review_result": {
+          "discriminator": {
+            "mapping": {
+              "APPROVE": "#/$defs/ApprovedReviewResult",
+              "REVISE": "#/$defs/RevisedReviewResult"
+            },
+            "propertyName": "verdict"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ApprovedReviewResult"
+            },
+            {
+              "$ref": "#/$defs/RevisedReviewResult"
+            }
+          ],
+          "title": "Review Result"
+        }
+      },
+      "required": [
+        "handoff_id",
+        "case_ref",
+        "emitted_at",
+        "execution_blocked",
+        "outcome_source",
+        "final_decision",
+        "review_result"
+      ],
+      "title": "HumanEditResolutionHandoff",
+      "type": "object"
+    },
+    "HumanEditedFullRefundFinalDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "FULL_REFUND",
+          "title": "Action",
+          "type": "string"
+        },
+        "amount": {
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+          "title": "Amount",
+          "type": "string"
+        },
+        "currency": {
+          "maxLength": 3,
+          "minLength": 3,
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "reason_code": {
+          "enum": [
+            "ITEM_DAMAGED",
+            "ITEM_NOT_AS_DESCRIBED",
+            "MISSING_ITEM",
+            "WRONG_ITEM",
+            "QUALITY_ISSUE",
+            "CHANGED_MIND"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "refund_scope": {
+          "$ref": "#/$defs/NonEmptyRefundScope"
+        },
+        "return_decision": {
+          "$ref": "#/$defs/HumanReviewReturnDecision"
+        }
+      },
+      "required": [
+        "amount",
+        "currency",
+        "reason_code",
+        "action",
+        "refund_scope",
+        "return_decision"
+      ],
+      "title": "HumanEditedFullRefundFinalDecision",
+      "type": "object"
+    },
+    "HumanRejectResolutionHandoff": {
+      "additionalProperties": false,
+      "properties": {
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "emitted_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Emitted At",
+          "type": "string"
+        },
+        "execution_blocked": {
+          "const": false,
+          "title": "Execution Blocked",
+          "type": "boolean"
+        },
+        "final_decision": {
+          "$ref": "#/$defs/DeclineFinalDecision"
+        },
+        "handoff_id": {
+          "minLength": 1,
+          "title": "Handoff Id",
+          "type": "string"
+        },
+        "outcome_source": {
+          "const": "HUMAN_REJECT",
+          "title": "Outcome Source",
+          "type": "string"
+        },
+        "review_gate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReviewGateResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "review_result": {
+          "discriminator": {
+            "mapping": {
+              "APPROVE": "#/$defs/ApprovedReviewResult",
+              "REVISE": "#/$defs/RevisedReviewResult"
+            },
+            "propertyName": "verdict"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ApprovedReviewResult"
+            },
+            {
+              "$ref": "#/$defs/RevisedReviewResult"
+            }
+          ],
+          "title": "Review Result"
+        }
+      },
+      "required": [
+        "handoff_id",
+        "case_ref",
+        "emitted_at",
+        "execution_blocked",
+        "outcome_source",
+        "final_decision",
+        "review_result"
+      ],
+      "title": "HumanRejectResolutionHandoff",
+      "type": "object"
+    },
+    "HumanReviewReturnDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "requirement": {
+          "discriminator": {
+            "mapping": {
+              "False": "#/$defs/WaivedReturnRequirement",
+              "True": "#/$defs/RequiredReturnRequirement"
+            },
+            "propertyName": "required"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/RequiredReturnRequirement"
+            },
+            {
+              "$ref": "#/$defs/WaivedReturnRequirement"
+            }
+          ],
+          "title": "Requirement"
+        },
+        "source": {
+          "const": "HUMAN_REVIEW",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "requirement"
+      ],
+      "title": "HumanReviewReturnDecision",
+      "type": "object"
+    },
+    "ModelJudgmentReturnDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "requirement": {
+          "discriminator": {
+            "mapping": {
+              "False": "#/$defs/WaivedReturnRequirement",
+              "True": "#/$defs/RequiredReturnRequirement"
+            },
+            "propertyName": "required"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/RequiredReturnRequirement"
+            },
+            {
+              "$ref": "#/$defs/WaivedReturnRequirement"
+            }
+          ],
+          "title": "Requirement"
+        },
+        "source": {
+          "const": "MODEL_JUDGMENT",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "requirement"
+      ],
+      "title": "ModelJudgmentReturnDecision",
+      "type": "object"
+    },
+    "NonEmptyRefundScope": {
+      "additionalProperties": false,
+      "properties": {
+        "line_item_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Line Item Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "line_item_ids"
+      ],
+      "title": "NonEmptyRefundScope",
+      "type": "object"
+    },
+    "PolicyReturnDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "requirement": {
+          "discriminator": {
+            "mapping": {
+              "False": "#/$defs/WaivedReturnRequirement",
+              "True": "#/$defs/RequiredReturnRequirement"
+            },
+            "propertyName": "required"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/RequiredReturnRequirement"
+            },
+            {
+              "$ref": "#/$defs/WaivedReturnRequirement"
+            }
+          ],
+          "title": "Requirement"
+        },
+        "source": {
+          "const": "POLICY",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "requirement"
+      ],
+      "title": "PolicyReturnDecision",
+      "type": "object"
+    },
+    "RequiredReturnRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "reason_code": {
+          "enum": [
+            "RESALE_VALUE_RETAINED",
+            "RETURN_REQUIRED_FOR_INSPECTION"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "required": {
+          "const": true,
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "required",
+        "reason_code"
+      ],
+      "title": "RequiredReturnRequirement",
+      "type": "object"
+    },
+    "ReviewGateResult": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+          "title": "Amount",
+          "type": "string"
+        },
+        "config_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Config Hash",
+          "type": "string"
+        },
+        "config_version": {
+          "minLength": 1,
+          "title": "Config Version",
+          "type": "string"
+        },
+        "currency": {
+          "maxLength": 3,
+          "minLength": 3,
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "HIGH_VALUE_ITEM",
+                "CURRENCY_THRESHOLD_UNCONFIGURED"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason"
+        },
+        "status": {
+          "enum": [
+            "PASS",
+            "HUMAN_REQUIRED",
+            "NOT_APPLICABLE"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Threshold"
+        }
+      },
+      "required": [
+        "config_version",
+        "config_hash",
+        "status",
+        "reason",
+        "amount",
+        "currency",
+        "threshold"
+      ],
+      "title": "ReviewGateResult",
+      "type": "object"
+    },
+    "ReviewerApprovedResolutionHandoff": {
+      "additionalProperties": false,
+      "properties": {
+        "case_ref": {
+          "minLength": 1,
+          "title": "Case Ref",
+          "type": "string"
+        },
+        "emitted_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Emitted At",
+          "type": "string"
+        },
+        "execution_blocked": {
+          "const": false,
+          "title": "Execution Blocked",
+          "type": "boolean"
+        },
+        "final_decision": {
+          "discriminator": {
+            "mapping": {
+              "DECLINE": "#/$defs/DeclineFinalDecision",
+              "FULL_REFUND": "#/$defs/AgentFullRefundFinalDecision"
+            },
+            "propertyName": "action"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/AgentFullRefundFinalDecision"
+            },
+            {
+              "$ref": "#/$defs/DeclineFinalDecision"
+            }
+          ],
+          "title": "Final Decision"
+        },
+        "handoff_id": {
+          "minLength": 1,
+          "title": "Handoff Id",
+          "type": "string"
+        },
+        "outcome_source": {
+          "const": "REVIEWER_APPROVE",
+          "title": "Outcome Source",
+          "type": "string"
+        },
+        "review_gate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReviewGateResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "review_result": {
+          "$ref": "#/$defs/ApprovedReviewResult"
+        }
+      },
+      "required": [
+        "handoff_id",
+        "case_ref",
+        "emitted_at",
+        "execution_blocked",
+        "outcome_source",
+        "final_decision",
+        "review_result"
+      ],
+      "title": "ReviewerApprovedResolutionHandoff",
+      "type": "object"
+    },
+    "RevisedReviewResult": {
+      "additionalProperties": false,
+      "properties": {
+        "reviewed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Reviewed At",
+          "type": "string"
+        },
+        "reviewer_claim_findings": {
+          "items": {
+            "$ref": "#/$defs/ClaimFinding"
+          },
+          "minItems": 1,
+          "title": "Reviewer Claim Findings",
+          "type": "array"
+        },
+        "reviewer_prompt_version": {
+          "minLength": 1,
+          "title": "Reviewer Prompt Version",
+          "type": "string"
+        },
+        "revision_reasons": {
+          "items": {
+            "$ref": "#/$defs/RevisionReason"
+          },
+          "minItems": 1,
+          "title": "Revision Reasons",
+          "type": "array"
+        },
+        "verdict": {
+          "const": "REVISE",
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reviewed_at",
+        "reviewer_prompt_version",
+        "reviewer_claim_findings",
+        "verdict",
+        "revision_reasons"
+      ],
+      "title": "RevisedReviewResult",
+      "type": "object"
+    },
+    "RevisionReason": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "EVIDENCE_INSUFFICIENT",
+            "POLICY_MISMATCH",
+            "DECISION_UNSUPPORTED",
+            "DECISION_INCONSISTENT",
+            "SCOPE_UNSUPPORTED",
+            "RETURN_REQUIREMENT_INCONSISTENT",
+            "HANDOFF_INCOMPLETE",
+            "OTHER"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "policy_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Policy Refs",
+          "type": "array"
+        },
+        "required_change": {
+          "minLength": 1,
+          "title": "Required Change",
+          "type": "string"
+        },
+        "subject": {
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "subject",
+        "message",
+        "required_change"
+      ],
+      "title": "RevisionReason",
+      "type": "object"
+    },
+    "WaivedReturnRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "reason_code": {
+          "enum": [
+            "ITEM_UNSALVAGEABLE",
+            "HYGIENE_RISK",
+            "RETURN_UNECONOMICAL",
+            "EVIDENCE_SUFFICIENT_WITHOUT_RETURN"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "required": {
+          "const": false,
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "required",
+        "reason_code"
+      ],
+      "title": "WaivedReturnRequirement",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "discriminator": {
+    "mapping": {
+      "HUMAN_APPROVE": "#/$defs/HumanApproveResolutionHandoff",
+      "HUMAN_EDIT": "#/$defs/HumanEditResolutionHandoff",
+      "HUMAN_REJECT": "#/$defs/HumanRejectResolutionHandoff",
+      "REVIEWER_APPROVE": "#/$defs/ReviewerApprovedResolutionHandoff"
+    },
+    "propertyName": "outcome_source"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ReviewerApprovedResolutionHandoff"
+    },
+    {
+      "$ref": "#/$defs/HumanApproveResolutionHandoff"
+    },
+    {
+      "$ref": "#/$defs/HumanEditResolutionHandoff"
+    },
+    {
+      "$ref": "#/$defs/HumanRejectResolutionHandoff"
+    }
+  ],
+  "title": "ResolutionHandoff"
+}

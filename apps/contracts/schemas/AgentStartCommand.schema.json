@@ -1,0 +1,114 @@
+{
+  "$defs": {
+    "AgentStartPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "initial_turn": {
+          "$ref": "#/$defs/AgentUserTurn"
+        },
+        "order_ref": {
+          "minLength": 1,
+          "title": "Order Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "order_ref",
+        "initial_turn"
+      ],
+      "title": "AgentStartPayload",
+      "type": "object"
+    },
+    "AgentUserTurn": {
+      "additionalProperties": false,
+      "properties": {
+        "attached_artifact_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Attached Artifact Refs",
+          "type": "array"
+        },
+        "received_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Received At",
+          "type": "string"
+        },
+        "role": {
+          "const": "USER",
+          "title": "Role",
+          "type": "string"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "turn_id": {
+          "minLength": 1,
+          "title": "Turn Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "turn_id",
+        "role",
+        "text",
+        "received_at"
+      ],
+      "title": "AgentUserTurn",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_ref": {
+      "minLength": 1,
+      "title": "Case Ref",
+      "type": "string"
+    },
+    "command_id": {
+      "minLength": 1,
+      "title": "Command Id",
+      "type": "string"
+    },
+    "command_type": {
+      "const": "START",
+      "title": "Command Type",
+      "type": "string"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "payload": {
+      "$ref": "#/$defs/AgentStartPayload"
+    },
+    "schema_version": {
+      "const": "v1",
+      "default": "v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "thread_id": {
+      "minLength": 1,
+      "title": "Thread Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "command_id",
+    "case_ref",
+    "thread_id",
+    "issued_at",
+    "command_type",
+    "payload"
+  ],
+  "title": "AgentStartCommand",
+  "type": "object"
+}

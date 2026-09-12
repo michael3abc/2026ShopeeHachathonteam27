@@ -1,0 +1,92 @@
+{
+  "$defs": {
+    "RequiredReturnReasonCode": {
+      "enum": [
+        "RESALE_VALUE_RETAINED",
+        "RETURN_REQUIRED_FOR_INSPECTION"
+      ],
+      "title": "RequiredReturnReasonCode",
+      "type": "string"
+    },
+    "RequiredReturnRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "reason_code": {
+          "$ref": "#/$defs/RequiredReturnReasonCode"
+        },
+        "required": {
+          "const": true,
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "required",
+        "reason_code"
+      ],
+      "title": "RequiredReturnRequirement",
+      "type": "object"
+    },
+    "WaivedReturnReasonCode": {
+      "enum": [
+        "ITEM_UNSALVAGEABLE",
+        "HYGIENE_RISK",
+        "RETURN_UNECONOMICAL",
+        "EVIDENCE_SUFFICIENT_WITHOUT_RETURN"
+      ],
+      "title": "WaivedReturnReasonCode",
+      "type": "string"
+    },
+    "WaivedReturnRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "reason_code": {
+          "$ref": "#/$defs/WaivedReturnReasonCode"
+        },
+        "required": {
+          "const": false,
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "required",
+        "reason_code"
+      ],
+      "title": "WaivedReturnRequirement",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "requirement": {
+      "discriminator": {
+        "mapping": {
+          "False": "#/$defs/WaivedReturnRequirement",
+          "True": "#/$defs/RequiredReturnRequirement"
+        },
+        "propertyName": "required"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/RequiredReturnRequirement"
+        },
+        {
+          "$ref": "#/$defs/WaivedReturnRequirement"
+        }
+      ],
+      "title": "Requirement"
+    },
+    "source": {
+      "const": "MODEL_JUDGMENT",
+      "title": "Source",
+      "type": "string"
+    }
+  },
+  "required": [
+    "source",
+    "requirement"
+  ],
+  "title": "ModelJudgmentReturnDecision",
+  "type": "object"
+}

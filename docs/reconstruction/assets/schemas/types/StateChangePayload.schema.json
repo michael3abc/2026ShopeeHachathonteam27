@@ -1,0 +1,46 @@
+{
+  "$defs": {
+    "CaseStatus": {
+      "description": "Backend-owned status displayed by the UI, not Agent graph state.",
+      "enum": [
+        "OBSERVING",
+        "AWAITING_CLARIFICATION",
+        "AWAITING_EVIDENCE",
+        "AWAITING_HUMAN_REVIEW",
+        "EXECUTING",
+        "RESOLVED",
+        "ESCALATED"
+      ],
+      "title": "CaseStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "from_status": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CaseStatus"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "to_status": {
+      "$ref": "#/$defs/CaseStatus"
+    }
+  },
+  "required": [
+    "to_status",
+    "reason"
+  ],
+  "title": "StateChangePayload",
+  "type": "object"
+}

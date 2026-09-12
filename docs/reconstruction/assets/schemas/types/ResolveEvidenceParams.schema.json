@@ -1,0 +1,15 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "artifact_ref": {
+      "minLength": 1,
+      "title": "Artifact Ref",
+      "type": "string"
+    }
+  },
+  "required": [
+    "artifact_ref"
+  ],
+  "title": "ResolveEvidenceParams",
+  "type": "object"
+}

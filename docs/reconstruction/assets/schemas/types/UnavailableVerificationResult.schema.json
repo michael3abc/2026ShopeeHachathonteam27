@@ -1,0 +1,58 @@
+{
+  "$defs": {
+    "VerificationIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "field_path": {
+          "minLength": 1,
+          "title": "Field Path",
+          "type": "string"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "field_path"
+      ],
+      "title": "VerificationIssue",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "issues": {
+      "items": {
+        "$ref": "#/$defs/VerificationIssue"
+      },
+      "maxItems": 0,
+      "title": "Issues",
+      "type": "array"
+    },
+    "status": {
+      "const": "UNAVAILABLE",
+      "title": "Status",
+      "type": "string"
+    },
+    "verification_version": {
+      "minLength": 1,
+      "title": "Verification Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "verification_version"
+  ],
+  "title": "UnavailableVerificationResult",
+  "type": "object"
+}

@@ -1,0 +1,258 @@
+{
+  "$defs": {
+    "ApprovedMemory": {
+      "additionalProperties": false,
+      "properties": {
+        "approved_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Approved At",
+          "type": "string"
+        },
+        "claim_registry_version": {
+          "minLength": 1,
+          "title": "Claim Registry Version",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "memory_id": {
+          "minLength": 1,
+          "title": "Memory Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "minLength": 1,
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "recommended_behavior": {
+          "minLength": 1,
+          "title": "Recommended Behavior",
+          "type": "string"
+        },
+        "retrieval_summary": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Retrieval Summary",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/MemoryScope"
+        },
+        "status": {
+          "const": "APPROVED",
+          "title": "Status",
+          "type": "string"
+        },
+        "trigger_conditions": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Trigger Conditions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "memory_id",
+        "retrieval_summary",
+        "status",
+        "recommended_behavior",
+        "trigger_conditions",
+        "policy_version",
+        "claim_registry_version",
+        "scope",
+        "confidence",
+        "approved_at"
+      ],
+      "title": "ApprovedMemory",
+      "type": "object"
+    },
+    "ClaimId": {
+      "enum": [
+        "DELIVERY_CONFIRMED",
+        "ORDER_WITHIN_RETURN_WINDOW",
+        "SHIPMENT_SEAL_INTACT",
+        "ITEM_PHYSICALLY_DAMAGED",
+        "DAMAGE_PRESENT_ON_ARRIVAL",
+        "ITEM_FUNCTIONALLY_IMPAIRED",
+        "ITEM_DIFFERS_FROM_LISTING",
+        "WRONG_ITEM_RECEIVED",
+        "ITEM_NOT_IN_SHIPMENT",
+        "ITEM_UNUSED"
+      ],
+      "title": "ClaimId",
+      "type": "string"
+    },
+    "MemoryScope": {
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Categories",
+          "type": "array"
+        },
+        "claim_ids": {
+          "items": {
+            "$ref": "#/$defs/ClaimId"
+          },
+          "title": "Claim Ids",
+          "type": "array"
+        },
+        "market": {
+          "minLength": 1,
+          "title": "Market",
+          "type": "string"
+        },
+        "reason_codes": {
+          "items": {
+            "$ref": "#/$defs/ReasonCode"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "market"
+      ],
+      "title": "MemoryScope",
+      "type": "object"
+    },
+    "MemorySearchHit": {
+      "additionalProperties": false,
+      "properties": {
+        "memory": {
+          "$ref": "#/$defs/ApprovedMemory"
+        },
+        "similarity": {
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Similarity",
+          "type": "number"
+        }
+      },
+      "required": [
+        "memory",
+        "similarity"
+      ],
+      "title": "MemorySearchHit",
+      "type": "object"
+    },
+    "ReasonCode": {
+      "enum": [
+        "ITEM_DAMAGED",
+        "ITEM_NOT_AS_DESCRIBED",
+        "MISSING_ITEM",
+        "WRONG_ITEM",
+        "QUALITY_ISSUE",
+        "CHANGED_MIND"
+      ],
+      "title": "ReasonCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "else": {
+        "properties": {
+          "error_code": {
+            "type": "string"
+          },
+          "hits": {
+            "maxItems": 0
+          }
+        },
+        "required": [
+          "error_code"
+        ]
+      },
+      "if": {
+        "properties": {
+          "status": {
+            "const": "OK"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "error_code": {
+            "type": "null"
+          },
+          "query_summary": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "query_summary"
+        ]
+      }
+    }
+  ],
+  "properties": {
+    "error_code": {
+      "anyOf": [
+        {
+          "enum": [
+            "SUMMARY_UNAVAILABLE",
+            "RETRIEVAL_UNAVAILABLE"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error Code"
+    },
+    "hits": {
+      "items": {
+        "$ref": "#/$defs/MemorySearchHit"
+      },
+      "maxItems": 3,
+      "title": "Hits",
+      "type": "array"
+    },
+    "query_summary": {
+      "anyOf": [
+        {
+          "maxLength": 2000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Query Summary"
+    },
+    "status": {
+      "enum": [
+        "OK",
+        "UNAVAILABLE"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status"
+  ],
+  "title": "MemoryRetrievalObservation",
+  "type": "object"
+}

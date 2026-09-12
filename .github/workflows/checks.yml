@@ -1,5 +1,7 @@
 name: checks
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   deterministic:
     runs-on: ubuntu-latest
@@ -14,42 +16,44 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U return_agent -d return_agent_test"
           --health-interval 3s --health-timeout 3s --health-retries 20
-      agent-postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: return_agent
-          POSTGRES_PASSWORD: local-demo
-          POSTGRES_DB: return_agent_test
-        ports: ["5433:5432"]
-        options: >-
-          --health-cmd "pg_isready -U return_agent -d return_agent_test"
-          --health-interval 3s --health-timeout 3s --health-retries 20
       redis:
         image: redis:7.4-alpine
         ports: ["6379:6379"]
         options: --health-cmd "redis-cli ping" --health-interval 3s --health-timeout 3s --health-retries 20
-    env:
-      TEST_API_DATABASE_URL: postgresql+psycopg://return_agent:local-demo@127.0.0.1:5432/return_agent_test
-      TEST_AGENT_DATABASE_URL: postgresql://return_agent:local-demo@127.0.0.1:5433/return_agent_test
-      TEST_REDIS_URL: redis://127.0.0.1:6379/15
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.12.13"
-      - run: uv sync --frozen --all-packages
-      - run: uv run pytest
-      - run: uv run return-agent-export-schemas --check
+      - run: uv sync --locked --all-packages
+      - run: make check
+      - name: PostgreSQL migrations, rollback protection and concurrent writes
+        run: uv run --all-packages pytest apps/api/tests/test_activity_migration.py
+        env:
+          ACTIVITY_TEST_POSTGRES_URL: postgresql+psycopg://return_agent:local-demo@127.0.0.1:5432/return_agent_test
+      - name: Real Redis Activity transport
+        run: |
+          ACTIVITY_TEST_REDIS_URL=redis://127.0.0.1:6379/14 uv run --all-packages pytest tests/test_activity_transport.py -k model_enabled
+          ACTIVITY_TEST_REDIS_URL=redis://127.0.0.1:6379/15 uv run --all-packages pytest tests/test_activity_transport.py -k offline_demo
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - run: npm --prefix apps/web ci
-      - run: npm --prefix apps/web run contracts -- --check
-      - run: npm --prefix apps/web run lint
-      - run: npm --prefix apps/web run typecheck
-      - run: npm --prefix apps/web run build
+      - run: make contracts
+      - run: npm --prefix apps/web run contracts
+      - run: git diff --exit-code -- apps/contracts/schemas apps/web/src/contracts
+      - run: make check-web
         env:
           NEXT_TELEMETRY_DISABLED: "1"
       - run: docker compose config --quiet
+  images:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [api, agent_service, web]
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f apps/${{ matrix.app }}/Dockerfile -t return-agent-${{ matrix.app }}:ci .

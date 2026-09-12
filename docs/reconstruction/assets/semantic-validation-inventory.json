@@ -1,0 +1,378 @@
+[
+  {
+    "description": "Return a finite vector of the exact contract dimension.",
+    "rejections": [
+      "f'embedding must have {dimensions} dimensions, got {len(vector)}'",
+      "'embedding values must be finite'",
+      "'embedding must be nonzero'"
+    ],
+    "source": "apps/api/src/return_agent/capabilities/embeddings.py",
+    "symbol": "validate_embedding"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'extracted_summary must not contain artifact bytes'"
+    ],
+    "source": "apps/api/src/return_agent/capabilities/evidence.py",
+    "symbol": "reject_embedded_artifact_data"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'policy clause requires at least one claim'",
+      "'policy clause requires at least one action'",
+      "'policy clause claim IDs must be unique'",
+      "'policy clause allowed actions must be unique'",
+      "'policy clause effective range is invalid'"
+    ],
+    "source": "apps/api/src/return_agent/capabilities/policy.py",
+    "symbol": "_validate_clause_shape"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'policy document requires at least one clause'",
+      "'policy document clause IDs must be unique'"
+    ],
+    "source": "apps/api/src/return_agent/capabilities/policy.py",
+    "symbol": "_validate_document_shape"
+  },
+  {
+    "description": "",
+    "rejections": [],
+    "source": "apps/contracts/src/return_agent_contracts/activity.py",
+    "symbol": "omit_memory_prose"
+  },
+  {
+    "description": "",
+    "rejections": [],
+    "source": "apps/contracts/src/return_agent_contracts/activity.py",
+    "symbol": "safe_gate_version"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'successful narration requires text without error'",
+      "'narration contains restricted text'",
+      "'narration requires one or two Chinese sentences'",
+      "'unavailable narration requires error without text'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/activity.py",
+    "symbol": "coherent"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'narration input must be an allowlisted node summary'",
+      "'narration input must contain facts only'",
+      "'narration job must bind to its source'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/activity.py",
+    "symbol": "source_is_summary"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'line_item_id values must be unique'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/models.py",
+    "symbol": "_line_item_ids_are_unique"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'effective_to must be on or after effective_from'",
+      "'required_claim_ids must be unique'",
+      "'allowed_actions must be unique'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/models.py",
+    "symbol": "_effective_range_is_ordered"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'OK PolicyBundle must contain at least one clause'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/models.py",
+    "symbol": "_ok_bundle_has_clauses"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'INCOMPLETE requires missing_fields and clarification_question'",
+      "'COMPLETE requires no missing_fields or clarification_question'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/models.py",
+    "symbol": "_incomplete_requires_a_question"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'refund_scope.line_item_ids must be unique'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/models.py",
+    "symbol": "_line_item_ids_are_unique"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'evidence_bundle must not contain duplicate evidence_id values'",
+      "'decision evidence_refs must exist in evidence_bundle'",
+      "'decision policy_refs must be a handoff-level subset'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/models.py",
+    "symbol": "_references_are_consistent"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'every reviewed proposal requires its review result'",
+      "'claimed scope must be unique'",
+      "'claimed scope must belong to the order'",
+      "'proposal IDs must be unique'",
+      "'review trace cannot mix cases'",
+      "'review trace requires each completed revision event'",
+      "'revision event does not match its reviewed proposal'",
+      "'dossier revision rounds must start at zero and be contiguous'",
+      "'dossier policy version mismatch'",
+      "'dossier order snapshot mismatch'",
+      "'dossier claim registry mismatch'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/models.py",
+    "symbol": "_validate_trace"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'final resolution must match case context'",
+      "'all proposals must match case context'",
+      "'all revision events must match case context'",
+      "'proposal history handoff ids must be unique'",
+      "'revision event ids must be unique'",
+      "'every revision event must reference a proposal'",
+      "'final resolution must reference the latest proposal'",
+      "'latest proposal must match the policy bundle'",
+      "'assessment and latest proposal registry versions must match'",
+      "'memory distillation requires a confirmed correction trace'",
+      "'non-human resolution must not carry a human result'",
+      "'human resolution source must match the human result'",
+      "'claimed_categories must be unique'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/models.py",
+    "symbol": "_trace_is_closed_and_consistent"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'successful retrieval requires a query and no error'",
+      "'unavailable retrieval requires an error and no hits'",
+      "'memory retrieval cannot repeat a memory ID'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/models.py",
+    "symbol": "_status_matches_result"
+  },
+  {
+    "description": "Raise ValueError if registry references are incomplete or asymmetric.",
+    "rejections": [
+      "'registry must define every ClaimId exactly once'",
+      "f'registry key and claim_id differ for {claim_id}'",
+      "f'{claim_id} requires accepted evidence types'",
+      "f'{claim_id} references missing {counterpart}'",
+      "f'distinguish_from must be symmetric: {claim_id} <-> {counterpart}'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/registry.py",
+    "symbol": "validate_claim_registry"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'inconsistent monetary gate result'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/review_gates.py",
+    "symbol": "_consistent_result"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'review gate is only valid on reviewer EXIT'",
+      "'ERROR observation requires error_message'",
+      "'only ERROR observation may include error_message'",
+      "'memory retrieval data is only valid on memory-node EXIT'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/runtime.py",
+    "symbol": "_error_message_matches_phase"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'interrupt case_ref must match event case_ref'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/service.py",
+    "symbol": "_case_ref_matches_result"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'resolution case_ref must match event case_ref'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/service.py",
+    "symbol": "_case_ref_matches_result"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'escalation references must match event references'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/service.py",
+    "symbol": "_references_match_result"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'memory job case_ref must match its input'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/service.py",
+    "symbol": "_references_match_input"
+  },
+  {
+    "description": "Reject obvious PII and raw references before text reaches embeddings.",
+    "rejections": [
+      "'memory summary must contain 1 to 2000 characters'",
+      "'memory summary contains PII or a raw reference'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/validation.py",
+    "symbol": "validate_memory_summary"
+  },
+  {
+    "description": "Reject duplicate scope metadata and obvious PII/raw artifact leakage.",
+    "rejections": [
+      "f'{field_name} must contain unique values'",
+      "'memory candidate contains PII or a raw artifact reference'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/validation.py",
+    "symbol": "validate_memory_candidate"
+  },
+  {
+    "description": "Ensure the Policy provider returned usable clauses for this case instant.",
+    "rejections": [
+      "'a non-OK PolicyBundle must follow its fail-closed graph route'",
+      "'policy clause effective range does not cover case_opened_at'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/validation.py",
+    "symbol": "validate_applicable_policy_bundle"
+  },
+  {
+    "description": "Validate the part of a case load result that is not self-contained.",
+    "rejections": [
+      "'CaseContextLoadResult.case_context.case_ref does not match request'",
+      "'CaseContextLoadResult case_context and order_snapshot order_ref differ'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/validation.py",
+    "symbol": "validate_case_context_load_result"
+  },
+  {
+    "description": "Validate completeness and subject scope of an assessment/review.",
+    "rejections": [
+      "'claim findings must not contain duplicate pairs'",
+      "f'claim finding pairs differ; expected {sorted(expected)}, got {sorted(actual)}'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/validation.py",
+    "symbol": "validate_claim_findings"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'missing_claims must not contain duplicate pairs'",
+      "'missing_claims must equal all unresolved USER_EVIDENCE claim pairs'",
+      "'accepted_evidence_types must equal the registry union'",
+      "'SYSTEM_FACTS-only claims cannot be requested'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/validation.py",
+    "symbol": "validate_evidence_request"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "f'evidence_status must be {actual_status.value}, got {assessment.evidence_status.value}'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/validation.py",
+    "symbol": "validate_evidence_assessment"
+  },
+  {
+    "description": "Validate the deterministic merge after ``EvidenceProvider.resolve``.",
+    "rejections": [
+      "'resolved evidence artifact_ref does not match the provider request'",
+      "'resolved evidence subject is not in the pending evidence request'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/validation.py",
+    "symbol": "validate_resolved_evidence_item"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'refund_scope includes items without supported claims'",
+      "'static return policy requires a POLICY return-decision draft'",
+      "'REQUIRED policy requires a return-required reason'",
+      "'NOT_REQUIRED policy requires a return-waived reason'",
+      "'DECLINE requires SUFFICIENT_FOR_DECLINE for every claimed item'",
+      "'MODEL_JUDGMENT policy requires a model-authored return decision'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/validation.py",
+    "symbol": "validate_proposed_decision_draft"
+  },
+  {
+    "description": "Validate Reviewer findings and the references carried by a revision.",
+    "rejections": [
+      "'revision reason evidence_refs must exist in evidence_bundle'",
+      "'Reviewer APPROVE refund scope includes unsupported items'",
+      "'Reviewer APPROVE decline requires complete decline eligibility'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/validation.py",
+    "symbol": "validate_review_result"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'handoff order_snapshot_ref does not match snapshot'",
+      "'handoff policy bundle version does not match bundle'",
+      "'handoff refund scope contains unknown line items'",
+      "'handoff amount must equal the refund scope total'",
+      "'handoff amount exceeds refundable_amount_max'",
+      "'handoff currency must match order snapshot'",
+      "'user-evidence policy requires a non-empty evidence bundle'",
+      "'MODEL_JUDGMENT policy requires MODEL_JUDGMENT return decision'",
+      "'static return policy requires POLICY return decision'",
+      "'REQUIRED policy requires return'",
+      "'NOT_REQUIRED policy waives return'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/validation.py",
+    "symbol": "validate_proposed_decision_handoff"
+  },
+  {
+    "description": "",
+    "rejections": [
+      "'human dossier does not match final proposal and review'",
+      "'human amount-gate entry is invalid or configuration changed'",
+      "'revision entry requires exhausted REVISE without monetary gate'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/validation.py",
+    "symbol": "validate_human_review_entry"
+  },
+  {
+    "description": "Human owns evidence judgment; deterministic policy and money still bind.",
+    "rejections": [
+      "'human review order mismatch'",
+      "'human review policy changed or unavailable'",
+      "'refund scope exceeds original claimed items'",
+      "'refund scope is no longer available'",
+      "'order currency changed'",
+      "'refund exceeds current refundable maximum'",
+      "'Policy requires return'",
+      "'Policy waives return'",
+      "'required user evidence is absent'"
+    ],
+    "source": "apps/contracts/src/return_agent_contracts/validation.py",
+    "symbol": "validate_human_decision"
+  }
+]

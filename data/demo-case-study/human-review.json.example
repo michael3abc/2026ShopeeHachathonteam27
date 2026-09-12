@@ -1,0 +1,44 @@
+[
+  {
+    "scenario_id": "STUDY-B",
+    "runtime_binding": "Replace request.handoff_id with the current pending human_review.handoff_id from GET /cases/{actual_case_ref}; null is not submit-ready.",
+    "operation": "POST /cases/{actual_case_ref}/review",
+    "precondition": "AWAITING_HUMAN_REVIEW; inspect evidence and proposed scope before submission",
+    "request": {
+      "handoff_id": null,
+      "decision": "EDIT",
+      "review_note": "已核對商品識別、受損位置與連續拆箱資料；本案證據已足以完成判斷，人工將退回要求改為免退。可泛化經驗是先一次蒐集商品與包裝同框、識別資料及連續拆箱情境，再判斷是否仍需實物檢驗；不得以此略過個案證據或高額授權。",
+      "generalizable": true,
+      "reviewer_id": "demo_study_reviewer",
+      "corrected_decision": {
+        "action": "FULL_REFUND",
+        "refund_scope": {
+          "line_item_ids": [
+            "LI-STUDY-B"
+          ]
+        },
+        "return_decision": {
+          "source": "HUMAN_REVIEW",
+          "requirement": {
+            "required": false,
+            "reason_code": "EVIDENCE_SUFFICIENT_WITHOUT_RETURN"
+          }
+        }
+      },
+      "correction_reason_code": "RETURN_REQUIREMENT_INCORRECT"
+    }
+  },
+  {
+    "scenario_id": "STUDY-C",
+    "runtime_binding": "Replace request.handoff_id with this case's current pending human_review.handoff_id; never reuse B's handoff.",
+    "operation": "POST /cases/{actual_case_ref}/review",
+    "precondition": "AWAITING_HUMAN_REVIEW; inspect evidence and proposed scope before submission",
+    "request": {
+      "handoff_id": null,
+      "decision": "APPROVE",
+      "review_note": "已核對奶油白無線耳機、包裝識別與拆箱資料，支持本案商品於到貨拆箱時已有損壞，採用目前經驗證的退款提案。相似耳機案件可一次要求商品與包裝同框、識別資料及拆箱情境；仍須個別判斷證據與遵守高額人工審核。",
+      "generalizable": true,
+      "reviewer_id": "demo_study_reviewer"
+    }
+  }
+]

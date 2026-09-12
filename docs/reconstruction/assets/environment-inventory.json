@@ -1,0 +1,212 @@
+[
+  {
+    "default_expression": "'redis://localhost:6379/0'",
+    "name": "RETURN_AGENT_REDIS_URL",
+    "source": "apps/api/src/return_agent/agent_bridge.py"
+  },
+  {
+    "default_expression": "f'api-{socket.gethostname()}'",
+    "name": "RETURN_AGENT_API_EVENT_CONSUMER",
+    "source": "apps/api/src/return_agent/agent_bridge.py"
+  },
+  {
+    "default_expression": "f'api-{socket.gethostname()}-{os.getpid()}'",
+    "name": "RETURN_AGENT_API_OUTBOX_DISPATCHER",
+    "source": "apps/api/src/return_agent/agent_bridge.py"
+  },
+  {
+    "default_expression": "'30'",
+    "name": "RETURN_AGENT_API_OUTBOX_CLAIM_SECONDS",
+    "source": "apps/api/src/return_agent/agent_bridge.py"
+  },
+  {
+    "default_expression": "'1000'",
+    "name": "RETURN_AGENT_API_EVENT_BLOCK_MS",
+    "source": "apps/api/src/return_agent/agent_bridge.py"
+  },
+  {
+    "default_expression": "'60000'",
+    "name": "RETURN_AGENT_API_EVENT_RECLAIM_IDLE_MS",
+    "source": "apps/api/src/return_agent/agent_bridge.py"
+  },
+  {
+    "default_expression": "'4'",
+    "name": "RETURN_AGENT_API_EVENT_RECLAIM_EVERY",
+    "source": "apps/api/src/return_agent/agent_bridge.py"
+  },
+  {
+    "default_expression": "'1.0'",
+    "name": "RETURN_AGENT_API_BRIDGE_POLL_SECONDS",
+    "source": "apps/api/src/return_agent/agent_bridge.py"
+  },
+  {
+    "default_expression": "'unconfigured'",
+    "name": "RETURN_AGENT_API_PROFILE",
+    "source": "apps/api/src/return_agent/app.py"
+  },
+  {
+    "default_expression": "'data'",
+    "name": "RETURN_AGENT_DEMO_DATA_DIR",
+    "source": "apps/api/src/return_agent/app.py"
+  },
+  {
+    "default_expression": "None",
+    "name": "RETURN_AGENT_EMBEDDING_API_KEY",
+    "source": "apps/api/src/return_agent/capabilities/embeddings.py"
+  },
+  {
+    "default_expression": "None",
+    "name": "RETURN_AGENT_EMBEDDING_API_KEY_FILE",
+    "source": "apps/api/src/return_agent/capabilities/embeddings.py"
+  },
+  {
+    "default_expression": "'https://embedding.example.invalid/v1' (portable substitution)",
+    "name": "RETURN_AGENT_EMBEDDING_BASE_URL",
+    "source": "apps/api/src/return_agent/capabilities/embeddings.py"
+  },
+  {
+    "default_expression": "'text-embedding-3-large'",
+    "name": "RETURN_AGENT_EMBEDDING_MODEL",
+    "source": "apps/api/src/return_agent/capabilities/embeddings.py"
+  },
+  {
+    "default_expression": "None",
+    "name": "OPENAI_API_KEY",
+    "source": "apps/api/src/return_agent/capabilities/embeddings.py"
+  },
+  {
+    "default_expression": "'25'",
+    "name": "RETURN_AGENT_EMBEDDING_TIMEOUT_SECONDS",
+    "source": "apps/api/src/return_agent/capabilities/embeddings.py"
+  },
+  {
+    "default_expression": "None",
+    "name": "RETURN_AGENT_REVIEW_GATE_CONFIG",
+    "source": "apps/api/src/return_agent/capabilities/integration.py"
+  },
+  {
+    "default_expression": "'postgresql+psycopg://return_agent:return_agent@localhost:5432/return_agent'",
+    "name": "DATABASE_URL",
+    "source": "apps/api/src/return_agent/db/session.py"
+  },
+  {
+    "default_expression": "'1024'",
+    "name": "RETURN_AGENT_ACTIVITY_QUEUE_SIZE",
+    "source": "apps/agent_service/src/return_agent_service/composition.py"
+  },
+  {
+    "default_expression": "'20'",
+    "name": "RETURN_AGENT_NARRATION_TIMEOUT_SECONDS",
+    "source": "apps/agent_service/src/return_agent_service/composition.py"
+  },
+  {
+    "default_expression": "'2'",
+    "name": "RETURN_AGENT_NARRATION_CONCURRENCY",
+    "source": "apps/agent_service/src/return_agent_service/composition.py"
+  },
+  {
+    "default_expression": "None",
+    "name": "RETURN_AGENT_REVIEW_GATE_CONFIG",
+    "source": "apps/agent_service/src/return_agent_service/composition.py"
+  },
+  {
+    "default_expression": "None",
+    "name": "RETURN_AGENT_MODEL_BASE_URL",
+    "source": "apps/agent_service/src/return_agent_service/main.py"
+  },
+  {
+    "default_expression": "None",
+    "name": "RETURN_AGENT_MODEL_NAME",
+    "source": "apps/agent_service/src/return_agent_service/main.py"
+  },
+  {
+    "default_expression": "None",
+    "name": "RETURN_AGENT_MODEL_API_KEY",
+    "source": "apps/agent_service/src/return_agent_service/main.py"
+  },
+  {
+    "default_expression": "None",
+    "name": "RETURN_AGENT_MODEL_API_KEY_FILE",
+    "source": "apps/agent_service/src/return_agent_service/main.py"
+  },
+  {
+    "default_expression": "None",
+    "name": "RETURN_AGENT_REVIEW_GATE_CONFIG",
+    "source": "apps/agent_service/src/return_agent_service/main.py"
+  },
+  {
+    "default_expression": "None",
+    "name": "RETURN_AGENT_INTERNAL_SERVICE_TOKEN",
+    "source": "apps/agent_service/src/return_agent_service/settings.py"
+  },
+  {
+    "default_expression": "None",
+    "name": "RETURN_AGENT_INTERNAL_SERVICE_TOKEN_FILE",
+    "source": "apps/agent_service/src/return_agent_service/settings.py"
+  },
+  {
+    "default_expression": "'redis://localhost:6379/0'",
+    "name": "RETURN_AGENT_REDIS_URL",
+    "source": "apps/agent_service/src/return_agent_service/settings.py"
+  },
+  {
+    "default_expression": "f'agent-{socket.gethostname()}'",
+    "name": "RETURN_AGENT_CONSUMER_NAME",
+    "source": "apps/agent_service/src/return_agent_service/settings.py"
+  },
+  {
+    "default_expression": "'production'",
+    "name": "RETURN_AGENT_SERVICE_PROFILE",
+    "source": "apps/agent_service/src/return_agent_service/settings.py"
+  },
+  {
+    "default_expression": "'postgresql://return_agent_graph:return_agent_graph@localhost:5433/return_agent_graph'",
+    "name": "RETURN_AGENT_DATABASE_URL",
+    "source": "apps/agent_service/src/return_agent_service/settings.py"
+  },
+  {
+    "default_expression": "'http://localhost:8000'",
+    "name": "RETURN_AGENT_API_BASE_URL",
+    "source": "apps/agent_service/src/return_agent_service/settings.py"
+  },
+  {
+    "default_expression": "'0.0.0.0'",
+    "name": "RETURN_AGENT_SERVICE_HOST",
+    "source": "apps/agent_service/src/return_agent_service/settings.py"
+  },
+  {
+    "default_expression": "'30'",
+    "name": "RETURN_AGENT_PROVIDER_TIMEOUT_SECONDS",
+    "source": "apps/agent_service/src/return_agent_service/settings.py"
+  },
+  {
+    "default_expression": "'900'",
+    "name": "RETURN_AGENT_COMMAND_LEASE_SECONDS",
+    "source": "apps/agent_service/src/return_agent_service/settings.py"
+  },
+  {
+    "default_expression": "'0.25'",
+    "name": "RETURN_AGENT_MEMORY_RETRY_INITIAL_SECONDS",
+    "source": "apps/agent_service/src/return_agent_service/settings.py"
+  },
+  {
+    "default_expression": "'30'",
+    "name": "RETURN_AGENT_MEMORY_RETRY_MAX_SECONDS",
+    "source": "apps/agent_service/src/return_agent_service/settings.py"
+  },
+  {
+    "default_expression": "'8090'",
+    "name": "RETURN_AGENT_SERVICE_PORT",
+    "source": "apps/agent_service/src/return_agent_service/settings.py"
+  },
+  {
+    "default_expression": "'1000'",
+    "name": "RETURN_AGENT_REDIS_BLOCK_MS",
+    "source": "apps/agent_service/src/return_agent_service/settings.py"
+  },
+  {
+    "default_expression": "'60000'",
+    "name": "RETURN_AGENT_REDIS_RECLAIM_IDLE_MS",
+    "source": "apps/agent_service/src/return_agent_service/settings.py"
+  }
+]

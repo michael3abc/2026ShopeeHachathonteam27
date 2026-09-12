@@ -1,0 +1,50 @@
+{
+  "$defs": {
+    "EvidenceType": {
+      "enum": [
+        "IMAGE",
+        "VIDEO",
+        "TEXT",
+        "DOCUMENT"
+      ],
+      "title": "EvidenceType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Reference-only evidence view; signed URLs stay in the Backend/UI layer.",
+  "properties": {
+    "artifact_ref": {
+      "minLength": 1,
+      "title": "Artifact Ref",
+      "type": "string"
+    },
+    "caption": {
+      "minLength": 1,
+      "title": "Caption",
+      "type": "string"
+    },
+    "evidence_id": {
+      "minLength": 1,
+      "title": "Evidence Id",
+      "type": "string"
+    },
+    "subject": {
+      "minLength": 1,
+      "title": "Subject",
+      "type": "string"
+    },
+    "type": {
+      "$ref": "#/$defs/EvidenceType"
+    }
+  },
+  "required": [
+    "evidence_id",
+    "type",
+    "subject",
+    "artifact_ref",
+    "caption"
+  ],
+  "title": "EvidenceDisplayRef",
+  "type": "object"
+}

@@ -1,0 +1,149 @@
+{
+  "$defs": {
+    "FailedVerificationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/VerificationIssue"
+          },
+          "minItems": 1,
+          "title": "Issues",
+          "type": "array"
+        },
+        "status": {
+          "const": "FAIL",
+          "title": "Status",
+          "type": "string"
+        },
+        "verification_version": {
+          "minLength": 1,
+          "title": "Verification Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "issues",
+        "verification_version"
+      ],
+      "title": "FailedVerificationResult",
+      "type": "object"
+    },
+    "PassedVerificationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/VerificationIssue"
+          },
+          "maxItems": 0,
+          "title": "Issues",
+          "type": "array"
+        },
+        "status": {
+          "const": "PASS",
+          "title": "Status",
+          "type": "string"
+        },
+        "verification_version": {
+          "minLength": 1,
+          "title": "Verification Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "verification_version"
+      ],
+      "title": "PassedVerificationResult",
+      "type": "object"
+    },
+    "UnavailableVerificationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/VerificationIssue"
+          },
+          "maxItems": 0,
+          "title": "Issues",
+          "type": "array"
+        },
+        "status": {
+          "const": "UNAVAILABLE",
+          "title": "Status",
+          "type": "string"
+        },
+        "verification_version": {
+          "minLength": 1,
+          "title": "Verification Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "verification_version"
+      ],
+      "title": "UnavailableVerificationResult",
+      "type": "object"
+    },
+    "VerificationIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "field_path": {
+          "minLength": 1,
+          "title": "Field Path",
+          "type": "string"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "field_path"
+      ],
+      "title": "VerificationIssue",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "result": {
+      "discriminator": {
+        "mapping": {
+          "FAIL": "#/$defs/FailedVerificationResult",
+          "PASS": "#/$defs/PassedVerificationResult",
+          "UNAVAILABLE": "#/$defs/UnavailableVerificationResult"
+        },
+        "propertyName": "status"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/PassedVerificationResult"
+        },
+        {
+          "$ref": "#/$defs/FailedVerificationResult"
+        },
+        {
+          "$ref": "#/$defs/UnavailableVerificationResult"
+        }
+      ],
+      "title": "Result"
+    }
+  },
+  "required": [
+    "result"
+  ],
+  "title": "VerifyHandoffResponse",
+  "type": "object"
+}

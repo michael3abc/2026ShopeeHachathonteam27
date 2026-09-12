@@ -1,0 +1,59 @@
+{
+  "$defs": {
+    "MemorySkipOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "reason_code": {
+          "$ref": "#/$defs/MemorySkipReasonCode"
+        },
+        "result_type": {
+          "const": "SKIP",
+          "title": "Result Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "result_type",
+        "reason_code"
+      ],
+      "title": "MemorySkipOutput",
+      "type": "object"
+    },
+    "MemorySkipReasonCode": {
+      "enum": [
+        "NO_FINAL_OUTCOME",
+        "CASE_SPECIFIC_ONLY",
+        "DATA_ENTRY_ERROR",
+        "POLICY_VERSION_UNKNOWN",
+        "CLAIM_REGISTRY_VERSION_UNKNOWN",
+        "RESTATES_EXISTING_POLICY",
+        "CONFLICTS_WITH_POLICY",
+        "NO_CONFIRMED_GENERALIZABLE_CORRECTION"
+      ],
+      "title": "MemorySkipReasonCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "distiller_prompt_version": {
+      "minLength": 1,
+      "title": "Distiller Prompt Version",
+      "type": "string"
+    },
+    "result": {
+      "$ref": "#/$defs/MemorySkipOutput"
+    },
+    "submission_ref": {
+      "default": null,
+      "title": "Submission Ref",
+      "type": "null"
+    }
+  },
+  "required": [
+    "result",
+    "distiller_prompt_version"
+  ],
+  "title": "MemorySkipCompletedPayload",
+  "type": "object"
+}

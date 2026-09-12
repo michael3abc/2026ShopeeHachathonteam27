@@ -1,0 +1,155 @@
+services:
+  api-db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: return_agent_api
+      POSTGRES_USER: return_agent_api
+      POSTGRES_PASSWORD: return_agent_api
+    ports:
+      - "${API_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - return_agent_api_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U return_agent_api -d return_agent_api"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  agent-db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: return_agent_graph
+      POSTGRES_USER: return_agent_graph
+      POSTGRES_PASSWORD: return_agent_graph
+    ports:
+      - "${AGENT_POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - return_agent_graph_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U return_agent_graph -d return_agent_graph"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - return_agent_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://return_agent_api:return_agent_api@api-db:5432/return_agent_api
+      RETURN_AGENT_REDIS_URL: redis://redis:6379/0
+      RETURN_AGENT_API_PROFILE: "${RETURN_AGENT_API_PROFILE:-unconfigured}"
+      RETURN_AGENT_DEMO_DATA_DIR: /workspace/data
+      RETURN_AGENT_INTERNAL_SERVICE_TOKEN_FILE: /run/secrets/internal_service_token
+      RETURN_AGENT_EMBEDDING_BASE_URL: "${RETURN_AGENT_EMBEDDING_BASE_URL:-https://embedding.example.invalid/v1}"
+      RETURN_AGENT_EMBEDDING_MODEL: "${RETURN_AGENT_EMBEDDING_MODEL:-text-embedding-3-large}"
+      RETURN_AGENT_EMBEDDING_TIMEOUT_SECONDS: "${RETURN_AGENT_EMBEDDING_TIMEOUT_SECONDS:-25}"
+      RETURN_AGENT_EMBEDDING_API_KEY_FILE: /run/secrets/embedding_api_key
+      RETURN_AGENT_REVIEW_GATE_CONFIG: /run/config/reviewer-gates.json
+    volumes:
+      - ./config/reviewer-gates.json:/run/config/reviewer-gates.json:ro
+    secrets:
+      - internal_service_token
+      - embedding_api_key
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      api-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  agent-service:
+    build:
+      context: .
+      dockerfile: apps/agent_service/Dockerfile
+    environment:
+      RETURN_AGENT_ACTIVITY_QUEUE_SIZE: "${RETURN_AGENT_ACTIVITY_QUEUE_SIZE:-1024}"
+      RETURN_AGENT_NARRATION_TIMEOUT_SECONDS: "${RETURN_AGENT_NARRATION_TIMEOUT_SECONDS:-20}"
+      RETURN_AGENT_NARRATION_CONCURRENCY: "${RETURN_AGENT_NARRATION_CONCURRENCY:-2}"
+      RETURN_AGENT_SERVICE_PROFILE: "${RETURN_AGENT_SERVICE_PROFILE:-demo}"
+      RETURN_AGENT_MEMORY_RETRY_INITIAL_SECONDS: "${RETURN_AGENT_MEMORY_RETRY_INITIAL_SECONDS:-0.25}"
+      RETURN_AGENT_MEMORY_RETRY_MAX_SECONDS: "${RETURN_AGENT_MEMORY_RETRY_MAX_SECONDS:-30}"
+      RETURN_AGENT_REDIS_URL: redis://redis:6379/0
+      RETURN_AGENT_DATABASE_URL: postgresql://return_agent_graph:return_agent_graph@agent-db:5432/return_agent_graph
+      RETURN_AGENT_API_BASE_URL: http://api:8000
+      RETURN_AGENT_INTERNAL_SERVICE_TOKEN_FILE: /run/secrets/internal_service_token
+      RETURN_AGENT_MODEL_BASE_URL: "${RETURN_AGENT_MODEL_BASE_URL:-}"
+      RETURN_AGENT_MODEL_NAME: "${RETURN_AGENT_MODEL_NAME:-}"
+      RETURN_AGENT_MODEL_API_KEY: "${RETURN_AGENT_MODEL_API_KEY:-}"
+      RETURN_AGENT_MODEL_API_KEY_FILE: /run/secrets/model_api_key
+      RETURN_AGENT_REVIEW_GATE_CONFIG: /run/config/reviewer-gates.json
+    volumes:
+      - ./config/reviewer-gates.json:/run/config/reviewer-gates.json:ro
+    secrets:
+      - model_api_key
+      - internal_service_token
+    ports:
+      - "${AGENT_SERVICE_PORT:-8090}:8090"
+    depends_on:
+      redis:
+        condition: service_healthy
+      agent-db:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8090/health/ready')",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        API_BASE_URL: http://api:8000
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  return_agent_api_postgres:
+  return_agent_graph_postgres:
+  return_agent_redis:
+
+secrets:
+  model_api_key:
+    file: "${RETURN_AGENT_MODEL_API_KEY_HOST_FILE:-/dev/null}"
+  embedding_api_key:
+    file: "${RETURN_AGENT_EMBEDDING_API_KEY_HOST_FILE:-/dev/null}"
+  internal_service_token:
+    file: "${RETURN_AGENT_INTERNAL_SERVICE_TOKEN_HOST_FILE:-/dev/null}"

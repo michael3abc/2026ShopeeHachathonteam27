@@ -1,0 +1,31 @@
+{
+  "$defs": {
+    "WaivedReturnReasonCode": {
+      "enum": [
+        "ITEM_UNSALVAGEABLE",
+        "HYGIENE_RISK",
+        "RETURN_UNECONOMICAL",
+        "EVIDENCE_SUFFICIENT_WITHOUT_RETURN"
+      ],
+      "title": "WaivedReturnReasonCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "reason_code": {
+      "$ref": "#/$defs/WaivedReturnReasonCode"
+    },
+    "required": {
+      "const": false,
+      "title": "Required",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "required",
+    "reason_code"
+  ],
+  "title": "WaivedReturnRequirement",
+  "type": "object"
+}

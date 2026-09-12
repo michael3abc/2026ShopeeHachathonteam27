@@ -1,0 +1,233 @@
+[
+  {
+    "file": "examples/semantic-fixtures.json",
+    "pointer": "/case_context",
+    "schema": "assets/schemas/types/CaseContext.schema.json"
+  },
+  {
+    "file": "examples/semantic-fixtures.json",
+    "pointer": "/order_snapshot",
+    "schema": "assets/schemas/types/OrderSnapshot.schema.json"
+  },
+  {
+    "file": "examples/semantic-fixtures.json",
+    "pointer": "/policy_bundle",
+    "schema": "assets/schemas/types/PolicyBundle.schema.json"
+  },
+  {
+    "file": "examples/semantic-fixtures.json",
+    "pointer": "/assessment",
+    "schema": "assets/schemas/types/ApprovalEvidenceAssessment.schema.json"
+  },
+  {
+    "file": "examples/semantic-fixtures.json",
+    "pointer": "/draft",
+    "schema": "assets/schemas/types/FullRefundProposedDecisionDraft.schema.json"
+  },
+  {
+    "file": "examples/semantic-fixtures.json",
+    "pointer": "/handoff",
+    "schema": "assets/schemas/types/ProposedDecisionHandoff.schema.json"
+  },
+  {
+    "file": "examples/semantic-fixtures.json",
+    "pointer": "/review",
+    "schema": "assets/schemas/types/ApprovedReviewResult.schema.json"
+  },
+  {
+    "file": "examples/semantic-fixtures.json",
+    "pointer": "/revision_dossier",
+    "schema": "assets/schemas/types/HumanReviewDossier.schema.json"
+  },
+  {
+    "file": "examples/semantic-fixtures.json",
+    "pointer": "/amount_dossier",
+    "schema": "assets/schemas/types/HumanReviewDossier.schema.json"
+  },
+  {
+    "file": "examples/semantic-fixtures.json",
+    "pointer": "/candidate",
+    "schema": "assets/schemas/types/MemoryCandidate.schema.json"
+  },
+  {
+    "file": "examples/semantic-fixtures.json",
+    "pointer": "/activities/0",
+    "schema": "assets/schemas/types/ActivityEvent.schema.json"
+  },
+  {
+    "file": "examples/semantic-fixtures.json",
+    "pointer": "/activities/1",
+    "schema": "assets/schemas/types/ActivityEvent.schema.json"
+  },
+  {
+    "file": "examples/semantic-fixtures.json",
+    "pointer": "/activities/2",
+    "schema": "assets/schemas/types/ActivityEvent.schema.json"
+  },
+  {
+    "file": "examples/semantic-fixtures.json",
+    "pointer": "/activities/3",
+    "schema": "assets/schemas/types/ActivityEvent.schema.json"
+  },
+  {
+    "file": "assets/demo/case-a.json.example",
+    "pointer": "/case_context",
+    "schema": "assets/schemas/types/CaseContext.schema.json"
+  },
+  {
+    "file": "assets/demo/case-a.json.example",
+    "pointer": "/order_snapshot",
+    "schema": "assets/schemas/types/OrderSnapshot.schema.json"
+  },
+  {
+    "file": "assets/demo/case-a.json.example",
+    "pointer": "/initial_user_turn",
+    "schema": "assets/schemas/types/UserTurn.schema.json"
+  },
+  {
+    "file": "assets/demo/case-a.json.example",
+    "pointer": "/create_case_request",
+    "schema": "assets/schemas/types/CreateCaseRequest.schema.json"
+  },
+  {
+    "file": "assets/demo/case-a.json.example",
+    "pointer": "/followup_messages/0",
+    "schema": "assets/schemas/types/SendMessageRequest.schema.json"
+  },
+  {
+    "file": "assets/demo/case-b.json.example",
+    "pointer": "/case_context",
+    "schema": "assets/schemas/types/CaseContext.schema.json"
+  },
+  {
+    "file": "assets/demo/case-b.json.example",
+    "pointer": "/order_snapshot",
+    "schema": "assets/schemas/types/OrderSnapshot.schema.json"
+  },
+  {
+    "file": "assets/demo/case-b.json.example",
+    "pointer": "/initial_user_turn",
+    "schema": "assets/schemas/types/UserTurn.schema.json"
+  },
+  {
+    "file": "assets/demo/case-b.json.example",
+    "pointer": "/create_case_request",
+    "schema": "assets/schemas/types/CreateCaseRequest.schema.json"
+  },
+  {
+    "file": "assets/demo/case-b.json.example",
+    "pointer": "/followup_messages/0",
+    "schema": "assets/schemas/types/SendMessageRequest.schema.json"
+  },
+  {
+    "file": "assets/demo/case-c.json.example",
+    "pointer": "/case_context",
+    "schema": "assets/schemas/types/CaseContext.schema.json"
+  },
+  {
+    "file": "assets/demo/case-c.json.example",
+    "pointer": "/order_snapshot",
+    "schema": "assets/schemas/types/OrderSnapshot.schema.json"
+  },
+  {
+    "file": "assets/demo/case-c.json.example",
+    "pointer": "/initial_user_turn",
+    "schema": "assets/schemas/types/UserTurn.schema.json"
+  },
+  {
+    "file": "assets/demo/case-c.json.example",
+    "pointer": "/create_case_request",
+    "schema": "assets/schemas/types/CreateCaseRequest.schema.json"
+  },
+  {
+    "file": "assets/demo/case-c.json.example",
+    "pointer": "/followup_messages/0",
+    "schema": "assets/schemas/types/SendMessageRequest.schema.json"
+  },
+  {
+    "file": "assets/demo/evidence.json.example",
+    "pointer": "/0",
+    "schema": "assets/schemas/fixtures/EvidenceFixture.schema.json"
+  },
+  {
+    "file": "assets/demo/evidence.json.example",
+    "pointer": "/1",
+    "schema": "assets/schemas/fixtures/EvidenceFixture.schema.json"
+  },
+  {
+    "file": "assets/demo/evidence.json.example",
+    "pointer": "/2",
+    "schema": "assets/schemas/fixtures/EvidenceFixture.schema.json"
+  },
+  {
+    "file": "assets/demo/evidence.json.example",
+    "pointer": "/3",
+    "schema": "assets/schemas/fixtures/EvidenceFixture.schema.json"
+  },
+  {
+    "file": "assets/demo/evidence.json.example",
+    "pointer": "/4",
+    "schema": "assets/schemas/fixtures/EvidenceFixture.schema.json"
+  },
+  {
+    "file": "assets/demo/evidence.json.example",
+    "pointer": "/5",
+    "schema": "assets/schemas/fixtures/EvidenceFixture.schema.json"
+  },
+  {
+    "file": "assets/demo/evidence.json.example",
+    "pointer": "/6",
+    "schema": "assets/schemas/fixtures/EvidenceFixture.schema.json"
+  },
+  {
+    "file": "assets/demo/evidence.json.example",
+    "pointer": "/7",
+    "schema": "assets/schemas/fixtures/EvidenceFixture.schema.json"
+  },
+  {
+    "file": "assets/demo/evidence.json.example",
+    "pointer": "/8",
+    "schema": "assets/schemas/fixtures/EvidenceFixture.schema.json"
+  },
+  {
+    "file": "assets/demo/evidence.json.example",
+    "pointer": "/9",
+    "schema": "assets/schemas/fixtures/EvidenceFixture.schema.json"
+  },
+  {
+    "file": "assets/demo/evidence.json.example",
+    "pointer": "/10",
+    "schema": "assets/schemas/fixtures/EvidenceFixture.schema.json"
+  },
+  {
+    "file": "assets/demo/evidence.json.example",
+    "pointer": "/11",
+    "schema": "assets/schemas/fixtures/EvidenceFixture.schema.json"
+  },
+  {
+    "file": "assets/demo/policy.json.example",
+    "pointer": "/0",
+    "schema": "assets/schemas/fixtures/PolicyDocumentFixture.schema.json"
+  },
+  {
+    "file": "assets/demo/memory-preload.json.example",
+    "pointer": "/candidate",
+    "schema": "assets/schemas/types/MemoryCandidate.schema.json"
+  },
+  {
+    "file": "assets/demo/human-review.json.example",
+    "pointer": "/0/request",
+    "runtime_binding": {
+      "handoff_id": "synthetic-bound-handoff"
+    },
+    "schema": "assets/schemas/ui/ReviewDecision.schema.json"
+  },
+  {
+    "file": "assets/demo/human-review.json.example",
+    "pointer": "/1/request",
+    "runtime_binding": {
+      "handoff_id": "synthetic-bound-handoff"
+    },
+    "schema": "assets/schemas/ui/ReviewDecision.schema.json"
+  }
+]

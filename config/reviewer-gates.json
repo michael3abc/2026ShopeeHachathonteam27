@@ -1,0 +1,7 @@
+{
+  "version": "reviewer-gates:1.0",
+  "thresholds": {
+    "TWD": "5000",
+    "SGD": "200"
+  }
+}

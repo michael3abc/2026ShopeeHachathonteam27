@@ -1,0 +1,32 @@
+[
+  {
+    "decision": "APPROVE",
+    "review_note": "Demo approval: evidence and policy references are sufficient for the proposed speaker refund.",
+    "final_resolution_ref": "RESOLUTION-DEMO-APPROVE-001",
+    "reviewed_at": "2026-09-02T09:30:00Z"
+  },
+  {
+    "decision": "EDIT",
+    "review_note": "Demo edit: retain the originally authorized speaker scope and require return for inspection because a claim was not established.",
+    "corrected_decision": {
+      "action": "FULL_REFUND",
+      "refund_scope": {"line_item_ids": ["LI-DEMO-SPEAKER"]},
+      "return_decision": {
+        "source": "HUMAN_REVIEW",
+        "requirement": {
+          "required": true,
+          "reason_code": "RETURN_REQUIRED_FOR_INSPECTION"
+        }
+      }
+    },
+    "correction_reason_code": "CLAIM_NOT_ESTABLISHED",
+    "final_resolution_ref": "RESOLUTION-DEMO-EDIT-001",
+    "reviewed_at": "2026-09-02T09:35:00Z"
+  },
+  {
+    "decision": "REJECT",
+    "review_note": "Demo rejection: the available evidence does not establish arrival damage.",
+    "final_resolution_ref": "RESOLUTION-DEMO-REJECT-001",
+    "reviewed_at": "2026-09-02T09:40:00Z"
+  }
+]

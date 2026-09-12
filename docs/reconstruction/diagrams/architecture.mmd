@@ -1,0 +1,32 @@
+flowchart TB
+  W["M07 Web — Next.js<br/>表單／雙 SSE／人審／graph inspector"]
+  C["M01 Contracts<br/>DTO · Registry · Decimal · Gate · Schemas"]
+  subgraph API["API 服務 — M03 / M04 / M05"]
+    A["Case API／canonical lifecycle"]
+    P["Order · Evidence · Verification<br/>Human Review · Refund execution"]
+    V["Policy / Memory RAG<br/>Embedding · Governance"]
+    O["Command outbox／event projection<br/>Activity persistence／narration outbox"]
+  end
+  subgraph AGENT["Agent Service — M06"]
+    S["Workers／Composition／journal"]
+    R["M02 純 LangGraph Runtime<br/>16 nodes／interrupt／bounded loops"]
+    B["Memory distillation／narration workers"]
+  end
+  D[("API PostgreSQL 16 + pgvector<br/>案件／退款／Policy／Memory／Activity")]
+  G[("Agent PostgreSQL 16<br/>checkpoint／journal／Memory replay")]
+  Q[("Redis 7.4 Streams<br/>commands／events／jobs／activities／narrations")]
+  L["重建者提供相容 LLM / Embedding<br/>credentials 只在 server secret mount"]
+  W -->|HTTP + SSE| A
+  C -. typed interfaces .-> A
+  C -. typed interfaces .-> R
+  A --> P & V & O
+  A -->|API owned persistence| D
+  O <--> Q
+  Q <--> S & B
+  S --> R
+  R -->|Provider HTTP adapters| A
+  S --> G
+  B --> G
+  R -->|模型任務| L
+  B --> L
+  V -->|1536 dimensions| L

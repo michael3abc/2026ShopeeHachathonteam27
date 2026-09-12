@@ -1,0 +1,15 @@
+services:
+  api:
+    environment:
+      RETURN_AGENT_API_PROFILE: integrated-demo
+      RETURN_AGENT_DEMO_DATA_DIR: /run/demo-fixtures
+    volumes:
+      - type: bind
+        source: ${DEMO_FIXTURE_DIR:?Set an absolute prepared fixture directory}
+        target: /run/demo-fixtures
+        read_only: true
+        bind:
+          create_host_path: false
+  agent-service:
+    environment:
+      RETURN_AGENT_SERVICE_PROFILE: integrated-compass

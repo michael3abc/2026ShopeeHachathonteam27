@@ -1,0 +1,44 @@
+{
+  "$defs": {
+    "ReasonCode": {
+      "enum": [
+        "ITEM_DAMAGED",
+        "ITEM_NOT_AS_DESCRIBED",
+        "MISSING_ITEM",
+        "WRONG_ITEM",
+        "QUALITY_ISSUE",
+        "CHANGED_MIND"
+      ],
+      "title": "ReasonCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "categories": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Categories",
+      "type": "array"
+    },
+    "markets": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Markets",
+      "type": "array"
+    },
+    "reason_codes": {
+      "items": {
+        "$ref": "#/$defs/ReasonCode"
+      },
+      "title": "Reason Codes",
+      "type": "array"
+    }
+  },
+  "title": "ApplicableConditions",
+  "type": "object"
+}

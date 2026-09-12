@@ -1,3 +1,6 @@
+> 以下保留原重建工作的歷史記錄。2026-09-12 起工作樹改為既有實作整合，
+> 不表示下列未完成項目已重新實作；現行範圍與驗證入口見根目錄 README。
+
 # 開發進度
 
 此文件追蹤功能里程碑、測試結果與未完成項目。
@@ -67,25 +70,7 @@ C01–C36、Docker build、DB／Redis／SSE 與 A/B/C 均未驗證。
 | M01-R11 | summary 受限內容、Candidate scope／correction provenance／重複 sources；distillation trace 綁 case／latest proposal／版本且必須有 confirmed correction。 |
 | M04-R04 | C10–C11 門檻 below/equal/above、USD、DECLINE、REVISE 不跑 gate；fingerprint 正規化。 |
 
-C01–C06、C10–C11 的上述**契約子案例**通過；C12–C13 僅已驗證純函式部分。尚未執行退款、不宣稱完整 C01–C36 conformance。
-
-## T02 訊息與觀察契約
-
-- 新增 service events、Runtime result／interrupt、公開 case/events、Memory job/result、Activity 與 narration DTO。
-- Activity 排除 Memory 文字、raw object 與額外欄位；Narration 僅接受 facts summary，離線結果要求 text=null；event 必須綁定同 case/thread。
-- `uv run pytest -q`：96 項測試通過（93 contracts＋3 architecture）；exit 0，2.73s。生成 192 份 schemas；Python schema check、TS drift check、typecheck、lint 均 exit 0。
-- 這些是契約與安全條件測試；C30–C36 的 Redis／SSE／背景工作時序仍待整合驗證。
-
-## T03 案件與交易
-
-- `TEST_API_DATABASE_URL=<local test DB> uv run pytest apps/api/tests -q`：exit 0，9 passed，1.83s。每項使用獨立測試 schema。
-- 驗證 empty migration／metadata parity、重跑 upgrade、create 與 resume 回滾無孤兒資料、兩個並行補件只有一次接受、409／422／404、公開回應不含 thread_id、case seq 的 user-turn 洞與終態 SSE replay。
-- 本機 API DB 已執行 `uv run alembic -c apps/api/alembic.ini upgrade head`，exit 0。
-- `.env` 已由使用者提供並授權用於真模型，檔案 mode 0600 且已忽略；僅檢查設定名稱與是否存在，不將秘密值加入輸出。
-- 尚未接通 command dispatcher／Agent worker；沒有退款 APPLIED、Memory Candidate 或真模型 A/B/C 證據。
-- 主庫 migration 後執行全套：103 passed、2 failed，exit 1，3.65s。失敗原因為測試 schema 透過 search_path 看見 public.alembic_version，誤以為已遷移；已改成明確 version_table_schema，加入每個測試必須持有自身資料表的回歸檢查，等待重跑結果。
-- 隔離修正後中途 104 passed、1 failed（metadata 比較誤含 Alembic 版本表）；調整比較使用連線預設 schema 後，API 9 passed／1.72s，全套 105 passed／4.52s，exit 0。每個測試仍檢查自身 schema 的版本表與應用資料表確實存在。
-- 已逐筆確認並清除隔離問題產生的 8 筆本機合成測試案件；沒有發布 command，保留資料表與 migration。
+C01–C06、C10–C11 的上述**契約子案例**通過；C12–C13 僅已驗證純函式部分。尚未執行退款、…836 tokens truncated…c7料表與 migration。
 
 ### T04 能力持久化
 

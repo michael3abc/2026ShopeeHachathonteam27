@@ -1,338 +1,1213 @@
-"""Sixteen deterministic graph nodes; all external capabilities are injected ports."""
-from decimal import Decimal
-from typing import Any
+"""LangGraph construction and node implementations."""
 
-from langgraph.errors import GraphInterrupt
+from __future__ import annotations
+
+import logging
+from collections.abc import Iterable
+from typing import Any, cast
+
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
-from langgraph.types import Command, interrupt
-from pydantic import TypeAdapter
+from langgraph.graph.state import CompiledStateGraph
+from langgraph.types import interrupt
+from pydantic import TypeAdapter, ValidationError
+from return_agent_contracts.enums import (
+    ClaimId,
+    EscalationReason,
+    EvidenceStatus,
+    IntakeCompleteness,
+    RetrievalStatus,
+    ReviewVerdict,
+    UserRole,
+    VerificationStatus,
+)
+from return_agent_contracts.models import (
+    REVIEW_REVISION_LIMIT,
+    CaseContextLoadResult,
+    ClarificationRequest,
+    EvidenceAssessment,
+    EvidenceItem,
+    EvidenceRequest,
+    HumanReviewResult,
+    IntakeResult,
+    MemoryQuerySummary,
+    MemoryRetrievalObservation,
+    MemorySearchHit,
+    PolicyBundle,
+    ResolverConflictOutput,
+    ResolverDraftOutput,
+    ResolverEvidenceRequestOutput,
+    ResolverOutput,
+    ReviewResult,
+    UserTurn,
+    VerificationResult,
+)
+from return_agent_contracts.registry import (
+    CLAIM_REGISTRY_MAJOR,
+    CLAIM_REGISTRY_V1,
+    CLAIM_REGISTRY_VERSION,
+)
+from return_agent_contracts.review_gates import evaluate_review_gate
+from return_agent_contracts.runtime import (
+    AgentInterruptKind,
+    ClarificationResume,
+    EvidenceResume,
+    HumanReviewPollResume,
+)
+from return_agent_contracts.validation import (
+    ContractInvariantError,
+    derive_memory_categories,
+    expected_claim_pairs,
+    validate_applicable_policy_bundle,
+    validate_case_context_load_result,
+    validate_evidence_assessment,
+    validate_evidence_request,
+    validate_human_review_entry,
+    validate_memory_summary,
+    validate_resolved_evidence_item,
+    validate_review_result,
+)
 
-from return_agent_contracts.distillation import MemoryDistillationInput
-from return_agent_contracts.domain import CaseContextLoadResult, DecisionRevisionEvent, EvidenceAssessment, EvidenceItem, EvidenceRequest, HumanReviewDossier, PolicyBundle, ProposedDecision, ProposedDecisionHandoff, ReviewResult, VerificationResult, refund_amount
-from return_agent_contracts.gates import gate_after_review
-from return_agent_contracts.human import HumanReviewResult, ResolutionHandoff
-from return_agent_contracts.memory import MemoryQuerySummary, MemoryRetrievalObservation, MemorySearchHit
-from return_agent_contracts.messages import AgentResumeRequest, AgentStartRequest, ClarificationRequest, IntakeResult, ResolverOutput, ResumePayload
-from return_agent_contracts.providers import FetchHumanReviewParams, LoadCaseContextParams, QueryApprovedMemoryParams, ResolveEvidenceParams, RetrievePolicyParams, SubmitHumanReviewParams, VerifyHandoffParams
-from return_agent_contracts.registry import REGISTRY_VERSION
-from return_agent_contracts.validation import effective_return_policy, validate_assessment, validate_dossier, validate_draft, validate_evidence_request, validate_handoff, validate_human_decision, validate_policy, validate_resolved_evidence, validate_review
-from return_agent_contracts.workflow import AccumulatedEscalationContext, AgentRunResult, ClarificationInterruptPayload, EvidenceInterruptPayload, HumanReviewInterruptPayload, InterruptedAgentRunResult, ManualEscalationAgentRunResult, ManualEscalationHandoff, NodeExecutionObservation, ResolutionAgentRunResult
+from .assembly import (
+    build_human_review_dossier,
+    build_manual_escalation,
+    build_memory_distillation_input,
+    build_proposed_handoff,
+    build_resolution_handoff,
+    build_revision_event,
+)
+from .dependencies import AgentDependencies
+from .model import ModelTask, OutputSchema
+from .prompts import (
+    INTAKE_PROMPT_VERSION,
+    INTAKE_SYSTEM_PROMPT,
+    MEMORY_QUERY_PROMPT_VERSION,
+    MEMORY_QUERY_SYSTEM_PROMPT,
+    RESOLVER_PROMPT_VERSION,
+    RESOLVER_SYSTEM_PROMPT,
+    REVIEWER_PROMPT_VERSION,
+    REVIEWER_SYSTEM_PROMPT,
+)
+from .serialization import json_value
+from .state import (
+    AgentState,
+    MemoryRetrievalStatus,
+)
 
-from .inputs import PROMPT_VERSIONS, intake_input, memory_query_input, resolver_input, reviewer_input
-from .ports import RuntimeDependencies
-from .state import RuntimeState
+INTAKE_SCHEMA = OutputSchema("IntakeResult", TypeAdapter(IntakeResult))
+ASSESSMENT_SCHEMA = OutputSchema("EvidenceAssessment", TypeAdapter(EvidenceAssessment))
+RESOLVER_SCHEMA = OutputSchema("ResolverOutput", TypeAdapter(ResolverOutput))
+REVIEW_SCHEMA = OutputSchema("ReviewResult", TypeAdapter(ReviewResult))
 
-NODES = ("parse_request", "request_clarification", "load_case_context", "retrieve_policy", "prepare_memory_query", "retrieve_memory", "assess_case", "request_evidence", "propose_decision", "external_verification", "reviewer", "record_revision_event", "await_human_review", "emit_resolution_handoff", "enqueue_memory_distillation", "terminate_automation")
+CASE_CONTEXT_LOAD_ADAPTER = TypeAdapter(CaseContextLoadResult)
+POLICY_BUNDLE_ADAPTER = TypeAdapter(PolicyBundle)
+MEMORY_HITS_ADAPTER = TypeAdapter(list[MemorySearchHit])
+MEMORY_QUERY_SCHEMA = OutputSchema(
+    "MemoryQuerySummary", TypeAdapter(MemoryQuerySummary)
+)
+EVIDENCE_ITEM_ADAPTER = TypeAdapter(EvidenceItem)
+VERIFICATION_RESULT_ADAPTER = TypeAdapter(VerificationResult)
+HUMAN_REVIEW_RESULT_ADAPTER = TypeAdapter(HumanReviewResult)
+
+CLARIFICATION_LIMIT = 2
+EVIDENCE_LIMIT = 2
+VERIFICATION_LIMIT = 2
+REVISION_LIMIT = REVIEW_REVISION_LIMIT
+PROPOSE_LIMIT = 1 + VERIFICATION_LIMIT + REVISION_LIMIT
+GRAPH_RECURSION_LIMIT = 100
+LOGGER = logging.getLogger(__name__)
 
 
-class ReturnRuntime:
-    def __init__(self, dependencies: RuntimeDependencies, checkpointer):
-        self.deps = dependencies
-        builder = StateGraph(RuntimeState)
-        for node in NODES:
-            builder.add_node(node, self.wrapped(node))
-        builder.add_edge(START, "parse_request")
-        for node in NODES:
-            if node in ("enqueue_memory_distillation", "terminate_automation"):
-                builder.add_edge(node, END)
-            else:
-                builder.add_conditional_edges(node, lambda state: state.route, {name: name for name in NODES})
-        self.graph = builder.compile(checkpointer=checkpointer)
+def initial_state(
+    *,
+    thread_id: str,
+    case_ref: str,
+    order_ref: str | None,
+    initial_turn: UserTurn,
+) -> AgentState:
+    return AgentState(
+        thread_id=thread_id,
+        case_ref=case_ref,
+        trusted_order_ref=order_ref,
+        conversation_turns=[initial_turn],
+        normalized_intent=None,
+        claimed_line_item_ids=[],
+        operational_memory=[],
+        memory_retrieval_status=MemoryRetrievalStatus.OK,
+        memory_query_summary=None,
+        memory_retrieval=None,
+        evidence_bundle=[],
+        evidence_assessment=None,
+        current_handoff=None,
+        proposal_history=[],
+        pending_review_result=None,
+        verification_feedback=[],
+        review_history=[],
+        review_routing_reason=None,
+        revision_events=[],
+        pending_clarification_request=None,
+        pending_evidence_request=None,
+        human_review_ref=None,
+        human_review_result=None,
+        resolution_handoff=None,
+        memory_distillation_input=None,
+        manual_escalation=None,
+        escalation_reason=None,
+        clarification_round=0,
+        evidence_round=0,
+        verification_round=0,
+        revision_round=0,
+        propose_round=0,
+        _route="parse_request",
+    )
 
-    def config(self, thread_id: str):
-        return {"configurable": {"thread_id": thread_id}, "recursion_limit": 100}
 
-    def wrapped(self, node: str):
-        def invoke(state: RuntimeState):
-            state = RuntimeState.model_validate(state.checkpoint_values())
-            attempt = state.node_attempts.get(node, 0) + 1
-            state.node_attempts = {**state.node_attempts, node: attempt}
-            task_ref = self.deps.ids("task", state.thread_id, node, attempt)
-            observer = self.deps.observer
-            if observer:
-                observer.observe(NodeExecutionObservation(node=node, phase="ENTER", task_ref=task_ref))
+def _fail(reason: EscalationReason) -> dict[str, object]:
+    return {
+        "escalation_reason": reason,
+        "_route": "terminate_automation",
+    }
+
+
+def _validate_provider_result(adapter: TypeAdapter[Any], value: Any) -> Any:
+    """Force validation even when a provider returns a mutated model instance."""
+
+    return adapter.validate_python(json_value(value))
+
+
+def _graph_evidence_request(
+    *,
+    request: EvidenceRequest,
+    state: AgentState,
+    evidence_round: int,
+    dependencies: AgentDependencies,
+) -> EvidenceRequest:
+    """Replace the LLM placeholder with the graph-owned request identifier."""
+
+    return request.model_copy(
+        update={
+            "request_id": dependencies.id_factory.make(
+                "evidence-request",
+                state["thread_id"],
+                evidence_round,
+            )
+        }
+    )
+
+
+def _line_item_prompt_view(state: AgentState) -> list[dict[str, object]] | None:
+    snapshot = state.get("order_snapshot")
+    if snapshot is None:
+        return None
+    return [
+        {
+            "line_item_id": item.line_item_id,
+            "sku_ref": item.sku_ref,
+            "category_ref": item.category_ref,
+            "title": item.title,
+            "quantity": item.quantity,
+        }
+        for item in snapshot.line_items
+    ]
+
+
+def _order_facts_without_money(state: AgentState) -> dict[str, object]:
+    snapshot = state["order_snapshot"]
+    return {
+        "order_snapshot_ref": snapshot.order_snapshot_ref,
+        "order_ref": snapshot.order_ref,
+        "snapshot_version": snapshot.snapshot_version,
+        "captured_at": json_value(snapshot.captured_at),
+        "delivered_at": json_value(snapshot.delivered_at),
+        "line_items": _line_item_prompt_view(state),
+    }
+
+
+def _relevant_registry(state: AgentState) -> list[dict[str, object]]:
+    bundle = state["policy_bundle"]
+    claim_ids = {
+        claim_id for clause in bundle.clauses for claim_id in clause.required_claim_ids
+    }
+    return [
+        cast(dict[str, object], json_value(CLAIM_REGISTRY_V1[claim_id]))
+        for claim_id in sorted(claim_ids, key=lambda item: item.value)
+    ]
+
+
+def _expected_claim_pair_prompt_view(state: AgentState) -> list[dict[str, str]]:
+    pairs = expected_claim_pairs(state["policy_bundle"], state["claimed_line_item_ids"])
+    return [
+        {"claim_id": claim_id, "subject": subject}
+        for claim_id, subject in sorted(pairs)
+    ]
+
+
+def _validate_intake_result(state: AgentState, result: IntakeResult) -> None:
+    snapshot = state.get("order_snapshot")
+    if snapshot is None:
+        if result.claimed_line_item_ids:
+            raise ContractInvariantError(
+                "first-pass intake cannot bind line items before loading the order"
+            )
+    else:
+        known = {item.line_item_id for item in snapshot.line_items}
+        if result.order_ref != state["case_context"].order_ref:
+            raise ContractInvariantError(
+                "post-context intake order_ref differs from loaded order"
+            )
+        if not set(result.claimed_line_item_ids).issubset(known):
+            raise ContractInvariantError("intake returned unknown claimed line items")
+        if (
+            result.completeness is IntakeCompleteness.COMPLETE
+            and not result.claimed_line_item_ids
+        ):
+            raise ContractInvariantError(
+                "complete post-context intake requires claimed line items"
+            )
+    if result.completeness is IntakeCompleteness.COMPLETE and (
+        result.order_ref is None
+        or result.reason_code is None
+        or result.reason_summary is None
+    ):
+        raise ContractInvariantError(
+            "complete intake requires order_ref, reason_code, and reason_summary"
+        )
+
+
+def _bind_trusted_order_ref(state: AgentState, result: IntakeResult) -> IntakeResult:
+    """Bind API-owned order identity before deciding whether to clarify."""
+
+    trusted_order_ref = state.get("trusted_order_ref")
+    if trusted_order_ref is None:
+        return result
+    if result.order_ref not in {None, trusted_order_ref}:
+        raise ContractInvariantError(
+            "intake order_ref conflicts with the trusted case order"
+        )
+    missing_fields = [
+        field_name for field_name in result.missing_fields if field_name != "order_ref"
+    ]
+    update: dict[str, object] = {
+        "order_ref": trusted_order_ref,
+        "missing_fields": missing_fields,
+    }
+    if result.completeness is IntakeCompleteness.INCOMPLETE and not missing_fields:
+        update.update(
+            {
+                "completeness": IntakeCompleteness.COMPLETE,
+                "clarification_question": None,
+            }
+        )
+    return result.model_copy(update=update)
+
+
+def _parse_request_node(
+    dependencies: AgentDependencies,
+):
+    def node(state: AgentState) -> dict[str, object]:
+        payload = {
+            "prompt_version": INTAKE_PROMPT_VERSION,
+            "trusted_order_ref": state.get("trusted_order_ref"),
+            "conversation_turns": json_value(state["conversation_turns"]),
+            "existing_intent": json_value(state.get("normalized_intent")),
+            "order_line_items": _line_item_prompt_view(state),
+        }
+        try:
+            result = dependencies.model.generate(
+                task=ModelTask.INTAKE,
+                system_prompt=INTAKE_SYSTEM_PROMPT,
+                payload=payload,
+                output_schema=INTAKE_SCHEMA,
+            )
+            result = _bind_trusted_order_ref(state, result)
+            _validate_intake_result(state, result)
+        except Exception:  # noqa: BLE001 - model boundary fails closed
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+
+        update: dict[str, object] = {
+            "normalized_intent": result,
+            "claimed_line_item_ids": list(result.claimed_line_item_ids),
+        }
+        if result.completeness is IntakeCompleteness.INCOMPLETE:
+            if state["clarification_round"] >= CLARIFICATION_LIMIT:
+                return update | _fail(EscalationReason.CLARIFICATION_BUDGET_EXCEEDED)
+            next_round = state["clarification_round"] + 1
+            update.update(
+                {
+                    "clarification_round": next_round,
+                    "pending_clarification_request": ClarificationRequest(
+                        request_id=dependencies.id_factory.make(
+                            "clarification",
+                            state["thread_id"],
+                            next_round,
+                        ),
+                        missing_fields=result.missing_fields,
+                        clarification_question=result.clarification_question,
+                        clarification_round=next_round,
+                    ),
+                    "_route": "request_clarification",
+                }
+            )
+            return update
+
+        update["pending_clarification_request"] = None
+        update["_route"] = (
+            "retrieve_policy"
+            if state.get("case_context") is not None
+            else "load_case_context"
+        )
+        return update
+
+    return node
+
+
+def _request_clarification_node(state: AgentState) -> dict[str, object]:
+    request = state["pending_clarification_request"]
+    if request is None:
+        return _fail(EscalationReason.CONTRACT_VIOLATION)
+    value = interrupt(
+        {
+            "kind": AgentInterruptKind.CLARIFICATION.value,
+            "case_ref": state["case_ref"],
+            "request": request.model_dump(mode="json"),
+        }
+    )
+    try:
+        resume = ClarificationResume.model_validate(value)
+        if resume.turn.role is not UserRole.USER:
+            raise ContractInvariantError(
+                "clarification resume must contain a USER turn"
+            )
+        if any(
+            turn.turn_id == resume.turn.turn_id for turn in state["conversation_turns"]
+        ):
+            raise ContractInvariantError("UserTurn.turn_id must be unique")
+    except (ValidationError, ContractInvariantError):
+        return _fail(EscalationReason.CONTRACT_VIOLATION)
+    return {
+        "conversation_turns": [*state["conversation_turns"], resume.turn],
+        "_route": "parse_request",
+    }
+
+
+def _load_case_context_node(dependencies: AgentDependencies):
+    def node(state: AgentState) -> dict[str, object]:
+        intent = state.get("normalized_intent")
+        try:
+            result = _validate_provider_result(
+                CASE_CONTEXT_LOAD_ADAPTER,
+                dependencies.case_context_provider.load_case_context(state["case_ref"]),
+            )
+            if result is None:
+                raise ContractInvariantError("case context provider returned None")
+            validate_case_context_load_result(state["case_ref"], result)
+            if (
+                state.get("trusted_order_ref") is not None
+                and result.case_context.order_ref != state["trusted_order_ref"]
+            ):
+                raise ContractInvariantError(
+                    "loaded case context differs from the trusted order"
+                )
+            if intent is None or intent.order_ref != result.case_context.order_ref:
+                raise ContractInvariantError(
+                    "intake order_ref does not match loaded case context"
+                )
+        except Exception:  # noqa: BLE001 - provider boundary fails closed
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+
+        update: dict[str, object] = {
+            "case_context": result.case_context,
+            "order_snapshot": result.order_snapshot,
+        }
+        if len(result.order_snapshot.line_items) == 1:
+            only_item = result.order_snapshot.line_items[0].line_item_id
+            update["claimed_line_item_ids"] = [only_item]
+            update["normalized_intent"] = intent.model_copy(
+                update={"claimed_line_item_ids": [only_item]}
+            )
+            update["_route"] = "retrieve_policy"
+        else:
+            update["_route"] = "parse_request"
+        return update
+
+    return node
+
+
+def _retrieve_policy_node(dependencies: AgentDependencies):
+    def node(state: AgentState) -> dict[str, object]:
+        intent = state["normalized_intent"]
+        if intent is None or intent.reason_code is None:
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+        try:
+            bundle = _validate_provider_result(
+                POLICY_BUNDLE_ADAPTER,
+                dependencies.policy_provider.retrieve_policy(
+                    state["case_context"],
+                    state["order_snapshot"],
+                    intent.reason_code,
+                    state["claimed_line_item_ids"],
+                ),
+            )
+            if bundle.retrieval_status is RetrievalStatus.AMBIGUOUS:
+                return {"policy_bundle": bundle} | _fail(
+                    EscalationReason.POLICY_AMBIGUOUS
+                )
+            if bundle.retrieval_status is RetrievalStatus.NOT_FOUND:
+                return {"policy_bundle": bundle} | _fail(
+                    EscalationReason.POLICY_NOT_FOUND
+                )
+            validate_applicable_policy_bundle(state["case_context"], bundle)
+        except Exception:  # noqa: BLE001 - provider boundary fails closed
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+        return {"policy_bundle": bundle, "_route": "prepare_memory_query"}
+
+    return node
+
+
+def _memory_matches(
+    memory: Any,
+    *,
+    market: str,
+    reason_code: Any,
+    required_claim_ids: set[ClaimId],
+    categories: set[str],
+    policy_versions: set[str],
+) -> bool:
+    scope = memory.scope
+    return (
+        memory.policy_version in policy_versions
+        and memory.claim_registry_version.split(":", 1)[-1].split(".", 1)[0]
+        == CLAIM_REGISTRY_VERSION.split(":", 1)[-1].split(".", 1)[0]
+        and scope.market == market
+        and (not scope.reason_codes or reason_code in scope.reason_codes)
+        and (not scope.claim_ids or bool(set(scope.claim_ids) & required_claim_ids))
+        and (not scope.categories or bool(set(scope.categories) & categories))
+    )
+
+
+def _memory_unavailable(code: str, summary: str | None = None) -> dict[str, object]:
+    return {
+        "operational_memory": [],
+        "memory_query_summary": summary,
+        "memory_retrieval_status": MemoryRetrievalStatus.UNAVAILABLE,
+        "memory_retrieval": MemoryRetrievalObservation(
+            status="UNAVAILABLE",
+            query_summary=summary,
+            error_code=code,
+        ),
+        "_route": "assess_case",
+    }
+
+
+def _prepare_memory_query_node(dependencies: AgentDependencies):
+    def node(state: AgentState) -> dict[str, object]:
+        try:
+            evidence = _resolve_initial_evidence(state, dependencies)
+        except Exception:  # noqa: BLE001 - attachment provider fails closed
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+        try:
+            intent = state["normalized_intent"]
+            claimed = set(state["claimed_line_item_ids"])
+            snapshot = state["order_snapshot"]
+            payload = {
+                "prompt_version": MEMORY_QUERY_PROMPT_VERSION,
+                "reason": intent.reason_summary,
+                "reason_code": intent.reason_code.value,
+                "market": state["case_context"].market,
+                "case_opened_at": json_value(state["case_context"].case_opened_at),
+                "delivered_at": json_value(snapshot.delivered_at),
+                "claimed_items": [
+                    {"title": item.title, "category": item.category_ref}
+                    for item in snapshot.line_items
+                    if item.line_item_id in claimed
+                ],
+                "evidence": [
+                    {
+                        "subject": item.subject,
+                        "type": item.type.value,
+                        "source": item.source.value,
+                        "summary": item.extracted_summary,
+                    }
+                    for item in evidence
+                ],
+            }
+            result = dependencies.model.generate(
+                task=ModelTask.MEMORY_QUERY_SUMMARY,
+                system_prompt=MEMORY_QUERY_SYSTEM_PROMPT,
+                payload=payload,
+                output_schema=MEMORY_QUERY_SCHEMA,
+            )
+            result = _validate_provider_result(TypeAdapter(MemoryQuerySummary), result)
+            validate_memory_summary(result.query_summary)
+        except Exception:  # noqa: BLE001 - optional model boundary
+            return {"evidence_bundle": evidence} | _memory_unavailable(
+                "SUMMARY_UNAVAILABLE"
+            )
+        return {
+            "evidence_bundle": evidence,
+            "operational_memory": [],
+            "memory_query_summary": result.query_summary,
+            "memory_retrieval": None,
+            "_route": "retrieve_memory",
+        }
+
+    return node
+
+
+def _retrieve_memory_node(dependencies: AgentDependencies):
+    def node(state: AgentState) -> dict[str, object]:
+        intent = state["normalized_intent"]
+        if intent is None or intent.reason_code is None:
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+        bundle = state["policy_bundle"]
+        required_claim_ids = {
+            claim_id
+            for clause in bundle.clauses
+            for claim_id in clause.required_claim_ids
+        }
+        categories = derive_memory_categories(
+            state["order_snapshot"], state["claimed_line_item_ids"]
+        )
+        policy_versions = sorted({clause.policy_version for clause in bundle.clauses})
+        try:
+            returned = _validate_provider_result(
+                MEMORY_HITS_ADAPTER,
+                list(
+                    dependencies.operational_memory_store.query_approved(
+                        query_summary=state["memory_query_summary"],
+                        market=state["case_context"].market,
+                        reason_code=intent.reason_code,
+                        required_claim_ids=sorted(
+                            required_claim_ids, key=lambda claim_id: claim_id.value
+                        ),
+                        categories=categories,
+                        policy_versions=policy_versions,
+                        claim_registry_major=CLAIM_REGISTRY_MAJOR,
+                        top_k=3,
+                    )
+                ),
+            )
+            if len({hit.memory.memory_id for hit in returned}) != len(returned):
+                raise ContractInvariantError("memory provider returned duplicate IDs")
+            matched = [
+                hit
+                for hit in returned
+                if _memory_matches(
+                    hit.memory,
+                    market=state["case_context"].market,
+                    reason_code=intent.reason_code,
+                    required_claim_ids=required_claim_ids,
+                    categories=set(categories),
+                    policy_versions=set(policy_versions),
+                )
+            ][:3]
+            observation = MemoryRetrievalObservation(
+                status="OK",
+                query_summary=state["memory_query_summary"],
+                hits=matched,
+            )
+            return {
+                "operational_memory": [hit.memory for hit in matched],
+                "memory_retrieval": observation,
+                "memory_retrieval_status": MemoryRetrievalStatus.OK,
+                "_route": "assess_case",
+            }
+        except Exception:  # noqa: BLE001 - optional memory, never fallback-ranked
+            return _memory_unavailable(
+                "RETRIEVAL_UNAVAILABLE", state.get("memory_query_summary")
+            )
+
+    return node
+
+
+def _merge_evidence(
+    current: Iterable[EvidenceItem], new_items: Iterable[EvidenceItem]
+) -> list[EvidenceItem]:
+    merged = list(current)
+    by_id = {item.evidence_id: item for item in merged}
+    by_artifact = {item.artifact_ref: item for item in merged}
+    for item in new_items:
+        existing_id = by_id.get(item.evidence_id)
+        existing_artifact = by_artifact.get(item.artifact_ref)
+        if existing_id is not None and existing_id != item:
+            raise ContractInvariantError("evidence_id maps to conflicting evidence")
+        if existing_artifact is not None and existing_artifact != item:
+            raise ContractInvariantError("artifact_ref maps to conflicting evidence")
+        if existing_id is None and existing_artifact is None:
+            merged.append(item)
+            by_id[item.evidence_id] = item
+            by_artifact[item.artifact_ref] = item
+    return merged
+
+
+def _resolve_initial_evidence(
+    state: AgentState, dependencies: AgentDependencies
+) -> list[EvidenceItem]:
+    existing = list(state.get("evidence_bundle", []))
+    resolved_artifacts = {item.artifact_ref for item in existing}
+    artifact_refs = list(
+        dict.fromkeys(
+            artifact_ref
+            for turn in state["conversation_turns"]
+            for artifact_ref in turn.attached_artifact_refs
+            if artifact_ref not in resolved_artifacts
+        )
+    )
+    allowed_subjects = {"ORDER", *state["claimed_line_item_ids"]}
+    new_items = []
+    for artifact_ref in artifact_refs:
+        item = _validate_provider_result(
+            EVIDENCE_ITEM_ADAPTER,
+            dependencies.evidence_provider.resolve(artifact_ref),
+        )
+        if item.artifact_ref != artifact_ref:
+            raise ContractInvariantError(
+                "resolved evidence artifact_ref differs from requested reference"
+            )
+        if item.subject not in allowed_subjects:
+            raise ContractInvariantError(
+                "initial evidence subject is outside the claimed case scope"
+            )
+        new_items.append(item)
+    return _merge_evidence(existing, new_items)
+
+
+def _resolver_payload(state: AgentState) -> dict[str, object]:
+    intent = state["normalized_intent"]
+    return {
+        "prompt_version": RESOLVER_PROMPT_VERSION,
+        "normalized_intent": json_value(intent),
+        "claimed_line_item_ids": list(state["claimed_line_item_ids"]),
+        "case_context": json_value(state["case_context"]),
+        "order_facts": _order_facts_without_money(state),
+        "policy_bundle": json_value(state["policy_bundle"]),
+        "claim_registry_version": CLAIM_REGISTRY_VERSION,
+        "claim_registry": _relevant_registry(state),
+        "expected_claim_subject_pairs": _expected_claim_pair_prompt_view(state),
+        "evidence_bundle": json_value(state.get("evidence_bundle", [])),
+        "evidence_assessment": json_value(state.get("evidence_assessment")),
+        "operational_memory": json_value(state.get("operational_memory", [])),
+        "verification_feedback": json_value(state.get("verification_feedback", [])),
+        "review_feedback": json_value(state.get("pending_review_result")),
+    }
+
+
+def _assess_case_node(dependencies: AgentDependencies):
+    def node(state: AgentState) -> dict[str, object]:
+        try:
+            evidence = state["evidence_bundle"]
+            working = dict(state)
+            working["evidence_bundle"] = evidence
+            assessment = dependencies.model.generate(
+                task=ModelTask.ASSESS,
+                system_prompt=RESOLVER_SYSTEM_PROMPT,
+                payload=_resolver_payload(cast(AgentState, working)),
+                output_schema=ASSESSMENT_SCHEMA,
+            )
+            assessment = assessment.model_copy(
+                update={"claim_registry_version": CLAIM_REGISTRY_VERSION}
+            )
+            if assessment.evidence_status is EvidenceStatus.INSUFFICIENT:
+                request = _graph_evidence_request(
+                    request=assessment.missing_evidence_request,
+                    state=state,
+                    evidence_round=state["evidence_round"] + 1,
+                    dependencies=dependencies,
+                )
+                assessment = assessment.model_copy(
+                    update={"missing_evidence_request": request}
+                )
+            if assessment.claim_registry_version != CLAIM_REGISTRY_VERSION:
+                raise ContractInvariantError("assessment registry version mismatch")
+            validate_evidence_assessment(
+                assessment,
+                state["policy_bundle"],
+                state["order_snapshot"],
+                state["claimed_line_item_ids"],
+            )
+        except Exception:  # noqa: BLE001 - model/provider boundary fails closed
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+
+        update: dict[str, object] = {
+            "evidence_bundle": evidence,
+            "evidence_assessment": assessment,
+        }
+        if assessment.evidence_status is EvidenceStatus.INSUFFICIENT:
+            if state["evidence_round"] >= EVIDENCE_LIMIT:
+                return update | _fail(EscalationReason.EVIDENCE_BUDGET_EXCEEDED)
+            next_round = state["evidence_round"] + 1
+            update.update(
+                {
+                    "evidence_round": next_round,
+                    "pending_evidence_request": assessment.missing_evidence_request,
+                    "_route": "request_evidence",
+                }
+            )
+        else:
+            update.update(
+                {"pending_evidence_request": None, "_route": "propose_decision"}
+            )
+        return update
+
+    return node
+
+
+def _request_evidence_node(dependencies: AgentDependencies):
+    def node(state: AgentState) -> dict[str, object]:
+        request = state["pending_evidence_request"]
+        if request is None:
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+        value = interrupt(
+            {
+                "kind": AgentInterruptKind.EVIDENCE_REQUEST.value,
+                "case_ref": state["case_ref"],
+                "request": request.model_dump(mode="json"),
+            }
+        )
+        try:
+            resume = EvidenceResume.model_validate(value)
+            if len(resume.artifact_refs) != len(set(resume.artifact_refs)):
+                raise ContractInvariantError("artifact_refs must be unique")
+            new_items = []
+            for artifact_ref in resume.artifact_refs:
+                item = _validate_provider_result(
+                    EVIDENCE_ITEM_ADAPTER,
+                    dependencies.evidence_provider.resolve(artifact_ref),
+                )
+                validate_resolved_evidence_item(item, artifact_ref, request)
+                new_items.append(item)
+            evidence = _merge_evidence(state.get("evidence_bundle", []), new_items)
+        except Exception:  # noqa: BLE001 - provider boundary fails closed
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+        return {"evidence_bundle": evidence, "_route": "prepare_memory_query"}
+
+    return node
+
+
+def _request_findings(state: AgentState):
+    review = state.get("pending_review_result")
+    if review is not None:
+        return review.reviewer_claim_findings
+    assessment = state["evidence_assessment"]
+    if assessment is None:
+        raise ContractInvariantError("proposal requires an evidence assessment")
+    return assessment.claim_findings
+
+
+def _draft_matches_current_handoff(state: AgentState, draft: Any) -> bool:
+    handoff = state.get("current_handoff")
+    if handoff is None:
+        return False
+    draft_value = draft.model_dump(mode="json")
+    current_value = handoff.proposed_decision.model_dump(mode="json")
+    draft_value.pop("policy_refs", None)
+    draft_value.pop("evidence_refs", None)
+    current_value.pop("policy_refs", None)
+    current_value.pop("evidence_refs", None)
+    current_value.pop("amount", None)
+    current_value.pop("currency", None)
+    return_decision = current_value.get("return_decision")
+    if isinstance(return_decision, dict) and return_decision.get("source") == "POLICY":
+        current_value["return_decision"] = {
+            "source": "POLICY",
+            "reason_code": return_decision["requirement"]["reason_code"],
+        }
+    current_value["rationale_summary"] = handoff.rationale_summary
+    return draft_value == current_value
+
+
+def _propose_decision_node(dependencies: AgentDependencies):
+    def node(state: AgentState) -> dict[str, object]:
+        if state["propose_round"] >= PROPOSE_LIMIT:
+            return _fail(EscalationReason.PROPOSE_BUDGET_EXCEEDED)
+        next_round = state["propose_round"] + 1
+        working = dict(state)
+        working["propose_round"] = next_round
+        try:
+            output = dependencies.model.generate(
+                task=ModelTask.PROPOSE_OR_REVISE,
+                system_prompt=RESOLVER_SYSTEM_PROMPT,
+                payload=_resolver_payload(cast(AgentState, working)),
+                output_schema=RESOLVER_SCHEMA,
+            )
+            if isinstance(output, ResolverConflictOutput):
+                return {
+                    "propose_round": next_round,
+                } | _fail(EscalationReason.CONFLICTING_REVISIONS)
+            if isinstance(output, ResolverEvidenceRequestOutput):
+                evidence_round = state["evidence_round"] + 1
+                evidence_request = _graph_evidence_request(
+                    request=output.evidence_request,
+                    state=state,
+                    evidence_round=evidence_round,
+                    dependencies=dependencies,
+                )
+                validate_evidence_request(
+                    evidence_request,
+                    _request_findings(state),
+                    state["policy_bundle"],
+                    state["order_snapshot"],
+                    state["claimed_line_item_ids"],
+                )
+                if state["evidence_round"] >= EVIDENCE_LIMIT:
+                    return {"propose_round": next_round} | _fail(
+                        EscalationReason.EVIDENCE_BUDGET_EXCEEDED
+                    )
+                return {
+                    "propose_round": next_round,
+                    "evidence_round": evidence_round,
+                    "pending_evidence_request": evidence_request,
+                    "_route": "request_evidence",
+                }
+            if not isinstance(output, ResolverDraftOutput):
+                raise ContractInvariantError("unknown ResolverOutput variant")
+            if (
+                state.get("pending_review_result") is not None
+                or state.get("verification_feedback")
+            ) and _draft_matches_current_handoff(state, output.draft):
+                raise ContractInvariantError(
+                    "revised proposal must not repeat the prior handoff unchanged"
+                )
+            handoff = build_proposed_handoff(
+                state=cast(AgentState, working),
+                draft=output.draft,
+                dependencies=dependencies,
+            )
+        except Exception:  # noqa: BLE001 - model/contract boundary fails closed
+            return {"propose_round": next_round} | _fail(
+                EscalationReason.CONTRACT_VIOLATION
+            )
+        return {
+            "propose_round": next_round,
+            "current_handoff": handoff,
+            "proposal_history": [*state.get("proposal_history", []), handoff],
+            "pending_evidence_request": None,
+            "pending_review_result": None,
+            "verification_feedback": [],
+            "_route": "external_verification",
+        }
+
+    return node
+
+
+def _external_verification_node(dependencies: AgentDependencies):
+    def node(state: AgentState) -> dict[str, object]:
+        handoff = state.get("current_handoff")
+        if handoff is None:
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+        try:
+            result = _validate_provider_result(
+                VERIFICATION_RESULT_ADAPTER,
+                dependencies.verification_provider.verify(handoff),
+            )
+        except Exception:  # noqa: BLE001 - provider boundary fails closed
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+        if result.status is VerificationStatus.PASS:
+            return {"verification_feedback": [], "_route": "reviewer"}
+        if result.status is VerificationStatus.UNAVAILABLE:
+            return _fail(EscalationReason.VERIFICATION_UNAVAILABLE)
+        if state["verification_round"] >= VERIFICATION_LIMIT:
+            return {"verification_feedback": list(result.issues)} | _fail(
+                EscalationReason.VERIFICATION_BUDGET_EXCEEDED
+            )
+        return {
+            "verification_feedback": list(result.issues),
+            "verification_round": state["verification_round"] + 1,
+            "_route": "propose_decision",
+        }
+
+    return node
+
+
+def _reviewer_node(dependencies: AgentDependencies):
+    def node(state: AgentState) -> dict[str, object]:
+        handoff = state.get("current_handoff")
+        if handoff is None:
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+        payload = {
+            "prompt_version": REVIEWER_PROMPT_VERSION,
+            "reviewed_at_utc": json_value(dependencies.clock.now()),
+            "case_context": json_value(state["case_context"]),
+            "order_snapshot": json_value(state["order_snapshot"]),
+            "policy_bundle": json_value(state["policy_bundle"]),
+            "claim_registry_version": CLAIM_REGISTRY_VERSION,
+            "claim_registry": _relevant_registry(state),
+            "expected_claim_subject_pairs": _expected_claim_pair_prompt_view(state),
+            "proposed_decision_handoff": json_value(handoff),
+        }
+        try:
+            result = dependencies.model.generate(
+                task=ModelTask.REVIEW,
+                system_prompt=REVIEWER_SYSTEM_PROMPT,
+                payload=payload,
+                output_schema=REVIEW_SCHEMA,
+            )
+            result = result.model_copy(
+                update={
+                    "reviewer_prompt_version": REVIEWER_PROMPT_VERSION,
+                    "reviewed_at": dependencies.clock.now(),
+                }
+            )
+            validate_review_result(
+                result,
+                handoff,
+                state["policy_bundle"],
+                state["order_snapshot"],
+                state["claimed_line_item_ids"],
+            )
+        except Exception as error:  # noqa: BLE001 - boundary fails closed
+            LOGGER.error(
+                "reviewer failed closed (%s): %s",
+                type(error).__name__,
+                error,
+            )
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+        history = [*state.get("review_history", []), result]
+        if result.verdict is ReviewVerdict.APPROVE:
+            decision = handoff.proposed_decision
+            gate = evaluate_review_gate(decision.action, decision.amount, decision.currency, dependencies.reviewer_gate_config)
+            if gate.status == "HUMAN_REQUIRED":
+                return {"review_history": history, "review_gate": gate,
+                    "review_routing_reason": gate.reason, "human_review_ref": None,
+                    "human_review_result": None, "_route": "await_human_review"}
+            return {
+                "review_history": history,
+                "review_gate": gate,
+                "review_routing_reason": None,
+                "_route": "emit_resolution_handoff",
+            }
+        if state["revision_round"] >= REVISION_LIMIT:
+            return {
+                "review_history": history,
+                "review_gate": None,
+                "review_routing_reason": "REVISION_BUDGET_EXCEEDED",
+                "human_review_ref": None,
+                "human_review_result": None,
+                "_route": "await_human_review",
+            }
+        return {
+            "review_history": history,
+            "review_gate": None,
+            "pending_review_result": result,
+            "review_routing_reason": None,
+            "_route": "record_revision_event",
+        }
+
+    return node
+
+
+def _record_revision_event_node(dependencies: AgentDependencies):
+    def node(state: AgentState) -> dict[str, object]:
+        review = state.get("pending_review_result")
+        if review is None:
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+        try:
+            event = build_revision_event(
+                state=state,
+                review_result=review,
+                dependencies=dependencies,
+            )
+        except Exception:  # noqa: BLE001 - state contract fails closed
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+        return {
+            "revision_events": [*state.get("revision_events", []), event],
+            "revision_round": event.revision_round,
+            "_route": "propose_decision",
+        }
+
+    return node
+
+
+def _await_human_review_node(dependencies: AgentDependencies):
+    def node(state: AgentState) -> dict[str, object]:
+        handoff = state.get("current_handoff")
+        review = state["review_history"][-1]
+        if handoff is None:
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+        try:
+            validate_human_review_entry(handoff, review, build_human_review_dossier(state), dependencies.reviewer_gate_config)
+        except ValueError:
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+        review_ref = state.get("human_review_ref")
+        if review_ref is None:
             try:
-                getattr(self, node)(state)
-            except GraphInterrupt:
-                if observer:
-                    observer.paused(node, task_ref)
-                raise
-            except Exception:
-                state.escalation_reason, state.route = "CONTRACT_VIOLATION", "terminate_automation"
-                state.resolution, state.memory_distillation_input = None, None
-                if node in ("enqueue_memory_distillation", "terminate_automation"):
-                    self.terminate_automation(state)
-                if observer:
-                    observer.observe(NodeExecutionObservation(node=node, phase="ERROR", task_ref=task_ref, error_message="Node contract or provider failed"))
-                return state.checkpoint_values()
-            if observer:
-                observer.observe(NodeExecutionObservation(node=node, phase="EXIT", task_ref=task_ref, memory_retrieval=state.memory_retrieval if node in ("prepare_memory_query", "retrieve_memory") else None, review_gate=state.review_gate if node == "reviewer" else None))
-            return RuntimeState.model_validate(state.checkpoint_values()).checkpoint_values()
-        return invoke
+                review_ref = dependencies.human_review_provider.submit_for_review(
+                    handoff, review, build_human_review_dossier(state)
+                )
+                if not review_ref or not str(review_ref).strip():
+                    raise ContractInvariantError("human review_ref must be non-empty")
+            except Exception:  # noqa: BLE001 - provider boundary fails closed
+                return _fail(EscalationReason.CONTRACT_VIOLATION)
+            return {
+                "human_review_ref": str(review_ref),
+                "_route": "await_human_review",
+            }
 
-    def generate(self, task: str, payload: dict[str, Any], output_type):
-        return TypeAdapter(output_type).validate_python(self.deps.model.generate(task, payload, output_type))
-
-    def stop(self, state: RuntimeState, reason: str):
-        state.escalation_reason, state.route = reason, "terminate_automation"
-
-    def start(self, request: AgentStartRequest) -> AgentRunResult:
-        request = AgentStartRequest.model_validate(request)
-        config = self.config(request.thread_id)
-        if self.graph.get_state(config).values:
-            raise ValueError("Thread already exists; use its durable command journal")
-        initial = RuntimeState(case_ref=request.case_ref, thread_id=request.thread_id, trusted_order_ref=request.order_ref, conversation_turns=[request.initial_turn])
-        result = self.graph.invoke(initial.checkpoint_values(), config)
-        return self.result(result)
-
-    def resume(self, request: AgentResumeRequest) -> AgentRunResult:
-        config = self.config(request.thread_id)
-        snapshot = self.graph.get_state(config)
-        pending = [item for task in snapshot.tasks for item in task.interrupts]
-        if len(pending) != 1 or pending[0].value["kind"] != request.payload.kind:
-            raise ValueError("Resume does not match the current interrupt")
-        state = RuntimeState.model_validate(snapshot.values)
-        if request.payload.kind == "CLARIFICATION" and request.payload.turn.turn_id in {turn.turn_id for turn in state.conversation_turns}:
-            raise ValueError("Duplicate user turn")
-        return self.result(self.graph.invoke(Command(resume=request.payload.model_dump(mode="json")), config))
-
-    def continue_run(self, thread_id: str) -> AgentRunResult:
-        """Resume interrupted execution after a worker crash, without inventing user input."""
-        snapshot = self.graph.get_state(self.config(thread_id))
-        pending = [item for task in snapshot.tasks for item in task.interrupts]
-        if pending:
-            return InterruptedAgentRunResult(result_type="INTERRUPTED", status="INTERRUPTED", interrupt_payload=pending[0].value)
-        if not snapshot.values:
-            raise ValueError("Unknown thread")
-        return self.result(self.graph.invoke(None, self.config(thread_id))) if snapshot.next else self.result(snapshot.values)
-
-    def result(self, values: dict[str, Any]) -> AgentRunResult:
-        if values.get("__interrupt__"):
-            return InterruptedAgentRunResult(result_type="INTERRUPTED", status="INTERRUPTED", interrupt_payload=values["__interrupt__"][0].value)
-        state = RuntimeState.model_validate({key: value for key, value in values.items() if key != "__interrupt__"})
-        if state.resolution:
-            return ResolutionAgentRunResult(result_type="RESOLUTION", status="COMPLETED", resolution_handoff=state.resolution)
-        return ManualEscalationAgentRunResult(result_type="MANUAL_ESCALATION", status="COMPLETED", manual_escalation=state.escalation)
-
-    def state(self, thread_id: str) -> RuntimeState:
-        return RuntimeState.model_validate(self.graph.get_state(self.config(thread_id)).values)
-
-    def parse_request(self, state: RuntimeState):
-        intent = self.generate("INTAKE", intake_input(state), IntakeResult)
-        if intent.order_ref and state.trusted_order_ref and intent.order_ref != state.trusted_order_ref:
-            raise ValueError("Intake cannot replace the trusted order")
-        if intent.completeness == "INCOMPLETE":
-            if state.clarification_round >= 2:
-                return self.stop(state, "CLARIFICATION_BUDGET_EXCEEDED")
-            state.clarification_round += 1
-            state.clarification_request = ClarificationRequest(request_id=self.deps.ids("clarification", state.case_ref, state.clarification_round), clarification_round=state.clarification_round, missing_fields=intent.missing_fields, clarification_question=intent.clarification_question)
-            state.normalized_intent, state.route = intent, "request_clarification"
-            return
-        if intent.reason_code is None or not intent.reason_summary or intent.requested_action not in ("REFUND", "RETURN_AND_REFUND"):
-            raise ValueError("Complete intake lacks a supported request and reason")
-        state.normalized_intent = intent
-        if state.order_snapshot is None:
-            state.route = "load_case_context"
-            return
-        claimed = intent.claimed_line_item_ids
-        if not claimed or len(set(claimed)) != len(claimed) or not set(claimed) <= {item.line_item_id for item in state.order_snapshot.line_items}:
-            raise ValueError("Intake items do not identify trusted order lines")
-        state.claimed_line_item_ids, state.route = claimed, "retrieve_policy"
-
-    def request_clarification(self, state: RuntimeState):
-        payload = ClarificationInterruptPayload(kind="CLARIFICATION", case_ref=state.case_ref, request=state.clarification_request)
-        response = TypeAdapter(ResumePayload).validate_python(interrupt(payload.model_dump(mode="json")))
-        if response.kind != "CLARIFICATION" or response.turn.turn_id in {turn.turn_id for turn in state.conversation_turns}:
-            raise ValueError("Wrong or repeated clarification response")
-        state.conversation_turns = [*state.conversation_turns, response.turn]
-        state.clarification_request, state.route = None, "parse_request"
-
-    def load_case_context(self, state: RuntimeState):
-        loaded = CaseContextLoadResult.model_validate(self.deps.context.load_case_context(LoadCaseContextParams(case_ref=state.case_ref)))
-        if loaded.case_context.case_ref != state.case_ref or (state.trusted_order_ref and loaded.case_context.order_ref != state.trusted_order_ref):
-            raise ValueError("Provider changed case or order identity")
-        state.case_context, state.order_snapshot = loaded.case_context, loaded.order_snapshot
-        state.trusted_order_ref = loaded.case_context.order_ref
-        # Intake needs trusted item identifiers before it can select claim scope.
-        state.route = "parse_request"
-
-    def retrieve_policy(self, state: RuntimeState):
-        policy = PolicyBundle.model_validate(self.deps.policy.retrieve_policy(RetrievePolicyParams(case_context=state.case_context, order_snapshot=state.order_snapshot, reason_code=state.normalized_intent.reason_code, claimed_line_item_ids=state.claimed_line_item_ids)))
-        state.policy_bundle = policy
-        if policy.retrieval_status != "OK":
-            return self.stop(state, "POLICY_" + policy.retrieval_status)
-        validate_policy(state.case_context, state.order_snapshot, policy, state.normalized_intent.reason_code, state.claimed_line_item_ids)
-        state.route = "prepare_memory_query"
-
-    def resolve_artifacts(self, state: RuntimeState, refs: list[str]):
-        existing = {item.artifact_ref: item for item in state.evidence_bundle}
-        subjects = {state.order_snapshot.order_ref, *(item.line_item_id for item in state.order_snapshot.line_items)}
-        for ref in dict.fromkeys(refs):
-            if ref not in existing:
-                item = EvidenceItem.model_validate(self.deps.evidence.resolve(ResolveEvidenceParams(artifact_ref=ref)))
-                validate_resolved_evidence(ref, item, subjects)
-                if item.evidence_id in {known.evidence_id for known in existing.values()}:
-                    raise ValueError("Evidence identity reused for another artifact")
-                existing[ref] = item
-        state.evidence_bundle = list(existing.values())
-
-    def prepare_memory_query(self, state: RuntimeState):
-        # Artifact failure is fatal; it is outside the optional-memory failure boundary.
-        self.resolve_artifacts(state, [ref for turn in state.conversation_turns for ref in turn.attached_artifact_refs])
         try:
-            summary = self.generate("MEMORY_QUERY_SUMMARY", memory_query_input(state), MemoryQuerySummary)
-            state.memory_retrieval = MemoryRetrievalObservation(status="OK", query_summary=summary.query_summary)
-            state.route = "retrieve_memory"
-        except Exception:
-            state.memory_retrieval = MemoryRetrievalObservation(status="UNAVAILABLE", error_code="SUMMARY_UNAVAILABLE")
-            state.route = "assess_case"
+            result = dependencies.human_review_provider.fetch_result(review_ref)
+            if result is not None:
+                result = _validate_provider_result(HUMAN_REVIEW_RESULT_ADAPTER, result)
+        except Exception:  # noqa: BLE001 - provider boundary fails closed
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+        if result is not None:
+            return {
+                "human_review_result": result,
+                "_route": "emit_resolution_handoff",
+            }
 
-    def retrieve_memory(self, state: RuntimeState):
-        query = QueryApprovedMemoryParams(query_summary=state.memory_retrieval.query_summary, market=state.case_context.market, reason_code=state.normalized_intent.reason_code, required_claim_ids=sorted({claim for clause in state.policy_bundle.clauses for claim in clause.required_claim_ids}), categories=sorted({item.category_ref for item in state.order_snapshot.line_items if item.line_item_id in state.claimed_line_item_ids}), policy_versions=sorted({clause.policy_version for clause in state.policy_bundle.clauses}), claim_registry_major=1, top_k=3)
+        value = interrupt(
+            {
+                "kind": AgentInterruptKind.HUMAN_REVIEW.value,
+                "routing_reason": state["review_routing_reason"],
+                "case_ref": state["case_ref"],
+                "handoff_id": handoff.handoff_id,
+                "review_ref": review_ref,
+            }
+        )
         try:
-            hits = TypeAdapter(list[MemorySearchHit]).validate_python(self.deps.memory.query_approved(query))
-            state.memory_retrieval = MemoryRetrievalObservation(status="OK", query_summary=query.query_summary, hits=hits)
-        except Exception:
-            state.memory_retrieval = MemoryRetrievalObservation(status="UNAVAILABLE", query_summary=query.query_summary, error_code="RETRIEVAL_UNAVAILABLE")
-        state.route = "assess_case"
+            HumanReviewPollResume.model_validate(value)
+        except ValidationError:
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+        return {"_route": "await_human_review"}
 
-    def request_more_evidence(self, state: RuntimeState, request: EvidenceRequest):
-        if state.evidence_round >= 2:
-            return self.stop(state, "EVIDENCE_BUDGET_EXCEEDED")
-        state.evidence_round += 1
-        values = request.model_dump(mode="python")
-        values["request_id"] = self.deps.ids("evidence-request", state.case_ref, state.evidence_round)
-        state.evidence_request = EvidenceRequest.model_validate(values)
-        state.route = "request_evidence"
+    return node
 
-    def assess_case(self, state: RuntimeState):
-        assessment = self.generate("ASSESS", resolver_input(state), EvidenceAssessment)
-        values = assessment.model_dump(mode="python")
-        values["claim_registry_version"] = REGISTRY_VERSION
-        assessment = TypeAdapter(EvidenceAssessment).validate_python(values)
-        validate_assessment(assessment, state.policy_bundle, state.order_snapshot, state.claimed_line_item_ids, state.evidence_bundle)
-        state.evidence_assessment = assessment
-        if assessment.evidence_status == "INSUFFICIENT":
-            self.request_more_evidence(state, assessment.missing_evidence_request)
-        else:
-            state.route = "propose_decision"
 
-    def request_evidence(self, state: RuntimeState):
-        payload = EvidenceInterruptPayload(kind="EVIDENCE_REQUEST", case_ref=state.case_ref, request=state.evidence_request)
-        response = TypeAdapter(ResumePayload).validate_python(interrupt(payload.model_dump(mode="json")))
-        if response.kind != "EVIDENCE_REQUEST":
-            raise ValueError("Wrong evidence resume")
-        self.resolve_artifacts(state, response.artifact_refs)
-        state.evidence_request, state.route = None, "prepare_memory_query"
+def _emit_resolution_handoff_node(dependencies: AgentDependencies):
+    def node(state: AgentState) -> dict[str, object]:
+        try:
+            resolution = build_resolution_handoff(
+                state=state,
+                dependencies=dependencies,
+            )
+        except Exception:  # noqa: BLE001 - terminal contract fails closed
+            return _fail(EscalationReason.CONTRACT_VIOLATION)
+        has_human_correction = state.get("human_review_result") is not None and state[
+            "human_review_result"
+        ].decision.value in {"EDIT", "REJECT"}
+        return {
+            "resolution_handoff": resolution,
+            "_route": (
+                "enqueue_memory_distillation"
+                if state.get("revision_events") or has_human_correction
+                else "__end__"
+            ),
+        }
 
-    def propose_decision(self, state: RuntimeState):
-        if state.propose_round >= 6:
-            return self.stop(state, "PROPOSE_BUDGET_EXCEEDED")
-        state.propose_round += 1
-        output = self.generate("PROPOSE_OR_REVISE", resolver_input(state), ResolverOutput)
-        if output.result_type == "CONFLICTING_REVISIONS":
-            return self.stop(state, "CONFLICTING_REVISIONS")
-        if output.result_type == "REQUEST_EVIDENCE":
-            findings = state.pending_review_result.reviewer_claim_findings if state.pending_review_result else state.evidence_assessment.claim_findings
-            validate_evidence_request(output.evidence_request, findings, state.policy_bundle)
-            return self.request_more_evidence(state, output.evidence_request)
-        draft = output.draft
-        validate_draft(draft, state.evidence_assessment, state.policy_bundle, state.order_snapshot, state.claimed_line_item_ids, state.evidence_bundle)
-        values = draft.model_dump(mode="python", exclude={"rationale_summary"})
-        values.update(amount=refund_amount(state.order_snapshot, draft.refund_scope.line_item_ids), currency=state.order_snapshot.currency)
-        if draft.action == "FULL_REFUND" and draft.return_decision.source == "POLICY":
-            values["return_decision"] = {"source": "POLICY", "requirement": {"required": effective_return_policy(state.policy_bundle) == "REQUIRED", "reason_code": draft.return_decision.reason_code}}
-        decision = TypeAdapter(ProposedDecision).validate_python(values)
-        if state.pending_review_result and state.current_handoff and decision == state.current_handoff.proposed_decision and draft.rationale_summary == state.current_handoff.rationale_summary:
-            raise ValueError("Revision ignored the pending reviewer objections")
-        handoff = ProposedDecisionHandoff(handoff_id=self.deps.ids("handoff", state.case_ref, state.propose_round), handoff_version="1.0", case_ref=state.case_ref, agent_prompt_version=PROMPT_VERSIONS["PROPOSE_OR_REVISE"], claim_registry_version=REGISTRY_VERSION, order_snapshot_ref=state.order_snapshot.order_snapshot_ref, policy_bundle_version=state.policy_bundle.policy_bundle_version, policy_refs=draft.policy_refs, evidence_bundle=state.evidence_bundle, proposed_decision=decision, rationale_summary=draft.rationale_summary, revision_round=state.revision_round)
-        validate_handoff(handoff, state.case_context, state.order_snapshot, state.policy_bundle, state.claimed_line_item_ids)
-        state.current_handoff = handoff
-        state.pending_review_result, state.review_gate = None, None
-        state.route = "external_verification"
+    return node
 
-    def external_verification(self, state: RuntimeState):
-        result = TypeAdapter(VerificationResult).validate_python(self.deps.verification.verify(VerifyHandoffParams(handoff=state.current_handoff)))
-        if result.status == "UNAVAILABLE":
-            return self.stop(state, "VERIFICATION_UNAVAILABLE")
-        if result.status == "FAIL":
-            state.verification_feedback = result.issues
-            if state.verification_round >= 2:
-                return self.stop(state, "VERIFICATION_BUDGET_EXCEEDED")
-            state.verification_round += 1
-            state.route = "propose_decision"
-            return
-        state.proposal_history = [*state.proposal_history, state.current_handoff]
-        state.verification_feedback, state.route = [], "reviewer"
 
-    def reviewer(self, state: RuntimeState):
-        now = self.deps.clock()
-        result = self.generate("REVIEW", reviewer_input(state, now), ReviewResult)
-        values = result.model_dump(mode="python")
-        values.update(reviewed_at=now, reviewer_prompt_version=PROMPT_VERSIONS["REVIEW"])
-        result = TypeAdapter(ReviewResult).validate_python(values)
-        validate_review(result, state.current_handoff, state.order_snapshot, state.policy_bundle, state.claimed_line_item_ids)
-        state.review_history = [*state.review_history, result]
-        state.reviewed_proposal_ids = [*state.reviewed_proposal_ids, state.current_handoff.handoff_id]
-        state.pending_review_result = result
-        decision = state.current_handoff.proposed_decision
-        state.review_gate = gate_after_review(result, decision.action, decision.amount, decision.currency, self.deps.gates)
-        if result.verdict == "REVISE":
-            if state.revision_round >= 3:
-                state.routing_reason, state.route = "REVISION_BUDGET_EXCEEDED", "await_human_review"
-            else:
-                state.route = "record_revision_event"
-        elif state.review_gate.status == "HUMAN_REQUIRED":
-            state.routing_reason, state.route = state.review_gate.reason, "await_human_review"
-        else:
-            state.route = "emit_resolution_handoff"
+def _enqueue_memory_distillation_node(state: AgentState) -> dict[str, object]:
+    """Prepare a durable-job payload; Agent Service owns the Redis enqueue."""
 
-    def record_revision_event(self, state: RuntimeState):
-        state.revision_round += 1
-        state.revision_events = [*state.revision_events, DecisionRevisionEvent(event_id=self.deps.ids("revision", state.case_ref, state.revision_round), case_ref=state.case_ref, handoff_before_ref=state.current_handoff.handoff_id, review_result=state.pending_review_result, revision_round=state.revision_round, created_at=self.deps.clock())]
-        state.route = "propose_decision"
+    try:
+        memory_input = build_memory_distillation_input(state)
+    except Exception:
+        LOGGER.exception("memory distillation input could not be assembled")
+        return {"memory_distillation_input": None, "_route": "__end__"}
+    return {"memory_distillation_input": memory_input, "_route": "__end__"}
 
-    def await_human_review(self, state: RuntimeState):
-        proposals = {item.handoff_id: item for item in state.proposal_history}
-        dossier = HumanReviewDossier(claim_registry_version=REGISTRY_VERSION, claimed_line_item_ids=state.claimed_line_item_ids, order_snapshot=state.order_snapshot, policy_bundle=state.policy_bundle, proposal_history=[proposals[ref] for ref in state.reviewed_proposal_ids], review_history=state.review_history, revision_events=state.revision_events, review_gate=state.review_gate, routing_reason=state.routing_reason)
-        validate_dossier(dossier, state.current_handoff, state.pending_review_result, state.case_context, self.deps.gates)
-        state.human_dossier = dossier
-        ref = self.deps.human.submit_for_review(SubmitHumanReviewParams(handoff=state.current_handoff, review=state.pending_review_result, dossier=dossier))
-        state.human_review_ref = ref
-        result = self.deps.human.fetch_result(FetchHumanReviewParams(review_ref=ref))
-        if result is None:
-            payload = HumanReviewInterruptPayload(kind="HUMAN_REVIEW", case_ref=state.case_ref, handoff_id=state.current_handoff.handoff_id, review_ref=ref, handoff=state.current_handoff, review_result=state.pending_review_result, policy_bundle=state.policy_bundle, dossier=dossier, memory_ids=[hit.memory.memory_id for hit in state.memory_retrieval.hits] if state.memory_retrieval else [], routing_reason=state.routing_reason)
-            response = TypeAdapter(ResumePayload).validate_python(interrupt(payload.model_dump(mode="json")))
-            if response.kind != "HUMAN_REVIEW":
-                raise ValueError("Wrong human review resume")
-            result = self.deps.human.fetch_result(FetchHumanReviewParams(review_ref=ref))
-        if result is None:
-            state.route = "await_human_review"
-        else:
-            state.human_review_result = TypeAdapter(HumanReviewResult).validate_python(result)
-            state.route = "emit_resolution_handoff"
 
-    def emit_resolution_handoff(self, state: RuntimeState):
-        proposal = state.current_handoff.proposed_decision
-        final = proposal.model_dump(mode="python", exclude={"policy_refs", "evidence_refs"})
-        source = "REVIEWER_APPROVE"
-        human = state.human_review_result
-        if human:
-            source = "HUMAN_" + human.decision
-            if human.decision == "EDIT":
-                validate_human_decision(human.corrected_decision, state.human_dossier, state.order_snapshot, state.policy_bundle)
-                final = human.corrected_decision.model_dump(mode="python")
-                final.update(amount=refund_amount(state.order_snapshot, human.corrected_decision.refund_scope.line_item_ids), currency=proposal.currency, reason_code=proposal.reason_code)
-            elif human.decision == "REJECT":
-                final = {"action": "DECLINE", "amount": Decimal("0"), "currency": proposal.currency, "reason_code": proposal.reason_code, "refund_scope": {"line_item_ids": []}}
-        state.resolution = TypeAdapter(ResolutionHandoff).validate_python({"handoff_id": state.current_handoff.handoff_id, "case_ref": state.case_ref, "emitted_at": self.deps.clock(), "execution_blocked": False, "review_gate": state.review_gate, "outcome_source": source, "final_decision": final, "review_result": state.review_history[-1]})
-        state.route = "enqueue_memory_distillation"
+def _terminate_automation_node(dependencies: AgentDependencies):
+    def node(state: AgentState) -> dict[str, object]:
+        reason = state.get("escalation_reason")
+        if reason is None:
+            reason = EscalationReason.CONTRACT_VIOLATION
+        handoff = build_manual_escalation(
+            state=state,
+            reason=reason,
+            dependencies=dependencies,
+        )
+        return {"manual_escalation": handoff}
 
-    def enqueue_memory_distillation(self, state: RuntimeState):
-        human = state.human_review_result
-        corrected = bool(state.revision_events) or (human is not None and human.decision in ("EDIT", "REJECT"))
-        if corrected and (human is None or human.generalizable is not False):
-            state.memory_distillation_input = MemoryDistillationInput(case_context=state.case_context, claimed_categories=sorted({item.category_ref for item in state.order_snapshot.line_items if item.line_item_id in state.claimed_line_item_ids}), evidence_assessment=state.evidence_assessment, final_resolution=state.resolution, human_review_result=human, policy_bundle=state.policy_bundle, proposal_history=state.proposal_history, revision_events=state.revision_events)
+    return node
 
-    def terminate_automation(self, state: RuntimeState):
-        state.escalation = ManualEscalationHandoff(case_ref=state.case_ref, thread_id=state.thread_id, created_at=self.deps.clock(), escalation_reason=state.escalation_reason or "CONTRACT_VIOLATION", last_known_handoff_ref=state.current_handoff.handoff_id if state.current_handoff else None, accumulated_context=AccumulatedEscalationContext(clarification_round=state.clarification_round, evidence_round=state.evidence_round, verification_round=state.verification_round, revision_round=state.revision_round, review_history_refs=state.reviewed_proposal_ids, verification_issues=state.verification_feedback))
+
+def _route(state: AgentState) -> str:
+    return state["_route"]
+
+
+def build_graph(
+    *,
+    dependencies: AgentDependencies,
+    checkpointer: BaseCheckpointSaver[Any],
+) -> CompiledStateGraph:
+    """Compile the return-resolution graph with an injected checkpointer."""
+
+    from dataclasses import replace
+
+    from return_agent_contracts.activity_observer import ObservedProvider
+
+    from .activity import traced_node
+
+    dependencies = replace(dependencies, **{
+        key: ObservedProvider(getattr(dependencies, key), key, "model" if key == "model" else "tool")
+        for key in ("model", "case_context_provider", "policy_provider",
+                    "verification_provider", "human_review_provider",
+                    "operational_memory_store", "evidence_provider")
+    })
+    builder = StateGraph(AgentState)
+    def add_node(name, function):
+        builder.add_node(name, traced_node(name, function))
+    add_node("parse_request", _parse_request_node(dependencies))
+    add_node("request_clarification", _request_clarification_node)
+    add_node("load_case_context", _load_case_context_node(dependencies))
+    add_node("retrieve_policy", _retrieve_policy_node(dependencies))
+    add_node("prepare_memory_query", _prepare_memory_query_node(dependencies))
+    add_node("retrieve_memory", _retrieve_memory_node(dependencies))
+    add_node("assess_case", _assess_case_node(dependencies))
+    add_node("request_evidence", _request_evidence_node(dependencies))
+    add_node("propose_decision", _propose_decision_node(dependencies))
+    add_node("external_verification", _external_verification_node(dependencies))
+    add_node("reviewer", _reviewer_node(dependencies))
+    add_node("record_revision_event", _record_revision_event_node(dependencies))
+    add_node("await_human_review", _await_human_review_node(dependencies))
+    add_node(
+        "emit_resolution_handoff", _emit_resolution_handoff_node(dependencies)
+    )
+    add_node("enqueue_memory_distillation", _enqueue_memory_distillation_node)
+    add_node(
+        "terminate_automation",
+        _terminate_automation_node(dependencies),
+    )
+
+    builder.add_edge(START, "parse_request")
+    destinations = {
+        "parse_request": "parse_request",
+        "request_clarification": "request_clarification",
+        "load_case_context": "load_case_context",
+        "retrieve_policy": "retrieve_policy",
+        "prepare_memory_query": "prepare_memory_query",
+        "retrieve_memory": "retrieve_memory",
+        "assess_case": "assess_case",
+        "request_evidence": "request_evidence",
+        "propose_decision": "propose_decision",
+        "external_verification": "external_verification",
+        "reviewer": "reviewer",
+        "record_revision_event": "record_revision_event",
+        "await_human_review": "await_human_review",
+        "emit_resolution_handoff": "emit_resolution_handoff",
+        "enqueue_memory_distillation": "enqueue_memory_distillation",
+        "terminate_automation": "terminate_automation",
+        "__end__": END,
+    }
+    for source in (
+        "parse_request",
+        "request_clarification",
+        "load_case_context",
+        "retrieve_policy",
+        "prepare_memory_query",
+        "retrieve_memory",
+        "assess_case",
+        "request_evidence",
+        "propose_decision",
+        "external_verification",
+        "reviewer",
+        "record_revision_event",
+        "await_human_review",
+        "emit_resolution_handoff",
+        "enqueue_memory_distillation",
+    ):
+        builder.add_conditional_edges(source, _route, destinations)
+    builder.add_edge("terminate_automation", END)
+    return builder.compile(checkpointer=checkpointer, name="return-resolution-agent")

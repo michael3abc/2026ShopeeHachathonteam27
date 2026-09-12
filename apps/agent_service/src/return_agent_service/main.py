@@ -1,39 +1,80 @@
+"""Console entrypoint for the health server and Redis worker process."""
+
+from __future__ import annotations
+
 import os
-import asyncio
-from contextlib import asynccontextmanager
+from return_agent_contracts.review_gates import load_reviewer_gate_config
+from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
-from .settings import Settings
-from .composition import AgentComposition
+
+from .settings import AgentServiceSettings
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
-    settings = settings or Settings.from_env()
-    composition = None
-    @asynccontextmanager
-    async def lifespan(app):
-        nonlocal composition
-        if settings.profile != "unconfigured":
-            composition = AgentComposition(settings)
-            composition.start()
-        yield
-        if composition:
-            await asyncio.to_thread(composition.close)
-    app = FastAPI(title="退貨案件 Agent Service", version="0.1.0", lifespan=lifespan)
+def create_application():
+    settings = AgentServiceSettings.from_env()
+    if settings.profile in {"demo", "demo-qwen"}:
+        from .composition import compose_service
+        from .demo import create_demo_runtime
 
-    @app.get("/health/live")
-    def live() -> dict[str, str]:
-        return {"status": "ok"}
+        model = _qwen_model() if settings.profile == "demo-qwen" else None
+        return compose_service(
+            settings=settings,
+            runtime=create_demo_runtime(model_override=model, reviewer_gate_config=load_reviewer_gate_config(os.environ.get("RETURN_AGENT_REVIEW_GATE_CONFIG"))),
+        )
+    if settings.profile in {"integrated-qwen", "integrated-compass"}:
+        from .composition import compose_integrated_service
 
-    @app.get("/health/ready")
-    def ready() -> dict[str, str]:
-        if composition is None or not composition.ready():
-            raise HTTPException(503, "Durable workers are not ready")
-        return {"status": "ready", "profile": settings.profile}
+        return compose_integrated_service(
+            settings=settings,
+            model=_configured_model(compass=settings.profile == "integrated-compass"),
+        )
+    raise RuntimeError(
+        "production composition is intentionally unavailable until durable "
+        "checkpointer, journal, and Provider adapters are injected"
+    )
 
-    return app
+
+def _qwen_model():
+    return _configured_model(compass=False)
+
+
+def _configured_model(*, compass: bool):
+    from return_agent_runtime import OpenAIStructuredOutputModel
+
+    base_url = os.environ.get("RETURN_AGENT_MODEL_BASE_URL")
+    model_name = os.environ.get("RETURN_AGENT_MODEL_NAME")
+    api_key = os.environ.get("RETURN_AGENT_MODEL_API_KEY")
+    key_file = os.environ.get("RETURN_AGENT_MODEL_API_KEY_FILE")
+    if not api_key and key_file:
+        api_key = Path(key_file).read_text(encoding="utf-8").strip()
+    if not base_url or not model_name or not api_key:
+        raise RuntimeError("model requires base URL, name, and API key or key file")
+    return OpenAIStructuredOutputModel(
+        model_name=model_name,
+        api_key=api_key,
+        base_url=base_url,
+        timeout_seconds=180,
+        max_retries=0,
+        temperature=None if compass else 0,
+        use_responses_api=compass,
+        include_schema_in_prompt=not compass,
+        streaming=True,
+        extra_body=None
+        if compass
+        else {"chat_template_kwargs": {"enable_thinking": False}},
+    )
 
 
 def main() -> None:
-    uvicorn.run(create_app(), host=os.getenv("AGENT_HOST", "127.0.0.1"), port=int(os.getenv("AGENT_PORT", "8090")))
+    settings = AgentServiceSettings.from_env()
+    uvicorn.run(
+        "return_agent_service.main:create_application",
+        factory=True,
+        host=settings.host,
+        port=settings.port,
+    )
+
+
+if __name__ == "__main__":
+    main()

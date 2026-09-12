@@ -1,0 +1,902 @@
+{
+  "AccumulatedEscalationContext": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AccumulatedEscalationContext.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "ActivityEmission": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ActivityEmission.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/activity.py"
+  },
+  "ActivityEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ActivityEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/activity.py"
+  },
+  "ActivityFacts": {
+    "description": "Finite allowlist; raw prose, URLs, messages and documents are excluded.",
+    "schema": "schemas/types/ActivityFacts.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/activity.py"
+  },
+  "ActivityFinding": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ActivityFinding.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/activity.py"
+  },
+  "ActivityInputs": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ActivityInputs.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/activity.py"
+  },
+  "ActivityPage": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ActivityPage.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/activity.py"
+  },
+  "AgentCommandDeadLetter": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentCommandDeadLetter.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "AgentEscalatedEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentEscalatedEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "AgentEscalatedPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentEscalatedPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "AgentFullRefundFinalDecision": {
+    "description": "Final refund copied from an Agent-authored approved handoff.",
+    "schema": "schemas/types/AgentFullRefundFinalDecision.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "AgentInterruptedEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentInterruptedEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "AgentInterruptedPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentInterruptedPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "AgentNodeObservedEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentNodeObservedEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "AgentNodeObservedPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentNodeObservedPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "AgentResolvedEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentResolvedEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "AgentResolvedPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentResolvedPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "AgentResumeCommand": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentResumeCommand.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "AgentResumePayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentResumePayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "AgentResumeRequest": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentResumeRequest.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/runtime.py"
+  },
+  "AgentRunFailedEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentRunFailedEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "AgentRunFailedPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentRunFailedPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "AgentStartCommand": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentStartCommand.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "AgentStartPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentStartPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "AgentStartRequest": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentStartRequest.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/runtime.py"
+  },
+  "AgentUserTurn": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/AgentUserTurn.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/runtime.py"
+  },
+  "ApplicableConditions": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ApplicableConditions.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "AppliedRefundApplicationResult": {
+    "description": "Allen's canonical order/case system applied the refund exactly once.",
+    "schema": "schemas/types/AppliedRefundApplicationResult.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "ApplyRefundRequest": {
+    "description": "Louis-to-Allen idempotent canonical refund application request.",
+    "schema": "schemas/types/ApplyRefundRequest.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "ApprovalEvidenceAssessment": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ApprovalEvidenceAssessment.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "ApproveReviewDecision": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ApproveReviewDecision.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "ApprovedHumanReviewResult": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ApprovedHumanReviewResult.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "ApprovedMemory": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ApprovedMemory.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "ApprovedMemoryRecordView": {
+    "description": "Retrievable memory view allowed inside a memory-hit event.",
+    "schema": "schemas/types/ApprovedMemoryRecordView.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "ApprovedReviewResult": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ApprovedReviewResult.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "BackgroundStatus": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/BackgroundStatus.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/activity.py"
+  },
+  "CaseContext": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/CaseContext.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "CaseContextLoadResult": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/CaseContextLoadResult.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "CaseDetail": {
+    "description": "Backend-owned case view for the Demo UI.",
+    "schema": "schemas/types/CaseDetail.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "ClaimDefinition": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ClaimDefinition.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/registry.py"
+  },
+  "ClaimFinding": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ClaimFinding.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "ClarificationInterruptPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ClarificationInterruptPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "ClarificationRequest": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ClarificationRequest.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "ClarificationResume": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ClarificationResume.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/runtime.py"
+  },
+  "CorrectedDeclineDecision": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/CorrectedDeclineDecision.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "CorrectedFullRefundDecision": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/CorrectedFullRefundDecision.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "CreateCaseRequest": {
+    "description": "Backend API payload; Backend creates the case and starts/resumes the graph.",
+    "schema": "schemas/types/CreateCaseRequest.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "CreateCaseResponse": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/CreateCaseResponse.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "DecisionRevisionEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/DecisionRevisionEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "DeclineEvidenceAssessment": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/DeclineEvidenceAssessment.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "DeclineFinalDecision": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/DeclineFinalDecision.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "DeclineHumanReviewPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/DeclineHumanReviewPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "DeclineProposedDecision": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/DeclineProposedDecision.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "DeclineProposedDecisionDraft": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/DeclineProposedDecisionDraft.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "DoneEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/DoneEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "DonePayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/DonePayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "EditReviewDecision": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/EditReviewDecision.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "EditedHumanReviewResult": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/EditedHumanReviewResult.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "EmptyRefundScope": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/EmptyRefundScope.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "ErrorEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ErrorEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "ErrorPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ErrorPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "EvidenceDisplayRef": {
+    "description": "Reference-only evidence view; signed URLs stay in the Backend/UI layer.",
+    "schema": "schemas/types/EvidenceDisplayRef.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "EvidenceInterruptPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/EvidenceInterruptPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "EvidenceItem": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/EvidenceItem.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "EvidenceRequest": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/EvidenceRequest.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "EvidenceRequestView": {
+    "description": "The user-evidence interrupt rendered by the conversation UI.",
+    "schema": "schemas/types/EvidenceRequestView.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "EvidenceResume": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/EvidenceResume.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/runtime.py"
+  },
+  "ExecuteRefundRequest": {
+    "description": "Trusted Backend request to execute an authorized final resolution.",
+    "schema": "schemas/types/ExecuteRefundRequest.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "FailedVerificationResult": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/FailedVerificationResult.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "FetchHumanReviewParams": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/FetchHumanReviewParams.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "FetchHumanReviewRequest": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/FetchHumanReviewRequest.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "FetchHumanReviewResponse": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/FetchHumanReviewResponse.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "FullRefundFinalDecision": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/FullRefundFinalDecision.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "FullRefundHumanReviewPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/FullRefundHumanReviewPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "FullRefundProposedDecision": {
+    "description": "Graph-completed refund decision included in a handoff.",
+    "schema": "schemas/types/FullRefundProposedDecision.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "FullRefundProposedDecisionDraft": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/FullRefundProposedDecisionDraft.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "HumanApproveResolutionHandoff": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/HumanApproveResolutionHandoff.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "HumanEditResolutionHandoff": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/HumanEditResolutionHandoff.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "HumanEditedFullRefundFinalDecision": {
+    "description": "Final refund whose return requirement was authored by Human Review.",
+    "schema": "schemas/types/HumanEditedFullRefundFinalDecision.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "HumanRejectResolutionHandoff": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/HumanRejectResolutionHandoff.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "HumanReviewDossier": {
+    "description": "Immutable, structured decision trace; never model hidden reasoning.",
+    "schema": "schemas/types/HumanReviewDossier.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "HumanReviewInterruptPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/HumanReviewInterruptPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "HumanReviewPollResume": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/HumanReviewPollResume.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/runtime.py"
+  },
+  "HumanReviewReturnDecision": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/HumanReviewReturnDecision.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "InsufficientEvidenceAssessment": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/InsufficientEvidenceAssessment.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "IntakeResult": {
+    "description": "Structured output of the parse_request LLM node.",
+    "schema": "schemas/types/IntakeResult.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "InterruptEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/InterruptEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "InterruptedAgentRunResult": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/InterruptedAgentRunResult.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/runtime.py"
+  },
+  "Lifecycle": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/Lifecycle.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/activity.py"
+  },
+  "LoadCaseContextParams": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/LoadCaseContextParams.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "LoadCaseContextRequest": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/LoadCaseContextRequest.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "LoadCaseContextResponse": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/LoadCaseContextResponse.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "ManualEscalationAgentRunResult": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ManualEscalationAgentRunResult.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/runtime.py"
+  },
+  "ManualEscalationHandoff": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ManualEscalationHandoff.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "MemoryCandidate": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/MemoryCandidate.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "MemoryCandidateCompletedPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/MemoryCandidateCompletedPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "MemoryCandidateOutput": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/MemoryCandidateOutput.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "MemoryDistillationCompletedEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/MemoryDistillationCompletedEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "MemoryDistillationFailedEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/MemoryDistillationFailedEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "MemoryDistillationFailedPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/MemoryDistillationFailedPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "MemoryDistillationInput": {
+    "description": "Closed-case correction trace consumed by the async memory worker.",
+    "schema": "schemas/types/MemoryDistillationInput.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "MemoryDistillationJob": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/MemoryDistillationJob.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "MemoryDistillationJobPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/MemoryDistillationJobPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "MemoryJobDeadLetter": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/MemoryJobDeadLetter.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "MemoryQuerySummary": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/MemoryQuerySummary.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "MemoryRecordView": {
+    "description": "Display-only memory card; only APPROVED records are retrievable.",
+    "schema": "schemas/types/MemoryRecordView.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "MemoryRetrievalEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/MemoryRetrievalEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "MemoryRetrievalObservation": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/MemoryRetrievalObservation.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "MemoryRetrievalPayload": {
+    "description": "The latest query result, including empty or unavailable retrieval.",
+    "schema": "schemas/types/MemoryRetrievalPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "MemoryScope": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/MemoryScope.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "MemorySearchHit": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/MemorySearchHit.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "MemorySkipCompletedPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/MemorySkipCompletedPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/service.py"
+  },
+  "MemorySkipOutput": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/MemorySkipOutput.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "MissingClaim": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/MissingClaim.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "ModelJudgmentReturnDecision": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ModelJudgmentReturnDecision.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "Narration": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/Narration.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/activity.py"
+  },
+  "NarrationJob": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/NarrationJob.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/activity.py"
+  },
+  "NodeEnterEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/NodeEnterEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "NodeExecutionObservation": {
+    "description": "Framework-neutral lifecycle observation emitted around one graph task.",
+    "schema": "schemas/types/NodeExecutionObservation.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/runtime.py"
+  },
+  "NodeExitEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/NodeExitEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "NodeLifecyclePayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/NodeLifecyclePayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "NodeSummary": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/NodeSummary.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/activity.py"
+  },
+  "NonEmptyRefundScope": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/NonEmptyRefundScope.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "OrderLineItem": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/OrderLineItem.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "OrderSnapshot": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/OrderSnapshot.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "PassedVerificationResult": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/PassedVerificationResult.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "PolicyBundle": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/PolicyBundle.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "PolicyClause": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/PolicyClause.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "PolicyDisplayRef": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/PolicyDisplayRef.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "PolicyReturnDecision": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/PolicyReturnDecision.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "PolicyReturnDecisionDraft": {
+    "description": "Resolver supplies only the reason; graph derives the requirement.",
+    "schema": "schemas/types/PolicyReturnDecisionDraft.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "ProposedDecisionHandoff": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ProposedDecisionHandoff.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "QueryApprovedMemoryParams": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/QueryApprovedMemoryParams.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "QueryApprovedMemoryRequest": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/QueryApprovedMemoryRequest.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "QueryApprovedMemoryResponse": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/QueryApprovedMemoryResponse.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "RefundScope": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/RefundScope.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "RejectReviewDecision": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/RejectReviewDecision.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "RejectedHumanReviewResult": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/RejectedHumanReviewResult.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "RejectedRefundApplicationResult": {
+    "description": "Allen's canonical order/case system refused the refund mutation.",
+    "schema": "schemas/types/RejectedRefundApplicationResult.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "RejectedRefundExecutionRecord": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/RejectedRefundExecutionRecord.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "RequiredReturnRequirement": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/RequiredReturnRequirement.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "ResolutionAgentRunResult": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ResolutionAgentRunResult.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/runtime.py"
+  },
+  "ResolveEvidenceParams": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ResolveEvidenceParams.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "ResolveEvidenceRequest": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ResolveEvidenceRequest.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "ResolveEvidenceResponse": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ResolveEvidenceResponse.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "ResolverConflictOutput": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ResolverConflictOutput.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "ResolverDraftOutput": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ResolverDraftOutput.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "ResolverEvidenceRequestOutput": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ResolverEvidenceRequestOutput.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "RetrievePolicyParams": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/RetrievePolicyParams.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "RetrievePolicyRequest": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/RetrievePolicyRequest.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "RetrievePolicyResponse": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/RetrievePolicyResponse.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "ReviewGateResult": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ReviewGateResult.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/review_gates.py"
+  },
+  "ReviewerApprovedResolutionHandoff": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ReviewerApprovedResolutionHandoff.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "ReviewerGateConfig": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ReviewerGateConfig.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/review_gates.py"
+  },
+  "RevisedReviewResult": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/RevisedReviewResult.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "RevisionConflictReport": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/RevisionConflictReport.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "RevisionReason": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/RevisionReason.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "SendMessageRequest": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/SendMessageRequest.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "StateChangeEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/StateChangeEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "StateChangePayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/StateChangePayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "SubmitHumanReviewParams": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/SubmitHumanReviewParams.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "SubmitHumanReviewRequest": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/SubmitHumanReviewRequest.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "SubmitHumanReviewResponse": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/SubmitHumanReviewResponse.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "SubmitMemoryCandidateParams": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/SubmitMemoryCandidateParams.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "SubmitMemoryCandidateRequest": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/SubmitMemoryCandidateRequest.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "SubmitMemoryCandidateResponse": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/SubmitMemoryCandidateResponse.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "SucceededRefundExecutionRecord": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/SucceededRefundExecutionRecord.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "TokenEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/TokenEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "TokenPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/TokenPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "ToolCallEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ToolCallEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "ToolCallPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ToolCallPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "ToolResultEvent": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ToolResultEvent.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "ToolResultPayload": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/ToolResultPayload.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/ui.py"
+  },
+  "UnavailableVerificationResult": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/UnavailableVerificationResult.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "UserTurn": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/UserTurn.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "VerificationIssue": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/VerificationIssue.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  },
+  "VerifyHandoffParams": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/VerifyHandoffParams.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "VerifyHandoffRequest": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/VerifyHandoffRequest.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "VerifyHandoffResponse": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/VerifyHandoffResponse.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/transport.py"
+  },
+  "WaivedReturnRequirement": {
+    "description": "Base model for all JSON exchange objects.",
+    "schema": "schemas/types/WaivedReturnRequirement.schema.json",
+    "source": "apps/contracts/src/return_agent_contracts/models.py"
+  }
+}

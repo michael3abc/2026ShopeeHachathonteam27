@@ -1,0 +1,44 @@
+{
+  "case_context": {
+    "case_ref": "CASE-DEMO-001",
+    "order_ref": "ORDER-DEMO-001",
+    "market": "TW",
+    "case_opened_at": "2026-09-02T09:00:00Z",
+    "snapshot_version": 1
+  },
+  "order_snapshot": {
+    "order_snapshot_ref": "ORDER-DEMO-001@1",
+    "order_ref": "ORDER-DEMO-001",
+    "snapshot_version": 1,
+    "captured_at": "2026-09-02T09:00:00Z",
+    "currency": "TWD",
+    "delivered_at": "2026-09-01T10:00:00Z",
+    "line_items": [
+      {
+        "line_item_id": "LI-DEMO-SPEAKER",
+        "sku_ref": "SKU-DEMO-SPEAKER",
+        "category_ref": "CAT-AUDIO-SPEAKERS",
+        "title": "Demo Bluetooth Speaker",
+        "quantity": 1,
+        "refundable_amount": "1200"
+      },
+      {
+        "line_item_id": "LI-DEMO-HEADPHONES",
+        "sku_ref": "SKU-DEMO-HEADPHONES",
+        "category_ref": "CAT-AUDIO-HEADPHONES",
+        "title": "Demo Headphones",
+        "quantity": 1,
+        "refundable_amount": "700"
+      }
+    ],
+    "refundable_amount_max": "1900",
+    "already_refunded_amount": "0"
+  },
+  "initial_user_turn": {
+    "turn_id": "TURN-DEMO-001",
+    "role": "USER",
+    "text": "My speaker arrived with a cracked housing. I would like a refund for the speaker.",
+    "attached_artifact_refs": ["artifact://demo/EV-DEMO-PACKAGING-AND-DAMAGE"],
+    "received_at": "2026-09-02T09:00:00Z"
+  }
+}

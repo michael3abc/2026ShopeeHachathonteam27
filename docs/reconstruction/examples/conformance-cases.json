@@ -1,0 +1,218 @@
+[
+  {
+    "arrange_act": "全supported、refund LI-002",
+    "assert": "evidence足以退款、scopeLI-002、amount1200、reviewAPPROVE",
+    "id": "C01",
+    "rules": "M01-R03,R04"
+  },
+  {
+    "arrange_act": "移除／重複pair，或只有UNSUPPORTED",
+    "assert": "前兩者reject；後者INSUFFICIENT而非DECLINE",
+    "id": "C02",
+    "rules": "M01-R04"
+  },
+  {
+    "arrange_act": "每item一requiredclaim CONTRADICTED，proposalDECLINE",
+    "assert": "scope[]、amount0、無return_decision、review可APPROVE、apply0次",
+    "id": "C03",
+    "rules": "M01-R04"
+  },
+  {
+    "arrange_act": "unknownartifact、request漏pair／索取system-only",
+    "assert": "failclosed／reject，非optional Memory失敗",
+    "id": "C04",
+    "rules": "M01-R05"
+  },
+  {
+    "arrange_act": "amount1201、unknownitem、wrongcurrency、REQUIREDpolicy免退",
+    "assert": "每項拒絕，不能靠LLMrationale放行",
+    "id": "C05",
+    "rules": "M01-R06"
+  },
+  {
+    "arrange_act": "earlyproposal改case/policy/snapshot/registry/round，刪/倒序event、錯before/ref/review",
+    "assert": "schema可能有效但semanticreject",
+    "id": "C06",
+    "rules": "M01-R08"
+  },
+  {
+    "arrange_act": "INTAKE INCOMPLETE→clarificationresume→COMPLETE，重啟checkpoint",
+    "assert": "正確interrupt；第3次仍不完整超limit2；wrongkind/duplicate turn拒絕",
+    "id": "C07",
+    "rules": "M02-R01,R05"
+  },
+  {
+    "arrange_act": "ASSESS insufficient→evidence；REVISE要求補件後resume",
+    "assert": "resolve→重摘要→重查；reviewfeedback保留；第3次需補件超limit2",
+    "id": "C08",
+    "rules": "M02-R01,R02"
+  },
+  {
+    "arrange_act": "reviewer連續4次REVISE，每次不同有效draft",
+    "assert": "rounds0..3、三event；第4次human；verification-only不加reviewround",
+    "id": "C09",
+    "rules": "M02-R01,R04"
+  },
+  {
+    "arrange_act": "TWD4999.99/5000/5000.01、SGD199.99/200/200.01",
+    "assert": "below/equalPASS、aboveHUMAN_REQUIRED，Decimal",
+    "id": "C10",
+    "rules": "M04-R04"
+  },
+  {
+    "arrange_act": "USD1退款、DECLINE、REVISE",
+    "assert": "USD人工未配置；DECLINE NOT_APPLICABLE；REVISE無gate／額外budget",
+    "id": "C11",
+    "rules": "M04-R04"
+  },
+  {
+    "arrange_act": "高額偽造REVIEWER_APPROVE、改configversion/hash/threshold",
+    "assert": "executeREJECTED、apply0次",
+    "id": "C12",
+    "rules": "M04-R05"
+  },
+  {
+    "arrange_act": "兩dossier提交；humanEDIT原scope改return；超scope/假handoff/result",
+    "assert": "兩入口可裁決，Policy約束不變；偽造拒絕；resume不再Reviewer",
+    "id": "C13",
+    "rules": "M01-R09,R10"
+  },
+  {
+    "arrange_act": "verificationFAIL三次/UNAVAILABLE、model malformed、ResolverCONFLICT、PolicyAMBIGUOUS/NOT_FOUND",
+    "assert": "對應escalation；terminate非humaninterrupt",
+    "id": "C14",
+    "rules": "M02-R06"
+  },
+  {
+    "arrange_act": "create commit前fail、outboxpublish後markfail、messages雙送",
+    "assert": "無orphan；重送一logicalcommand；第二resume409",
+    "id": "C15",
+    "rules": "M03-R02,R03"
+  },
+  {
+    "arrange_act": "同event重送、同ID改body、index亂序、poison",
+    "assert": "dedup、collision、順序保護、persistreject後ACK",
+    "id": "C16",
+    "rules": "M03-R05,R06"
+  },
+  {
+    "arrange_act": "case/activity交錯、limit2多頁、header/query不同",
+    "assert": "獨立cursor、header優先、去重、has_more；userturn序號洞非遺失",
+    "id": "C17",
+    "rules": "M06-R12"
+  },
+  {
+    "arrange_act": "humanawaiting刷新、結案刷新、斷線重連",
+    "assert": "dossier/latestmemory/final重建；非完整usertranscript",
+    "id": "C18",
+    "rules": "M07-R01,R09"
+  },
+  {
+    "arrange_act": "兩case同order/item並發、不同executionref",
+    "assert": "唯一owner、另一REFUND_ITEM_RESERVED；多item失敗atomicrollback",
+    "id": "C19",
+    "rules": "M04-R07,R08"
+  },
+  {
+    "arrange_act": "apply已成功但response/DBfail，same request重送",
+    "assert": "同idempotencykey；一次APPLIED；unknownowner不釋放",
+    "id": "C20",
+    "rules": "M04-R08"
+  },
+  {
+    "arrange_act": "applyREJECTED、throwtransport、fakehuman",
+    "assert": "非SUCCEEDED；unknown保留IN_PROGRESS，不發明公開FAILED",
+    "id": "C21",
+    "rules": "M04-R09"
+  },
+  {
+    "arrange_act": "相同vector但Candidate/Retired/wrongscope/version/registry",
+    "assert": "全不命中；空scopewildcard；claim/category交集非subset",
+    "id": "C22",
+    "rules": "M05-R05"
+  },
+  {
+    "arrange_act": "query=e1、record e1(conf.2)/e2(conf.9)，四筆同分",
+    "assert": "語意優先；tieconfidence/time desc/id asc；Top3到UI保序",
+    "id": "C23",
+    "rules": "M05-R07"
+  },
+  {
+    "arrange_act": "querybarrier時退休matchingmemory；初次/補件查",
+    "assert": "embed後退休不可見；各新summary，無matching不callqueryembed",
+    "id": "C24",
+    "rules": "M05-R04,R06"
+  },
+  {
+    "arrange_act": "wrongmodel/missingvector/stalehash、candidateembedfail",
+    "assert": "UNAVAILABLE不confidencefallback；無DB半筆",
+    "id": "C25",
+    "rules": "M05-R06,R08"
+  },
+  {
+    "arrange_act": "candidate同ID同payload重送/並行及異payload",
+    "assert": "一row/ref；已存在不embed；異payloadconflict",
+    "id": "C26",
+    "rules": "M05-R08"
+  },
+  {
+    "arrange_act": "distill→query→approve→query→retire→query",
+    "assert": "空／命中／空，有治理event；超來源scope拒絕",
+    "id": "C27",
+    "rules": "M05-R09,R10"
+  },
+  {
+    "arrange_act": "dryrun、第二row回填fail再續跑；Policyreembedfail",
+    "assert": "dryrun無寫；不重做成功row，保id/status/source/hash；Policy全rollback",
+    "id": "C28",
+    "rules": "M05-R11"
+  },
+  {
+    "arrange_act": "hits3→補件[]/UNAVAILABLE→refresh",
+    "assert": "清舊卡、重建query/status；scores/confidence分開",
+    "id": "C29",
+    "rules": "M07-R04"
+  },
+  {
+    "arrange_act": "fakeprovider/model barrier阻塞，API/SSE持續讀",
+    "assert": "放開前已有STARTED；返回後COMPLETED/duration/summary",
+    "id": "C30",
+    "rules": "M06-R06"
+  },
+  {
+    "arrange_act": "同node兩attempt、兩case、interrupt-resume",
+    "assert": "operation/attempt可分、case隔離、PAUSED非COMPLETED",
+    "id": "C31",
+    "rules": "M06-R06,R08"
+  },
+  {
+    "arrange_act": "捕捉narration input、late、timeout/invalid/虛構nextstep",
+    "assert": "僅node/facts、≤2句；失敗不模板、不影響refund；source關聯",
+    "id": "C32",
+    "rules": "M06-R08,R09"
+  },
+  {
+    "arrange_act": "demo model=None、job重送三次",
+    "assert": "generate0、model事件0；UNAVAILABLE/disabledcode/textnull；cache/ACK",
+    "id": "C33",
+    "rules": "M06-R10"
+  },
+  {
+    "arrange_act": "duplicate summary、outboxpublish後crash、fake sourcecase/attempt",
+    "assert": "一source一outbox/result；重送無二次成功解說；錯關聯reject",
+    "id": "C34",
+    "rules": "M06-R08,R11"
+  },
+  {
+    "arrange_act": "注入URL/email/bearer/phone/rawobject",
+    "assert": "Activity Redis/DB/SSE無原值；allowlist/拒絕；無hiddenCoT",
+    "id": "C35",
+    "rules": "SYS-R07,M06-R07"
+  },
+  {
+    "arrange_act": "terminal後Memory完成/SKIP/retry/fail/late narration；queue滿",
+    "assert": "stream仍開；case不回running；failed可觀察、不改業務判斷",
+    "id": "C36",
+    "rules": "M06-R05,R11,R12"
+  }
+]

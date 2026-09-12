@@ -1,0 +1,314 @@
+{
+  "$defs": {
+    "DeclineProposedDecisionDraft": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "DECLINE",
+          "title": "Action",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "policy_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Policy Refs",
+          "type": "array"
+        },
+        "rationale_summary": {
+          "minLength": 1,
+          "title": "Rationale Summary",
+          "type": "string"
+        },
+        "reason_code": {
+          "$ref": "#/$defs/ReasonCode"
+        },
+        "refund_scope": {
+          "$ref": "#/$defs/EmptyRefundScope"
+        }
+      },
+      "required": [
+        "action",
+        "refund_scope",
+        "reason_code",
+        "policy_refs",
+        "rationale_summary"
+      ],
+      "title": "DeclineProposedDecisionDraft",
+      "type": "object"
+    },
+    "EmptyRefundScope": {
+      "additionalProperties": false,
+      "properties": {
+        "line_item_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 0,
+          "title": "Line Item Ids",
+          "type": "array"
+        }
+      },
+      "title": "EmptyRefundScope",
+      "type": "object"
+    },
+    "FullRefundProposedDecisionDraft": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "FULL_REFUND",
+          "title": "Action",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "policy_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Policy Refs",
+          "type": "array"
+        },
+        "rationale_summary": {
+          "minLength": 1,
+          "title": "Rationale Summary",
+          "type": "string"
+        },
+        "reason_code": {
+          "$ref": "#/$defs/ReasonCode"
+        },
+        "refund_scope": {
+          "$ref": "#/$defs/NonEmptyRefundScope"
+        },
+        "return_decision": {
+          "discriminator": {
+            "mapping": {
+              "MODEL_JUDGMENT": "#/$defs/ModelJudgmentReturnDecision",
+              "POLICY": "#/$defs/PolicyReturnDecisionDraft"
+            },
+            "propertyName": "source"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/PolicyReturnDecisionDraft"
+            },
+            {
+              "$ref": "#/$defs/ModelJudgmentReturnDecision"
+            }
+          ],
+          "title": "Return Decision"
+        }
+      },
+      "required": [
+        "action",
+        "refund_scope",
+        "reason_code",
+        "return_decision",
+        "policy_refs",
+        "rationale_summary"
+      ],
+      "title": "FullRefundProposedDecisionDraft",
+      "type": "object"
+    },
+    "ModelJudgmentReturnDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "requirement": {
+          "discriminator": {
+            "mapping": {
+              "False": "#/$defs/WaivedReturnRequirement",
+              "True": "#/$defs/RequiredReturnRequirement"
+            },
+            "propertyName": "required"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/RequiredReturnRequirement"
+            },
+            {
+              "$ref": "#/$defs/WaivedReturnRequirement"
+            }
+          ],
+          "title": "Requirement"
+        },
+        "source": {
+          "const": "MODEL_JUDGMENT",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "requirement"
+      ],
+      "title": "ModelJudgmentReturnDecision",
+      "type": "object"
+    },
+    "NonEmptyRefundScope": {
+      "additionalProperties": false,
+      "properties": {
+        "line_item_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Line Item Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "line_item_ids"
+      ],
+      "title": "NonEmptyRefundScope",
+      "type": "object"
+    },
+    "PolicyReturnDecisionDraft": {
+      "additionalProperties": false,
+      "description": "Resolver supplies only the reason; graph derives the requirement.",
+      "properties": {
+        "reason_code": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RequiredReturnReasonCode"
+            },
+            {
+              "$ref": "#/$defs/WaivedReturnReasonCode"
+            }
+          ],
+          "title": "Reason Code"
+        },
+        "source": {
+          "const": "POLICY",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "reason_code"
+      ],
+      "title": "PolicyReturnDecisionDraft",
+      "type": "object"
+    },
+    "ReasonCode": {
+      "enum": [
+        "ITEM_DAMAGED",
+        "ITEM_NOT_AS_DESCRIBED",
+        "MISSING_ITEM",
+        "WRONG_ITEM",
+        "QUALITY_ISSUE",
+        "CHANGED_MIND"
+      ],
+      "title": "ReasonCode",
+      "type": "string"
+    },
+    "RequiredReturnReasonCode": {
+      "enum": [
+        "RESALE_VALUE_RETAINED",
+        "RETURN_REQUIRED_FOR_INSPECTION"
+      ],
+      "title": "RequiredReturnReasonCode",
+      "type": "string"
+    },
+    "RequiredReturnRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "reason_code": {
+          "$ref": "#/$defs/RequiredReturnReasonCode"
+        },
+        "required": {
+          "const": true,
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "required",
+        "reason_code"
+      ],
+      "title": "RequiredReturnRequirement",
+      "type": "object"
+    },
+    "WaivedReturnReasonCode": {
+      "enum": [
+        "ITEM_UNSALVAGEABLE",
+        "HYGIENE_RISK",
+        "RETURN_UNECONOMICAL",
+        "EVIDENCE_SUFFICIENT_WITHOUT_RETURN"
+      ],
+      "title": "WaivedReturnReasonCode",
+      "type": "string"
+    },
+    "WaivedReturnRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "reason_code": {
+          "$ref": "#/$defs/WaivedReturnReasonCode"
+        },
+        "required": {
+          "const": false,
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "required",
+        "reason_code"
+      ],
+      "title": "WaivedReturnRequirement",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "draft": {
+      "discriminator": {
+        "mapping": {
+          "DECLINE": "#/$defs/DeclineProposedDecisionDraft",
+          "FULL_REFUND": "#/$defs/FullRefundProposedDecisionDraft"
+        },
+        "propertyName": "action"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/FullRefundProposedDecisionDraft"
+        },
+        {
+          "$ref": "#/$defs/DeclineProposedDecisionDraft"
+        }
+      ],
+      "title": "Draft"
+    },
+    "result_type": {
+      "const": "DRAFT",
+      "title": "Result Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "result_type",
+    "draft"
+  ],
+  "title": "ResolverDraftOutput",
+  "type": "object"
+}

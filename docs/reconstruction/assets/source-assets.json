@@ -1,0 +1,169 @@
+{
+  "baseline": "485048cc73dc5c8f64d08034f49e318827418f80",
+  "exact_copies": {
+    "demo/assets-manifest.json.example": {
+      "path": "data/demo-case-study/assets-manifest.json.example",
+      "sha256": "462a8c6e8fc925c776b35d62a2f11454f9172bb9335fd7da0d466c700a5d471d"
+    },
+    "demo/case-a.json.example": {
+      "path": "data/demo-case-study/case-a.json.example",
+      "sha256": "202dee1e431d3fb0a79a499d4803f9b2740caa4a500f58799f05242a1fd3fc66"
+    },
+    "demo/case-b.json.example": {
+      "path": "data/demo-case-study/case-b.json.example",
+      "sha256": "6c6653546cfe87bf7d719dbf3d284148fe73e0f7002a3d7c708f7e74366e7a6e"
+    },
+    "demo/case-c.json.example": {
+      "path": "data/demo-case-study/case-c.json.example",
+      "sha256": "bf6b988c5e2f71475ef68f17bf153a66135de42422d3b37734a02ff5cd09e62f"
+    },
+    "demo/evidence.json.example": {
+      "path": "data/demo-case-study/evidence.json.example",
+      "sha256": "b3edabc1c0c79a0f7e74720ded5572528558f403eac8cc5a51bf5400d88f782a"
+    },
+    "demo/human-review.json.example": {
+      "path": "data/demo-case-study/human-review.json.example",
+      "sha256": "0c4934295c5b87758026906a8fb241f31fd901cbdb58f0e474d4ea88d911932b"
+    },
+    "demo/images/a/arrival.png": {
+      "path": "data/demo-case-study/images/a/arrival.png",
+      "sha256": "9336c373472dbdeb3958a9ee5629a47a47e05c096c946ae791c38e8272789f02"
+    },
+    "demo/images/a/closeup.png": {
+      "path": "data/demo-case-study/images/a/closeup.png",
+      "sha256": "94949fba5e950e8fd58085dce8ec1392eda88066503f62138ee862f154cff1a4"
+    },
+    "demo/images/a/identity.png": {
+      "path": "data/demo-case-study/images/a/identity.png",
+      "sha256": "72358aea60403aeffce9fa54d4acd1305a683e947db76e27f9241eda1892d216"
+    },
+    "demo/images/a/package.png": {
+      "path": "data/demo-case-study/images/a/package.png",
+      "sha256": "2c7464719fa99f309c478ea4a794caa4bc8d5f6ef492a027f694c8431e63cfd8"
+    },
+    "demo/images/b/arrival.png": {
+      "path": "data/demo-case-study/images/b/arrival.png",
+      "sha256": "05ee075245251d2b27c3a05efe01263cff73751ddb9980f24aa2728962c99a11"
+    },
+    "demo/images/b/closeup.jpg": {
+      "path": "data/demo-case-study/images/b/closeup.jpg",
+      "sha256": "041c5f158186665be6b27746d0e550d9160da59c7777cbd18ea717746453485d"
+    },
+    "demo/images/b/identity.png": {
+      "path": "data/demo-case-study/images/b/identity.png",
+      "sha256": "86d445d5402a2c8cb599624d5fda4f80413cfef5e1ba81130f254bca75f0bcdc"
+    },
+    "demo/images/b/package.png": {
+      "path": "data/demo-case-study/images/b/package.png",
+      "sha256": "7c91452d677da251a77a78df8179889bd60138ebf7c7a3b5392d2aecc0b31894"
+    },
+    "demo/images/c/arrival.png": {
+      "path": "data/demo-case-study/images/c/arrival.png",
+      "sha256": "b91e337656e2f85558fc078e8cecbaabcc3cb9917d740aed585d69cb5db5ce4f"
+    },
+    "demo/images/c/closeup.png": {
+      "path": "data/demo-case-study/images/c/closeup.png",
+      "sha256": "8cda4ea8f3d5273fa94b198f827500b087a36dabc9ab19660ca7fed72a9b8710"
+    },
+    "demo/images/c/identity.png": {
+      "path": "data/demo-case-study/images/c/identity.png",
+      "sha256": "1b99930f28421ad588562fa380e7ebbc0d7111e4e6c0d300995e636d66da7ac8"
+    },
+    "demo/images/c/package.png": {
+      "path": "data/demo-case-study/images/c/package.png",
+      "sha256": "1d1257c98d19484dcbdff782e330599f11c0d720c517fbef8345804facb8c802"
+    },
+    "demo/memory-preload.json.example": {
+      "path": "data/demo-case-study/memory-preload.json.example",
+      "sha256": "79fbed64a430d96e077e8dfad72d0ed3eab66417bfef6b6ed243aecad1c500af"
+    },
+    "demo/policy.json.example": {
+      "path": "data/demo-case-study/policy.json.example",
+      "sha256": "da112bf9e22f689be9962794ecb4cd3266af5673bb8e303a7487eb44557565fb"
+    },
+    "demo/scenarios.json.example": {
+      "path": "data/demo-case-study/scenarios.json.example",
+      "sha256": "17309517f537e8e60a1e1041e28a0e9dc8fb7d5da8f0ef6e73265bb795b87035"
+    },
+    "demo/text-data.json.example": {
+      "path": "data/demo-case-study/text-data.json.example",
+      "sha256": "1e390620edb6cf0f241a2b06e67670a864a5ca50594cbd21fcb96d1d7d1734d5"
+    },
+    "dependencies/apps--agent_service--pyproject.toml": {
+      "path": "apps/agent_service/pyproject.toml",
+      "sha256": "f4dfe0721d3d8dd400c453463fa171a475c333665f8e66a874967299950a70c1"
+    },
+    "dependencies/apps--api--pyproject.toml": {
+      "path": "apps/api/pyproject.toml",
+      "sha256": "d299e86db22e73b5734ac9c1bb480990d85204d016def75b1715a5086b6c1ed2"
+    },
+    "dependencies/apps--contracts--pyproject.toml": {
+      "path": "apps/contracts/pyproject.toml",
+      "sha256": "7cd0aa9f1777c3317a6089d4a9288cb9d7cae0e1fd30efaa978beaaad333ce54"
+    },
+    "dependencies/apps--web--package.json": {
+      "path": "apps/web/package.json",
+      "sha256": "cd63fa27b7bfbb2c2db29b0e6c0b583b232a68140210138120d6f340e6ebe416"
+    },
+    "dependencies/packages--agent_runtime--pyproject.toml": {
+      "path": "packages/agent_runtime/pyproject.toml",
+      "sha256": "2d947e8f5f0c0eb8a60714e7c4b3fee956433d77ab300d1cd1641eff148021d4"
+    },
+    "dependencies/pyproject.toml": {
+      "path": "pyproject.toml",
+      "sha256": "72a711ff43eba28d07c64c195c0f0634799806b72f0ab1e320f6ea7890b1294b"
+    },
+    "deployment/agent_service.Dockerfile.reference": {
+      "path": "apps/agent_service/Dockerfile",
+      "sha256": "d8e8c86cb2dc63fd0142153e806897ba2c573ce75fe472a8cee4ee76ccb4832c"
+    },
+    "deployment/api.Dockerfile.reference": {
+      "path": "apps/api/Dockerfile",
+      "sha256": "c776532df4bc955080e1269208e59bfa0f1e2d818487443c7e34603609c51e0c"
+    },
+    "deployment/web.Dockerfile.reference": {
+      "path": "apps/web/Dockerfile",
+      "sha256": "bcd279ee0652ed11e00dbb3494f929413d80576d8c6d7083514619fb89ddb9f6"
+    },
+    "diagrams/agent-graph.png": {
+      "path": "docs/spec/01-agent-graph.png",
+      "sha256": "6219c002114e4200ae057eada40bfa8fafdd1771d7d4ea6695380535f1423b04"
+    },
+    "prompts/intake.txt": {
+      "path": "packages/agent_runtime/src/return_agent_runtime/prompt_text/intake.txt",
+      "sha256": "4899d6a894d7738bea35ac229e6fe9a1d9fe8a4788fa0dd580c31c900edf7b3a"
+    },
+    "prompts/memory-distiller.txt": {
+      "path": "packages/agent_runtime/src/return_agent_runtime/prompt_text/memory-distiller.txt",
+      "sha256": "718e9f901442317721f4e8aac3c1fbc1785fbba7f9bede3f2dcda7ba398dee98"
+    },
+    "prompts/memory-query.txt": {
+      "path": "packages/agent_runtime/src/return_agent_runtime/prompt_text/memory-query.txt",
+      "sha256": "833ffb6e01765235ec0e9059232873e6dc503404848ee12249813acb20ff4f75"
+    },
+    "prompts/resolver.txt": {
+      "path": "packages/agent_runtime/src/return_agent_runtime/prompt_text/resolver.txt",
+      "sha256": "2352334da0db3255f688b38c4d0eb48dfa8288612a157b7f30b7095a8927195d"
+    },
+    "prompts/reviewer.txt": {
+      "path": "packages/agent_runtime/src/return_agent_runtime/prompt_text/reviewer.txt",
+      "sha256": "0b447ecb990e66e56061ad22a9a6b0c43b94ed7f56234f0e9c2c13ae089dd0fd"
+    },
+    "reviewer-gates.json": {
+      "path": "config/reviewer-gates.json",
+      "sha256": "3ce3411e858b98bc324dd9b5617406739d620f438b61c5b4c8229082eb1a2f77"
+    }
+  },
+  "transforms": [
+    "Python introspection exports schema, registry, database metadata and declarative inventories; no source implementation distributed",
+    "Inline narration extracted unchanged, no original version constant",
+    "Private deployment endpoint default replaced by example.invalid; no environment values read",
+    "Generated SQL trailing whitespace normalized",
+    {
+      "destination": "demo/prompt.md",
+      "source": "data/demo-case-study/prompt.md",
+      "source_sha256": "520a863b41c4400fcc4d7dfd58f317f2c7166bbaeda826427c56d1c120c4dac7",
+      "transform": "Trim trailing blank lines only; preserve synthetic image prompt content"
+    }
+  ]
+}

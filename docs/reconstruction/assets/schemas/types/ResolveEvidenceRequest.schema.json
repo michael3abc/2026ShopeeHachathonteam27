@@ -1,0 +1,36 @@
+{
+  "$defs": {
+    "ResolveEvidenceParams": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_ref": {
+          "minLength": 1,
+          "title": "Artifact Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_ref"
+      ],
+      "title": "ResolveEvidenceParams",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "method": {
+      "const": "EvidenceProvider.resolve",
+      "title": "Method",
+      "type": "string"
+    },
+    "params": {
+      "$ref": "#/$defs/ResolveEvidenceParams"
+    }
+  },
+  "required": [
+    "method",
+    "params"
+  ],
+  "title": "ResolveEvidenceRequest",
+  "type": "object"
+}

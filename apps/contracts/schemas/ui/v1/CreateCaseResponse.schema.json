@@ -1,0 +1,15 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "case_ref": {
+      "minLength": 1,
+      "title": "Case Ref",
+      "type": "string"
+    }
+  },
+  "required": [
+    "case_ref"
+  ],
+  "title": "CreateCaseResponse",
+  "type": "object"
+}

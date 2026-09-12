@@ -1,0 +1,116 @@
+{
+  "$defs": {
+    "IntakeCompleteness": {
+      "enum": [
+        "COMPLETE",
+        "INCOMPLETE"
+      ],
+      "title": "IntakeCompleteness",
+      "type": "string"
+    },
+    "ReasonCode": {
+      "enum": [
+        "ITEM_DAMAGED",
+        "ITEM_NOT_AS_DESCRIBED",
+        "MISSING_ITEM",
+        "WRONG_ITEM",
+        "QUALITY_ISSUE",
+        "CHANGED_MIND"
+      ],
+      "title": "ReasonCode",
+      "type": "string"
+    },
+    "RequestedAction": {
+      "enum": [
+        "REFUND",
+        "RETURN_AND_REFUND",
+        "EXCHANGE",
+        "UNSPECIFIED"
+      ],
+      "title": "RequestedAction",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Structured output of the parse_request LLM node.",
+  "properties": {
+    "claimed_line_item_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Claimed Line Item Ids",
+      "type": "array"
+    },
+    "clarification_question": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Clarification Question"
+    },
+    "completeness": {
+      "$ref": "#/$defs/IntakeCompleteness"
+    },
+    "missing_fields": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Missing Fields",
+      "type": "array"
+    },
+    "order_ref": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Order Ref"
+    },
+    "reason_code": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReasonCode"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reason_summary": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason Summary"
+    },
+    "requested_action": {
+      "$ref": "#/$defs/RequestedAction"
+    }
+  },
+  "required": [
+    "completeness",
+    "requested_action"
+  ],
+  "title": "IntakeResult",
+  "type": "object"
+}

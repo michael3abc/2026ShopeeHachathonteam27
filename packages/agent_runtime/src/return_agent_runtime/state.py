@@ -1,55 +1,78 @@
-from typing import Any
+"""Typed working state and Python invocation DTOs."""
 
-from pydantic import Field
+from __future__ import annotations
 
-from return_agent_contracts.distillation import MemoryDistillationInput
-from return_agent_contracts.domain import CaseContext, DecisionRevisionEvent, EvidenceAssessment, EvidenceItem, EvidenceRequest, HumanReviewDossier, OrderSnapshot, PolicyBundle, ProposedDecisionHandoff, ReviewGateResult, ReviewResult, VerificationIssue
-from return_agent_contracts.human import HumanReviewResult, ResolutionHandoff
-from return_agent_contracts.memory import MemoryRetrievalObservation
-from return_agent_contracts.messages import AgentUserTurn, ClarificationRequest, IntakeResult
-from return_agent_contracts.primitives import ContractModel, Ref
-from return_agent_contracts.workflow import EscalationReason, ManualEscalationHandoff, RoutingReason
+from return_agent_contracts.review_gates import ReviewGateResult, HumanReviewRoutingReason
+
+from enum import StrEnum
+from typing import Literal, TypedDict
+
+from return_agent_contracts.enums import EscalationReason
+from return_agent_contracts.models import (
+    ApprovedMemory,
+    CaseContext,
+    ClarificationRequest,
+    DecisionRevisionEvent,
+    EvidenceAssessment,
+    EvidenceItem,
+    EvidenceRequest,
+    HumanReviewResult,
+    IntakeResult,
+    ManualEscalationHandoff,
+    MemoryDistillationInput,
+    MemoryRetrievalObservation,
+    OrderSnapshot,
+    PolicyBundle,
+    ProposedDecisionHandoff,
+    ResolutionHandoff,
+    ReviewResult,
+    UserTurn,
+    VerificationIssue,
+)
 
 
-class RuntimeState(ContractModel):
-    case_ref: Ref
-    thread_id: Ref
-    trusted_order_ref: Ref | None = None
-    conversation_turns: list[AgentUserTurn] = Field(default_factory=list)
-    normalized_intent: IntakeResult | None = None
-    claimed_line_item_ids: list[Ref] = Field(default_factory=list)
-    case_context: CaseContext | None = None
-    order_snapshot: OrderSnapshot | None = None
-    policy_bundle: PolicyBundle | None = None
-    evidence_bundle: list[EvidenceItem] = Field(default_factory=list)
-    evidence_assessment: EvidenceAssessment | None = None
-    memory_retrieval: MemoryRetrievalObservation | None = None
-    current_handoff: ProposedDecisionHandoff | None = None
-    proposal_history: list[ProposedDecisionHandoff] = Field(default_factory=list)
-    review_history: list[ReviewResult] = Field(default_factory=list)
-    reviewed_proposal_ids: list[Ref] = Field(default_factory=list)
-    pending_review_result: ReviewResult | None = None
-    verification_feedback: list[VerificationIssue] = Field(default_factory=list)
-    revision_events: list[DecisionRevisionEvent] = Field(default_factory=list)
-    review_gate: ReviewGateResult | None = None
-    routing_reason: RoutingReason | None = None
-    clarification_request: ClarificationRequest | None = None
-    evidence_request: EvidenceRequest | None = None
-    human_dossier: HumanReviewDossier | None = None
-    human_review_ref: Ref | None = None
-    human_review_result: HumanReviewResult | None = None
-    resolution: ResolutionHandoff | None = None
-    memory_distillation_input: MemoryDistillationInput | None = None
-    escalation_reason: EscalationReason | None = None
-    escalation: ManualEscalationHandoff | None = None
-    clarification_round: int = Field(default=0, ge=0)
-    evidence_round: int = Field(default=0, ge=0)
-    verification_round: int = Field(default=0, ge=0)
-    revision_round: int = Field(default=0, ge=0)
-    propose_round: int = Field(default=0, ge=0)
-    node_attempts: dict[str, int] = Field(default_factory=dict)
-    route: str = "parse_request"
+class MemoryRetrievalStatus(StrEnum):
+    OK = "OK"
+    UNAVAILABLE = "UNAVAILABLE"
 
-    def checkpoint_values(self) -> dict[str, Any]:
-        # Only JSON primitives enter the checkpoint, never clients or arbitrary classes.
-        return self.model_dump(mode="json")
+
+class AgentState(TypedDict, total=False):
+    """LangGraph state; canonical case status remains outside the Agent."""
+
+    thread_id: str
+    case_ref: str
+    trusted_order_ref: str | None
+    conversation_turns: list[UserTurn]
+    normalized_intent: IntakeResult | None
+    claimed_line_item_ids: list[str]
+    case_context: CaseContext
+    order_snapshot: OrderSnapshot
+    policy_bundle: PolicyBundle
+    operational_memory: list[ApprovedMemory]
+    memory_retrieval_status: MemoryRetrievalStatus
+    memory_query_summary: str | None
+    memory_retrieval: MemoryRetrievalObservation | None
+    evidence_bundle: list[EvidenceItem]
+    evidence_assessment: EvidenceAssessment | None
+    current_handoff: ProposedDecisionHandoff | None
+    proposal_history: list[ProposedDecisionHandoff]
+    pending_review_result: ReviewResult | None
+    verification_feedback: list[VerificationIssue]
+    review_history: list[ReviewResult]
+    review_routing_reason: HumanReviewRoutingReason | None
+    review_gate: ReviewGateResult | None
+    revision_events: list[DecisionRevisionEvent]
+    pending_clarification_request: ClarificationRequest | None
+    pending_evidence_request: EvidenceRequest | None
+    human_review_ref: str | None
+    human_review_result: HumanReviewResult | None
+    resolution_handoff: ResolutionHandoff | None
+    memory_distillation_input: MemoryDistillationInput | None
+    manual_escalation: ManualEscalationHandoff | None
+    escalation_reason: EscalationReason | None
+    clarification_round: int
+    evidence_round: int
+    verification_round: int
+    revision_round: int
+    propose_round: int
+    _route: str

@@ -1,0 +1,192 @@
+{
+  "$defs": {
+    "ClaimId": {
+      "enum": [
+        "DELIVERY_CONFIRMED",
+        "ORDER_WITHIN_RETURN_WINDOW",
+        "SHIPMENT_SEAL_INTACT",
+        "ITEM_PHYSICALLY_DAMAGED",
+        "DAMAGE_PRESENT_ON_ARRIVAL",
+        "ITEM_FUNCTIONALLY_IMPAIRED",
+        "ITEM_DIFFERS_FROM_LISTING",
+        "WRONG_ITEM_RECEIVED",
+        "ITEM_NOT_IN_SHIPMENT",
+        "ITEM_UNUSED"
+      ],
+      "title": "ClaimId",
+      "type": "string"
+    },
+    "MemoryCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_registry_version": {
+          "minLength": 1,
+          "title": "Claim Registry Version",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "memory_id": {
+          "minLength": 1,
+          "title": "Memory Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "minLength": 1,
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "rationale": {
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        },
+        "recommended_behavior": {
+          "minLength": 1,
+          "title": "Recommended Behavior",
+          "type": "string"
+        },
+        "retrieval_summary": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Retrieval Summary",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/MemoryScope"
+        },
+        "source_case_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Case Refs",
+          "type": "array"
+        },
+        "source_revision_event_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Revision Event Refs",
+          "type": "array"
+        },
+        "status": {
+          "const": "CANDIDATE",
+          "title": "Status",
+          "type": "string"
+        },
+        "trigger_conditions": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Trigger Conditions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "memory_id",
+        "retrieval_summary",
+        "trigger_conditions",
+        "recommended_behavior",
+        "rationale",
+        "source_case_refs",
+        "source_revision_event_refs",
+        "policy_version",
+        "claim_registry_version",
+        "scope",
+        "confidence",
+        "status"
+      ],
+      "title": "MemoryCandidate",
+      "type": "object"
+    },
+    "MemoryScope": {
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Categories",
+          "type": "array"
+        },
+        "claim_ids": {
+          "items": {
+            "$ref": "#/$defs/ClaimId"
+          },
+          "title": "Claim Ids",
+          "type": "array"
+        },
+        "market": {
+          "minLength": 1,
+          "title": "Market",
+          "type": "string"
+        },
+        "reason_codes": {
+          "items": {
+            "$ref": "#/$defs/ReasonCode"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "market"
+      ],
+      "title": "MemoryScope",
+      "type": "object"
+    },
+    "ReasonCode": {
+      "enum": [
+        "ITEM_DAMAGED",
+        "ITEM_NOT_AS_DESCRIBED",
+        "MISSING_ITEM",
+        "WRONG_ITEM",
+        "QUALITY_ISSUE",
+        "CHANGED_MIND"
+      ],
+      "title": "ReasonCode",
+      "type": "string"
+    },
+    "SubmitMemoryCandidateParams": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate": {
+          "$ref": "#/$defs/MemoryCandidate"
+        }
+      },
+      "required": [
+        "candidate"
+      ],
+      "title": "SubmitMemoryCandidateParams",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "method": {
+      "const": "OperationalMemoryStore.submit_candidate",
+      "title": "Method",
+      "type": "string"
+    },
+    "params": {
+      "$ref": "#/$defs/SubmitMemoryCandidateParams"
+    }
+  },
+  "required": [
+    "method",
+    "params"
+  ],
+  "title": "SubmitMemoryCandidateRequest",
+  "type": "object"
+}

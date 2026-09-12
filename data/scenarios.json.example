@@ -1,0 +1,35 @@
+[
+  {
+    "scenario_id": "SCENARIO-AUTO-REFUND",
+    "case_context_ref": "CASE-DEMO-001",
+    "policy_version": "RETURNS-TW:v1",
+    "evidence_ids": ["EV-DEMO-PACKAGING-AND-DAMAGE"],
+    "expected": ["Verification PASS", "Reviewer APPROVE", "Refund SUCCEEDED"]
+  },
+  {
+    "scenario_id": "SCENARIO-INSUFFICIENT-EVIDENCE",
+    "case_context_ref": "CASE-DEMO-001",
+    "policy_version": "RETURNS-TW:v1",
+    "evidence_ids": ["EV-DEMO-DAMAGE-CLOSEUP"],
+    "expected": ["Evidence request includes arrival/package evidence", "No refund execution"]
+  },
+  {
+    "scenario_id": "SCENARIO-REVISION-BUDGET-HUMAN",
+    "case_context_variant": "Reviewer cites unresolved return-requirement defects after three corrections",
+    "policy_version": "RETURNS-TW:v1",
+    "evidence_ids": ["EV-DEMO-PACKAGING-AND-DAMAGE"],
+    "expected": ["Verification PASS", "Reviewer REVISE after revision_round 3", "REVISION_BUDGET_EXCEEDED", "Human Review required"]
+  },
+  {
+    "scenario_id": "SCENARIO-REPLAY-AND-RESERVATION",
+    "case_context_ref": "CASE-DEMO-001",
+    "operation": "Submit the same handoff twice, then a different handoff for LI-DEMO-SPEAKER.",
+    "expected": ["Same handoff returns canonical result", "Different handoff is rejected before mutation"]
+  },
+  {
+    "scenario_id": "SCENARIO-HUMAN-EDIT-SCOPE",
+    "case_context_ref": "CASE-DEMO-001",
+    "operation": "Edit an authorized LI-DEMO-SPEAKER refund to LI-DEMO-HEADPHONES.",
+    "expected": ["HUMAN_REVIEW_NOT_AUTHORIZED", "No reservation", "No refund mutation"]
+  }
+]

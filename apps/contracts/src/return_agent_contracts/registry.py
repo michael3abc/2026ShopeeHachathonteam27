@@ -1,56 +1,165 @@
-"""Versioned claim behavior; descriptions authored for the new implementation."""
+"""The executable Claim Registry v1."""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
 from types import MappingProxyType
-from typing import Mapping, get_args
 
-from .domain import ClaimDefinition, ClaimId, EvidenceType
+from .base import ContractModel, NonEmptyText
+from .enums import ClaimId, EvidenceType, SatisfiableBy, SubjectScope
 
-REGISTRY_VERSION = "claim-registry:1.0"
-REGISTRY_MAJOR = 1
+CLAIM_REGISTRY_VERSION = "claim-registry:1.0"
+CLAIM_REGISTRY_MAJOR = 1
 
 
-def _definition(
-    claim: ClaimId, description: str, observable: str, *,
-    order: bool = False, system: bool = False, user: bool = True,
-    evidence: tuple[EvidenceType, ...] = ("IMAGE", "VIDEO"),
-    distinct: tuple[ClaimId, ...] = (),
+class ClaimDefinition(ContractModel):
+    claim_id: ClaimId
+    description: NonEmptyText
+    subject_scope: SubjectScope
+    satisfiable_by: tuple[SatisfiableBy, ...]
+    accepted_evidence_types: tuple[EvidenceType, ...] = ()
+    observable_requirement: NonEmptyText
+    distinguish_from: tuple[ClaimId, ...] = ()
+
+
+def _claim(
+    claim_id: ClaimId,
+    description: str,
+    subject_scope: SubjectScope,
+    satisfiable_by: tuple[SatisfiableBy, ...],
+    accepted_evidence_types: tuple[EvidenceType, ...],
+    observable_requirement: str,
+    distinguish_from: tuple[ClaimId, ...] = (),
 ) -> ClaimDefinition:
     return ClaimDefinition(
-        claim_id=claim, description=description, observable_requirement=observable,
-        subject_scope="ORDER" if order else "LINE_ITEM",
-        satisfiable_by=(["SYSTEM_FACTS"] if system else []) + (["USER_EVIDENCE"] if user else []),
-        accepted_evidence_types=list(evidence) if user else [], distinguish_from=list(distinct),
+        claim_id=claim_id,
+        description=description,
+        subject_scope=subject_scope,
+        satisfiable_by=satisfiable_by,
+        accepted_evidence_types=accepted_evidence_types,
+        observable_requirement=observable_requirement,
+        distinguish_from=distinguish_from,
     )
 
 
-def build_registry() -> Mapping[ClaimId, ClaimDefinition]:
-    definitions = [
-        _definition("DELIVERY_CONFIRMED", "訂單已送達", "以可信物流的送達紀錄核對", order=True, system=True, user=False),
-        _definition("ORDER_WITHIN_RETURN_WINDOW", "案件在可退貨期間提出", "比較案件時間、送達時間與適用政策", order=True, system=True, user=False),
-        _definition("SHIPMENT_SEAL_INTACT", "開箱前封條完整", "查看包裝封條狀態與可核對的時間關係", order=True),
-        _definition("ITEM_PHYSICALLY_DAMAGED", "品項有物理損壞", "顯示可辨識品項的裂痕或結構破損", distinct=("DAMAGE_PRESENT_ON_ARRIVAL", "ITEM_FUNCTIONALLY_IMPAIRED")),
-        _definition("DAMAGE_PRESENT_ON_ARRIVAL", "損壞在收貨時已存在", "證據須能將損壞狀態連結至到貨時點", distinct=("ITEM_PHYSICALLY_DAMAGED",)),
-        _definition("ITEM_FUNCTIONALLY_IMPAIRED", "品項無法正常運作", "描述或展示具體功能測試及結果", evidence=("IMAGE", "VIDEO", "TEXT"), distinct=("ITEM_PHYSICALLY_DAMAGED",)),
-        _definition("ITEM_DIFFERS_FROM_LISTING", "品項與商品描述不符", "比對宣稱的商品特徵與收到的品項", distinct=("WRONG_ITEM_RECEIVED",)),
-        _definition("WRONG_ITEM_RECEIVED", "收到不同品項", "比對訂單識別與收件品項識別", evidence=("IMAGE",), distinct=("ITEM_DIFFERS_FROM_LISTING", "ITEM_NOT_IN_SHIPMENT")),
-        _definition("ITEM_NOT_IN_SHIPMENT", "包裹缺少訂購品項", "核對包裹內容及可信出貨資料", system=True, distinct=("WRONG_ITEM_RECEIVED",)),
-        _definition("ITEM_UNUSED", "品項未使用", "可核對的外觀或封裝狀態顯示尚未使用", evidence=("IMAGE",)),
-    ]
-    registry = {entry.claim_id: entry for entry in definitions}
-    validate_registry(registry)
-    return MappingProxyType(registry)
+CLAIM_REGISTRY_V1: Mapping[ClaimId, ClaimDefinition] = MappingProxyType(
+    {
+        ClaimId.DELIVERY_CONFIRMED: _claim(
+            ClaimId.DELIVERY_CONFIRMED,
+            "The shipment was delivered.",
+            SubjectScope.ORDER,
+            (SatisfiableBy.SYSTEM_FACTS,),
+            (),
+            "Determine from the logistics snapshot; never request it from the user.",
+        ),
+        ClaimId.ORDER_WITHIN_RETURN_WINDOW: _claim(
+            ClaimId.ORDER_WITHIN_RETURN_WINDOW,
+            "The order is within the applicable return window.",
+            SubjectScope.ORDER,
+            (SatisfiableBy.SYSTEM_FACTS,),
+            (),
+            "Determine from delivered_at and the applicable policy; never request it from the user.",
+        ),
+        ClaimId.SHIPMENT_SEAL_INTACT: _claim(
+            ClaimId.SHIPMENT_SEAL_INTACT,
+            "The shipment seal was intact.",
+            SubjectScope.ORDER,
+            (SatisfiableBy.USER_EVIDENCE,),
+            (EvidenceType.IMAGE, EvidenceType.VIDEO),
+            "The intact state of the carton seal or tape must be identifiable.",
+        ),
+        ClaimId.ITEM_PHYSICALLY_DAMAGED: _claim(
+            ClaimId.ITEM_PHYSICALLY_DAMAGED,
+            "The item has visible physical damage.",
+            SubjectScope.LINE_ITEM,
+            (SatisfiableBy.USER_EVIDENCE,),
+            (EvidenceType.IMAGE, EvidenceType.VIDEO),
+            "The damaged area of the item must be clearly visible.",
+            (ClaimId.DAMAGE_PRESENT_ON_ARRIVAL, ClaimId.ITEM_FUNCTIONALLY_IMPAIRED),
+        ),
+        ClaimId.DAMAGE_PRESENT_ON_ARRIVAL: _claim(
+            ClaimId.DAMAGE_PRESENT_ON_ARRIVAL,
+            "The item was damaged when delivered, not afterwards.",
+            SubjectScope.LINE_ITEM,
+            (SatisfiableBy.USER_EVIDENCE,),
+            (EvidenceType.IMAGE, EvidenceType.VIDEO),
+            "An image must show both outer packaging and the damaged item area.",
+            (ClaimId.ITEM_PHYSICALLY_DAMAGED,),
+        ),
+        ClaimId.ITEM_FUNCTIONALLY_IMPAIRED: _claim(
+            ClaimId.ITEM_FUNCTIONALLY_IMPAIRED,
+            "The item cannot perform its intended function.",
+            SubjectScope.LINE_ITEM,
+            (SatisfiableBy.USER_EVIDENCE,),
+            (EvidenceType.IMAGE, EvidenceType.VIDEO, EvidenceType.TEXT),
+            "Show the attempted operation or its result demonstrating failed function.",
+            (ClaimId.ITEM_PHYSICALLY_DAMAGED,),
+        ),
+        ClaimId.ITEM_DIFFERS_FROM_LISTING: _claim(
+            ClaimId.ITEM_DIFFERS_FROM_LISTING,
+            "The received item differs from the listing.",
+            SubjectScope.LINE_ITEM,
+            (SatisfiableBy.USER_EVIDENCE,),
+            (EvidenceType.IMAGE, EvidenceType.VIDEO),
+            "Identifiable received-item characteristics must be comparable with the listing.",
+            (ClaimId.WRONG_ITEM_RECEIVED,),
+        ),
+        ClaimId.WRONG_ITEM_RECEIVED: _claim(
+            ClaimId.WRONG_ITEM_RECEIVED,
+            "A different item was received.",
+            SubjectScope.LINE_ITEM,
+            (SatisfiableBy.USER_EVIDENCE,),
+            (EvidenceType.IMAGE,),
+            "The received item name or SKU must be identifiable and differ from the ordered item.",
+            (ClaimId.ITEM_DIFFERS_FROM_LISTING, ClaimId.ITEM_NOT_IN_SHIPMENT),
+        ),
+        ClaimId.ITEM_NOT_IN_SHIPMENT: _claim(
+            ClaimId.ITEM_NOT_IN_SHIPMENT,
+            "The ordered item was missing from the shipment.",
+            SubjectScope.LINE_ITEM,
+            (SatisfiableBy.USER_EVIDENCE, SatisfiableBy.SYSTEM_FACTS),
+            (EvidenceType.IMAGE, EvidenceType.VIDEO),
+            "The full contents of the opened package must show the item is absent.",
+            (ClaimId.WRONG_ITEM_RECEIVED,),
+        ),
+        ClaimId.ITEM_UNUSED: _claim(
+            ClaimId.ITEM_UNUSED,
+            "The item is unused.",
+            SubjectScope.LINE_ITEM,
+            (SatisfiableBy.USER_EVIDENCE,),
+            (EvidenceType.IMAGE,),
+            "The item, accessories, and tags must show an unused state.",
+        ),
+    }
+)
 
 
-def validate_registry(registry: Mapping[ClaimId, ClaimDefinition]) -> None:
-    if set(registry) != set(get_args(ClaimId)):
-        raise ValueError("Registry must define exactly the supported claims")
-    for key, entry in registry.items():
-        if key != entry.claim_id:
-            raise ValueError("Registry key does not match its definition")
-        if "USER_EVIDENCE" in entry.satisfiable_by and not entry.accepted_evidence_types:
-            raise ValueError("User evidence claims need accepted types")
-        for other in entry.distinguish_from:
-            if other not in registry or key not in registry[other].distinguish_from:
-                raise ValueError("Claim distinctions must be symmetric")
+def get_claim_definition(claim_id: ClaimId) -> ClaimDefinition:
+    return CLAIM_REGISTRY_V1[claim_id]
 
 
-REGISTRY = build_registry()
+def validate_claim_registry(
+    registry: Mapping[ClaimId, ClaimDefinition] = CLAIM_REGISTRY_V1,
+) -> None:
+    """Raise ValueError if registry references are incomplete or asymmetric."""
+
+    if set(registry) != set(ClaimId):
+        raise ValueError("registry must define every ClaimId exactly once")
+    for claim_id, definition in registry.items():
+        if definition.claim_id != claim_id:
+            raise ValueError(f"registry key and claim_id differ for {claim_id}")
+        if (
+            SatisfiableBy.USER_EVIDENCE in definition.satisfiable_by
+            and not definition.accepted_evidence_types
+        ):
+            raise ValueError(f"{claim_id} requires accepted evidence types")
+        for counterpart in definition.distinguish_from:
+            if counterpart not in registry:
+                raise ValueError(f"{claim_id} references missing {counterpart}")
+            if claim_id not in registry[counterpart].distinguish_from:
+                raise ValueError(
+                    f"distinguish_from must be symmetric: {claim_id} <-> {counterpart}"
+                )
+
+
+validate_claim_registry()

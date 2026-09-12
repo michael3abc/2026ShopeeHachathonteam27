@@ -1,102 +1,115 @@
-# 退貨案件 Agent · Team 27
+# Shopee Hackathon 2026 Agent Infrastructure
 
-內部退貨案件 Demo，整合證據審核、人工裁決與經驗學習。使用合成資料與模擬退款，不接真實金流。
+此 working tree 已依使用者要求匯入既有實作，不再是 clean-room 重建成果。
+不沿用原專案測試結果作為本機驗收；reference/ 保持原樣。
+重建程式與未提交修改已另行保留備份；本分支提交的是既有實作整合。
+來源為 ShopeeHackthon2026 的 809a2b0，整合基底為本 repo 的 e568ce3。
 
-T01–T06 核心與本機常駐服務驗證通過，包含 HTTP／Redis／PostgreSQL 的人工裁決、重啟恢復與模擬退款。Memory、Activity、完整 Web 與真模型 A/B/C 尚未完成。實際驗證見 [進度紀錄](docs/progress.md)，技術選擇見 [決策紀錄](docs/decisions.md)。
+目前改動：Intake 區分買家主張與證據、Reviewer 明確排除 DECLINE 的
+return_decision 並區分證據 ID；Distiller 拒絕把系統缺陷或迎合 Reviewer
+當成新經驗。全流程 learning trace 與有界自主調查尚未實作。
 
-## 開發環境
+本機啟動使用 scripts/local_import.py，讀取此機既有 .env，不匯入來源密鑰。
+PostgreSQL / Redis 使用獨立 Compose project team27-imported 與
+55432 / 55433 / 56379 ports；不對原重建資料庫執行 migration。
+embedding endpoint 必須明確配置，沒有私人 gateway 預設值。
 
-- Python **3.12.0**、uv **0.12.13**。
-- Node **24.21.0**、npm **11.19.0**；Python 與 Node 依賴分別以 `uv.lock`、`apps/web/package-lock.json` 鎖定。
-- Docker Engine 與 Compose v2 相容 CLI；PostgreSQL 16、pgvector、Redis 7.4。
-- 若工具裝在使用者目錄，先執行 `export PATH="$HOME/.local/bin:$PATH"`。
+此整合替換了原重建的 DTO、schema 目錄與 migration lineage，不能原地升級
+原重建 DB（0004_resolution_projection）。只能在新資料庫套用新 migrations；
+原 DB、checkpoint 與 pending jobs 保留隔離，不交給新 worker 重播。
+
+提交驗證：make check、make check-web、make contracts 後檢查生成檔 drift，
+並建置 API、Agent Service、Web Docker images。CI 使用 fake models；
+真實 LLM smoke 與 Memory A/B/C 驗收是獨立結果，不由單元測試宣稱通過。
+
+本機命令（服務分別執行；web 須先 npm ci 與 npm run build）：
 
 ```bash
-uv python install 3.12.0
-uv sync --frozen --all-packages
+uv sync --locked --all-packages
+uv run --all-packages python scripts/local_import.py check-config
+uv run --all-packages python scripts/local_import.py infra
+uv run --all-packages python scripts/local_import.py migrate
+uv run --all-packages python scripts/local_import.py api
+uv run --all-packages python scripts/local_import.py agent
+uv run --all-packages python scripts/local_import.py web
+uv run --all-packages python scripts/local_import.py smoke
+```
+
+- [Adaptive Return Resolution Agent Spec](docs/spec/README.md)
+- [全專案離線重建規格包（485048c 固定快照）](docs/reconstruction/README.md)：八模組、契約／prompt／合成資產、實作任務與 A/B/C 驗收；不包含應用程式碼。
+
+## Monorepo
+
+```text
+apps/api/                 BFF, Case API, SSE, canonical case state
+apps/agent_service/       Redis Agent worker and composition root
+apps/web/                 Next.js Demo/UI workspace
+apps/contracts/           Shared DTOs, interfaces, adapters, schemas, and tests
+packages/agent_runtime/   Pure LangGraph library
+tests/                    Cross-app and integration tests
+scripts/                  Development and CI helpers
+```
+
+Use `uv` from the repository root. Run `make test-contracts` for contract tests and `make contracts` to regenerate shared schemas.
+
+不啟動 UI 的跨服務 E2E：
+
+```bash
+uv sync --locked --all-packages
+make test-e2e
+```
+
+它以 SQLite／fakeredis 取代外部基礎設施，但會走真實 Case API、transactional
+outbox、Redis adapters、Agent worker、LangGraph、補件 resume 與事件回投。
+
+Local service smoke：
+
+```bash
+docker compose up --build -d
+uv run --package return-agent-service python scripts/run_agent_smoke.py
+```
+
+Compose 使用獨立 API/Agent PostgreSQL container 與 Redis；預設 Agent profile 是
+non-production deterministic demo。API 已使用 transactional outbox 發送 Agent
+command；正式 refund executor 尚未組裝，因此全額退款 handoff 會停在
+`EXECUTING`，不會宣稱退款已完成。
+
+真實 no-UI 整合使用 `integrated-demo` API 與 `integrated-qwen` Agent Service。
+它會呼叫 OpenAI-compatible Qwen/embedding gateways，並走完 PostgreSQL、Redis、
+typed Provider HTTP boundary、補件、Verification、Reviewer 與 demo refund
+application。若案件包含 Reviewer/Human correction，結案後另由獨立 Memory
+Enqueue/Distillation workers 產生並提交 `CANDIDATE`，不阻塞退款結果：
+
+```bash
+mkdir -p .secrets
+# 將 model key 與 internal service token 分別寫入 .secrets/，並 chmod 600
+RETURN_AGENT_API_PROFILE=integrated-demo \
+RETURN_AGENT_SERVICE_PROFILE=integrated-qwen \
+RETURN_AGENT_MODEL_BASE_URL=https://model.example.invalid/v1 \
+RETURN_AGENT_MODEL_NAME=qwen3.8-27b-q4-gguf \
+RETURN_AGENT_MODEL_API_KEY_HOST_FILE=.secrets/model_api_key \
+RETURN_AGENT_EMBEDDING_BASE_URL=https://embedding.example.invalid/v1 \
+RETURN_AGENT_EMBEDDING_MODEL=text-embedding-3-large \
+RETURN_AGENT_EMBEDDING_API_KEY_HOST_FILE=.secrets/embedding_api_key \
+RETURN_AGENT_INTERNAL_SERVICE_TOKEN_HOST_FILE=.secrets/internal_service_token \
+docker compose up --build -d
+
+uv run python scripts/run_no_ui_e2e.py --timeout 300
+```
+
+`integrated-demo` 仍使用 fixture order/provider 與 deterministic refund application；
+正式 Order/Logistics、artifact extraction、Human Review 身分驗證與退款 mutation adapter
+必須由各能力 owner 替換。
+
+包含 UI 的真實 E2E（先按上述設定啟動完整 Compose）：
+
+```bash
 npm --prefix apps/web ci
+cd apps/web && npx playwright install chromium && cd ../..
+npm --prefix apps/web run test:e2e:live
 ```
 
-## 本機啟動
+瀏覽器開啟 `http://localhost:3000`，損壞案件會經補件後完成
+`RESOLVED / REVIEWER_APPROVE`；詳見 [UI smoke 說明](scripts/README.md#ui-live-e2e)。
 
-各命令分別在不同終端執行：
-
-```bash
-python3 scripts/dev.py api
-python3 scripts/dev.py agent
-python3 scripts/dev.py web
-```
-
-Web：`http://localhost:3000`；API：`http://localhost:8000`；Agent health：`http://localhost:8090`。
-
-API `/health`、Agent `/health/live` 僅表示程序存活；兩者 `/health/ready` 檢查 workers。首頁目前為骨架，完整互動介面待 T09。
-
-本機基礎服務與容器骨架：
-
-```bash
-docker compose config --quiet
-docker compose up -d api-db agent-db redis
-python3 scripts/dev.py migrate
-python3 scripts/dev.py seed
-```
-
-Compose 的資料庫密碼是明示的本機示範值；連接埠只綁 loopback。容器啟動僅代表基礎服務可用。
-
-啟用目前的持久化案件 API：
-
-```bash
-export API_DATABASE_URL=postgresql+psycopg://return_agent:local-demo@127.0.0.1:5432/return_agent
-uv run alembic -c apps/api/alembic.ini upgrade head
-API_PROFILE=integrated-demo uv run return-agent-api
-```
-
-`POST /cases` 建立案件與 START outbox；`GET /cases/{case_ref}` 查詢 canonical 狀態、final_resolution 與 refund_execution；`POST /cases/{case_ref}/messages` 只在等待澄清／證據時接受。`GET /cases/{case_ref}/events` 支援 Last-Event-ID replay，終態 drain 後關閉。`POST /cases/{case_ref}/review` 支援 APPROVE／REJECT／EDIT；退款成功以 application_result.status=APPLIED 判定。
-
-`seed` 建立 DEMO-A／B／C 合成訂單，金額 1200／6200／6800 TWD，各有 CLOSEUP／UNBOXING／OVERVIEW／INSPECTION 四個 opaque artifact refs，例如 DEMO-A-CLOSEUP。已退款品項再次申請會被 reservation 拒絕；seed 不覆寫既有訂單或刪除付款紀錄。
-
-## 驗證
-
-```bash
-uv run pytest
-uv run return-agent-export-schemas --check
-npm --prefix apps/web run contracts -- --check
-npm --prefix apps/web run lint
-npm --prefix apps/web run typecheck
-npm --prefix apps/web run build
-```
-
-PostgreSQL 整合測試必須明確指定本機測試 DB：
-
-```bash
-TEST_API_DATABASE_URL=postgresql+psycopg://return_agent:local-demo@127.0.0.1:5432/return_agent uv run pytest apps/api/tests -q
-```
-
-完整跨服務測試另指定 Agent DB 與空白的測試 Redis database：
-
-```bash
-TEST_API_DATABASE_URL=postgresql+psycopg://return_agent:local-demo@127.0.0.1:5432/return_agent \
-TEST_AGENT_DATABASE_URL=postgresql://return_agent:local-demo@127.0.0.1:5433/return_agent \
-TEST_REDIS_URL=redis://127.0.0.1:6379/15 uv run pytest -q
-```
-
-每個測試建立自己的 `team27_test_*` schema、跑 migration，結束後僅清理該 schema。未指定測試 DB 時會明確 SKIP；CI 提供獨立 PostgreSQL service，不依賴真模型。
-
-測試使用合成資料，安裝、建置與測試所需檔案均包含在專案中。真模型驗收獨立啟用，不列入 CI 必要條件。
-
-修改共享 DTO 後，依序執行 `uv run return-agent-export-schemas` 與 `npm --prefix apps/web run contracts`，並提交生成的 schemas 與 TypeScript。跨物件授權條件由 Python validators 驗證，不能僅憑 JSON Schema 通過而退款。
-
-## 架構
-
-| 元件 | 職責 |
-| --- | --- |
-| `apps/contracts` | Pydantic DTO、Provider interfaces、語意驗證器；輸出 JSON Schema 與前端型別。 |
-| `packages/agent_runtime` | LangGraph state、節點、路由與 interrupt；不持有 HTTP、Redis 或 DB。 |
-| `apps/agent_service` | 模型／Provider 組合、durable workers、checkpoint、Memory 蒸餾及 narration。 |
-| `apps/api` | canonical case、DB、授權、人審、退款、outbox 與 SSE。 |
-| `apps/web` | 透過同源 `/backend` proxy 存取 API 的案件介面。 |
-
-API 不執行 Runtime；API 與 Agent 以 Redis Streams 交換案件命令／事件。Memory 與 Activity 不具退款授權權限。
-
-## 設定與秘密值
-
-`.env.example` 列出本機設定。`scripts/dev.py` 以字面值解析 `.env`，不執行 shell 展開；自動建立本機 internal token secret file。預設 offline 使用 typed fake model；真模型須明確加 `--profile live`，保留 RETURN_AGENT_* 的 endpoint／名稱／secret file。秘密檔案放忽略的 `secrets/`，勿將真實 token、個資、DB dump 或原始模型 payload 提交到 Git。embedding 與 narration composition 待 T07–T08。
+Memory VDB 切換需先排空工作並完成 Policy reembed 與 Memory 回填；參見 [遷移 runbook](docs/spec/04-operational-memory.md#遷移與切換-runbook)。不要直接以新設定啟動含舊向量的正式服務。

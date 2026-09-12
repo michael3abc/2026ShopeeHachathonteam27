@@ -1,0 +1,41 @@
+{
+  "candidate": {
+    "memory_id": "MEM-STUDY-SPEAKER-PRELOAD",
+    "retrieval_summary": "音箱到貨損壞申請只有裂痕近照，缺少包裝識別及拆箱時點資料；一次索取剩餘到貨證據，收到後逐項核對。",
+    "trigger_conditions": [
+      "音箱到貨損壞申請僅有商品近照，仍缺少包裝狀況或拆箱時點資料。"
+    ],
+    "recommended_behavior": "一次提出剩餘所需證據，包括包裝與商品同框、受損位置及拆箱情境；收到後逐項核對，不僅憑近照推定到貨損壞。",
+    "rationale": "合成歷史案例的修正指出分次索取資料造成重複補件，因此將相同證據需求合併提出。",
+    "source_case_refs": [
+      "CASE-STUDY-SYNTHETIC-HISTORY"
+    ],
+    "source_revision_event_refs": [
+      "REV-STUDY-SYNTHETIC-HISTORY"
+    ],
+    "policy_version": "RETURNS-TW:v1",
+    "claim_registry_version": "claim-registry:1.0",
+    "scope": {
+      "market": "TW",
+      "reason_codes": [
+        "ITEM_DAMAGED"
+      ],
+      "claim_ids": [
+        "DAMAGE_PRESENT_ON_ARRIVAL"
+      ],
+      "categories": [
+        "CAT-AUDIO-SPEAKERS"
+      ]
+    },
+    "confidence": 0.8,
+    "status": "CANDIDATE"
+  },
+  "expected_governance_transition": "APPROVE",
+  "expected_visible_after_approval": true,
+  "expected_invisible_when": [
+    "status is CANDIDATE or RETIRED",
+    "policy_version differs from RETURNS-TW:v1",
+    "claim_registry major version differs from 1",
+    "market, reason code, claim scope, or category does not overlap"
+  ]
+}

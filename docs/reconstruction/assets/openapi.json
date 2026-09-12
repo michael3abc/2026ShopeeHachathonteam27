@@ -1,0 +1,4802 @@
+{
+  "components": {
+    "schemas": {
+      "ActivityEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "attempt_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_:.-]+$",
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "case_ref": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_:.-]+$",
+            "title": "Case Ref",
+            "type": "string"
+          },
+          "event_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_:.-]+$",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_:.-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "node": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_:.-]+$",
+            "title": "Node",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "operation_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_:.-]+$",
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "parent_operation_id": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_:.-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Operation Id"
+          },
+          "payload": {
+            "discriminator": {
+              "mapping": {
+                "background": "#/components/schemas/BackgroundStatus",
+                "model": "#/components/schemas/Lifecycle",
+                "narration": "#/components/schemas/Narration",
+                "node": "#/components/schemas/Lifecycle",
+                "node_summary": "#/components/schemas/NodeSummary",
+                "tool": "#/components/schemas/Lifecycle"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Lifecycle"
+              },
+              {
+                "$ref": "#/components/schemas/NodeSummary"
+              },
+              {
+                "$ref": "#/components/schemas/Narration"
+              },
+              {
+                "$ref": "#/components/schemas/BackgroundStatus"
+              }
+            ],
+            "title": "Payload"
+          },
+          "run_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_:.-]+$",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "1.0",
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "CASE",
+              "REFUND",
+              "MEMORY"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "seq": {
+            "minimum": 1.0,
+            "title": "Seq",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "event_id",
+          "case_ref",
+          "run_id",
+          "scope",
+          "node",
+          "operation_id",
+          "attempt_id",
+          "occurred_at",
+          "payload",
+          "seq"
+        ],
+        "title": "ActivityEvent",
+        "type": "object"
+      },
+      "ActivityFacts": {
+        "additionalProperties": false,
+        "description": "Finite allowlist; raw prose, URLs, messages and documents are excluded.",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "enum": [
+                  "FULL_REFUND",
+                  "DECLINE"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "count": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          },
+          "finding_statuses": {
+            "items": {
+              "maxLength": 200,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_:.-]+$",
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Finding Statuses",
+            "type": "array"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityFinding"
+            },
+            "maxItems": 30,
+            "title": "Findings",
+            "type": "array"
+          },
+          "next_node": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_:.-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Node"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_:.-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
+          "reason_codes": {
+            "items": {
+              "maxLength": 200,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_:.-]+$",
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Reason Codes",
+            "type": "array"
+          },
+          "references": {
+            "items": {
+              "maxLength": 200,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_:.-]+$",
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "References",
+            "type": "array"
+          },
+          "revision_round": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Round"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "enum": [
+                  "APPROVE",
+                  "REVISE"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          }
+        },
+        "title": "ActivityFacts",
+        "type": "object"
+      },
+      "ActivityFinding": {
+        "additionalProperties": false,
+        "properties": {
+          "claim_id": {
+            "$ref": "#/components/schemas/ClaimId"
+          },
+          "evidence_refs": {
+            "items": {
+              "maxLength": 200,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_:.-]+$",
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ClaimStatus"
+          }
+        },
+        "required": [
+          "claim_id",
+          "status"
+        ],
+        "title": "ActivityFinding",
+        "type": "object"
+      },
+      "ActivityInputs": {
+        "additionalProperties": false,
+        "properties": {
+          "argument_count": {
+            "minimum": 0.0,
+            "title": "Argument Count",
+            "type": "integer"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReasonCode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "required_claim_ids": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimId"
+            },
+            "maxItems": 30,
+            "title": "Required Claim Ids",
+            "type": "array"
+          },
+          "top_k": {
+            "anyOf": [
+              {
+                "maximum": 3.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top K"
+          }
+        },
+        "required": [
+          "argument_count"
+        ],
+        "title": "ActivityInputs",
+        "type": "object"
+      },
+      "ActivityPage": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "minimum": 0.0,
+            "title": "Next Cursor",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "events",
+          "next_cursor",
+          "has_more"
+        ],
+        "title": "ActivityPage",
+        "type": "object"
+      },
+      "ApplicableConditions": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "markets": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Markets",
+            "type": "array"
+          },
+          "reason_codes": {
+            "items": {
+              "$ref": "#/components/schemas/ReasonCode"
+            },
+            "title": "Reason Codes",
+            "type": "array"
+          }
+        },
+        "title": "ApplicableConditions",
+        "type": "object"
+      },
+      "ApproveReviewDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "const": "APPROVE",
+            "title": "Decision",
+            "type": "string"
+          },
+          "generalizable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generalizable"
+          },
+          "handoff_id": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handoff Id"
+          },
+          "review_note": {
+            "minLength": 1,
+            "title": "Review Note",
+            "type": "string"
+          },
+          "reviewer_id": {
+            "default": "demo_reviewer",
+            "minLength": 1,
+            "title": "Reviewer Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "review_note",
+          "decision"
+        ],
+        "title": "ApproveReviewDecision",
+        "type": "object"
+      },
+      "ApprovedHumanReviewResult": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "const": "APPROVE",
+            "title": "Decision",
+            "type": "string"
+          },
+          "final_resolution_ref": {
+            "minLength": 1,
+            "title": "Final Resolution Ref",
+            "type": "string"
+          },
+          "generalizable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generalizable"
+          },
+          "review_note": {
+            "minLength": 1,
+            "title": "Review Note",
+            "type": "string"
+          },
+          "reviewed_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "title": "Reviewed At",
+            "type": "string"
+          },
+          "reviewer_id": {
+            "default": "demo_reviewer",
+            "minLength": 1,
+            "title": "Reviewer Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "review_note",
+          "final_resolution_ref",
+          "reviewed_at",
+          "decision"
+        ],
+        "title": "ApprovedHumanReviewResult",
+        "type": "object"
+      },
+      "ApprovedMemory": {
+        "additionalProperties": false,
+        "properties": {
+          "approved_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "title": "Approved At",
+            "type": "string"
+          },
+          "claim_registry_version": {
+            "minLength": 1,
+            "title": "Claim Registry Version",
+            "type": "string"
+          },
+          "confidence": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "memory_id": {
+            "minLength": 1,
+            "title": "Memory Id",
+            "type": "string"
+          },
+          "policy_version": {
+            "minLength": 1,
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "recommended_behavior": {
+            "minLength": 1,
+            "title": "Recommended Behavior",
+            "type": "string"
+          },
+          "retrieval_summary": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Retrieval Summary",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/MemoryScope"
+          },
+          "status": {
+            "const": "APPROVED",
+            "title": "Status",
+            "type": "string"
+          },
+          "trigger_conditions": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Trigger Conditions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "memory_id",
+          "retrieval_summary",
+          "status",
+          "recommended_behavior",
+          "trigger_conditions",
+          "policy_version",
+          "claim_registry_version",
+          "scope",
+          "confidence",
+          "approved_at"
+        ],
+        "title": "ApprovedMemory",
+        "type": "object"
+      },
+      "ApprovedReviewResult": {
+        "additionalProperties": false,
+        "properties": {
+          "reviewed_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "title": "Reviewed At",
+            "type": "string"
+          },
+          "reviewer_claim_findings": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimFinding"
+            },
+            "minItems": 1,
+            "title": "Reviewer Claim Findings",
+            "type": "array"
+          },
+          "reviewer_prompt_version": {
+            "minLength": 1,
+            "title": "Reviewer Prompt Version",
+            "type": "string"
+          },
+          "revision_reasons": {
+            "items": {
+              "$ref": "#/components/schemas/RevisionReason"
+            },
+            "maxItems": 0,
+            "title": "Revision Reasons",
+            "type": "array"
+          },
+          "verdict": {
+            "const": "APPROVE",
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "verdict",
+          "reviewer_claim_findings",
+          "reviewer_prompt_version",
+          "reviewed_at"
+        ],
+        "title": "ApprovedReviewResult",
+        "type": "object"
+      },
+      "BackgroundStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "error_code": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_:.-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "status": {
+            "enum": [
+              "SCHEDULED",
+              "STARTED",
+              "RETRYING",
+              "COMPLETED",
+              "SKIPPED",
+              "FAILED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "type": {
+            "const": "background",
+            "default": "background",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "BackgroundStatus",
+        "type": "object"
+      },
+      "CaseContext": {
+        "additionalProperties": false,
+        "properties": {
+          "case_opened_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "title": "Case Opened At",
+            "type": "string"
+          },
+          "case_ref": {
+            "minLength": 1,
+            "title": "Case Ref",
+            "type": "string"
+          },
+          "market": {
+            "minLength": 1,
+            "title": "Market",
+            "type": "string"
+          },
+          "order_ref": {
+            "minLength": 1,
+            "title": "Order Ref",
+            "type": "string"
+          },
+          "snapshot_version": {
+            "minimum": 1.0,
+            "title": "Snapshot Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "case_ref",
+          "order_ref",
+          "market",
+          "case_opened_at",
+          "snapshot_version"
+        ],
+        "title": "CaseContext",
+        "type": "object"
+      },
+      "CaseContextLoadResult": {
+        "additionalProperties": false,
+        "properties": {
+          "case_context": {
+            "$ref": "#/components/schemas/CaseContext"
+          },
+          "order_snapshot": {
+            "$ref": "#/components/schemas/OrderSnapshot"
+          }
+        },
+        "required": [
+          "case_context",
+          "order_snapshot"
+        ],
+        "title": "CaseContextLoadResult",
+        "type": "object"
+      },
+      "CaseDetail": {
+        "additionalProperties": false,
+        "description": "Backend-owned case view for the Demo UI.",
+        "properties": {
+          "case_ref": {
+            "minLength": 1,
+            "title": "Case Ref",
+            "type": "string"
+          },
+          "clarification_request": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClarificationRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "title": "Created At",
+            "type": "string"
+          },
+          "evidence_request": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvidenceRequestView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "human_review": {
+            "anyOf": [
+              {
+                "discriminator": {
+                  "mapping": {
+                    "DECLINE": "#/components/schemas/DeclineHumanReviewPayload",
+                    "FULL_REFUND": "#/components/schemas/FullRefundHumanReviewPayload"
+                  },
+                  "propertyName": "action"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/FullRefundHumanReviewPayload"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DeclineHumanReviewPayload"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Human Review"
+          },
+          "human_review_result": {
+            "anyOf": [
+              {
+                "discriminator": {
+                  "mapping": {
+                    "APPROVE": "#/components/schemas/ApprovedHumanReviewResult",
+                    "EDIT": "#/components/schemas/EditedHumanReviewResult",
+                    "REJECT": "#/components/schemas/RejectedHumanReviewResult"
+                  },
+                  "propertyName": "decision"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ApprovedHumanReviewResult"
+                  },
+                  {
+                    "$ref": "#/components/schemas/EditedHumanReviewResult"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RejectedHumanReviewResult"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Human Review Result"
+          },
+          "order_ref": {
+            "minLength": 1,
+            "title": "Order Ref",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CaseStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "user_ref": {
+            "minLength": 1,
+            "title": "User Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_ref",
+          "order_ref",
+          "user_ref",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CaseDetail",
+        "type": "object"
+      },
+      "CaseStatus": {
+        "description": "Backend-owned status displayed by the UI, not Agent graph state.",
+        "enum": [
+          "OBSERVING",
+          "AWAITING_CLARIFICATION",
+          "AWAITING_EVIDENCE",
+          "AWAITING_HUMAN_REVIEW",
+          "EXECUTING",
+          "RESOLVED",
+          "ESCALATED"
+        ],
+        "title": "CaseStatus",
+        "type": "string"
+      },
+      "ClaimFinding": {
+        "additionalProperties": false,
+        "properties": {
+          "claim_id": {
+            "$ref": "#/components/schemas/ClaimId"
+          },
+          "explanation": {
+            "minLength": 1,
+            "title": "Explanation",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ClaimStatus"
+          },
+          "subject": {
+            "minLength": 1,
+            "title": "Subject",
+            "type": "string"
+          },
+          "supporting_evidence_refs": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Supporting Evidence Refs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "claim_id",
+          "subject",
+          "status",
+          "explanation"
+        ],
+        "title": "ClaimFinding",
+        "type": "object"
+      },
+      "ClaimId": {
+        "enum": [
+          "DELIVERY_CONFIRMED",
+          "ORDER_WITHIN_RETURN_WINDOW",
+          "SHIPMENT_SEAL_INTACT",
+          "ITEM_PHYSICALLY_DAMAGED",
+          "DAMAGE_PRESENT_ON_ARRIVAL",
+          "ITEM_FUNCTIONALLY_IMPAIRED",
+          "ITEM_DIFFERS_FROM_LISTING",
+          "WRONG_ITEM_RECEIVED",
+          "ITEM_NOT_IN_SHIPMENT",
+          "ITEM_UNUSED"
+        ],
+        "title": "ClaimId",
+        "type": "string"
+      },
+      "ClaimStatus": {
+        "enum": [
+          "SUPPORTED",
+          "UNSUPPORTED",
+          "CONTRADICTED"
+        ],
+        "title": "ClaimStatus",
+        "type": "string"
+      },
+      "ClarificationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "clarification_question": {
+            "minLength": 1,
+            "title": "Clarification Question",
+            "type": "string"
+          },
+          "clarification_round": {
+            "minimum": 1.0,
+            "title": "Clarification Round",
+            "type": "integer"
+          },
+          "missing_fields": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Missing Fields",
+            "type": "array"
+          },
+          "request_id": {
+            "minLength": 1,
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "missing_fields",
+          "clarification_question",
+          "clarification_round"
+        ],
+        "title": "ClarificationRequest",
+        "type": "object"
+      },
+      "CorrectedDeclineDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "DECLINE",
+            "title": "Action",
+            "type": "string"
+          },
+          "refund_scope": {
+            "$ref": "#/components/schemas/EmptyRefundScope"
+          }
+        },
+        "required": [
+          "action",
+          "refund_scope"
+        ],
+        "title": "CorrectedDeclineDecision",
+        "type": "object"
+      },
+      "CorrectedFullRefundDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "FULL_REFUND",
+            "title": "Action",
+            "type": "string"
+          },
+          "refund_scope": {
+            "$ref": "#/components/schemas/NonEmptyRefundScope"
+          },
+          "return_decision": {
+            "$ref": "#/components/schemas/HumanReviewReturnDecision"
+          }
+        },
+        "required": [
+          "action",
+          "refund_scope",
+          "return_decision"
+        ],
+        "title": "CorrectedFullRefundDecision",
+        "type": "object"
+      },
+      "CreateCaseRequest": {
+        "additionalProperties": false,
+        "description": "Backend API payload; Backend creates the case and starts/resumes the graph.",
+        "properties": {
+          "attached_artifact_refs": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Attached Artifact Refs",
+            "type": "array"
+          },
+          "initial_message": {
+            "minLength": 1,
+            "title": "Initial Message",
+            "type": "string"
+          },
+          "order_ref": {
+            "minLength": 1,
+            "title": "Order Ref",
+            "type": "string"
+          },
+          "user_ref": {
+            "minLength": 1,
+            "title": "User Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_ref",
+          "user_ref",
+          "initial_message"
+        ],
+        "title": "CreateCaseRequest",
+        "type": "object"
+      },
+      "CreateCaseResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "case_ref": {
+            "minLength": 1,
+            "title": "Case Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_ref"
+        ],
+        "title": "CreateCaseResponse",
+        "type": "object"
+      },
+      "DecisionRevisionEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "case_ref": {
+            "minLength": 1,
+            "title": "Case Ref",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "title": "Created At",
+            "type": "string"
+          },
+          "event_id": {
+            "minLength": 1,
+            "title": "Event Id",
+            "type": "string"
+          },
+          "handoff_before_ref": {
+            "minLength": 1,
+            "title": "Handoff Before Ref",
+            "type": "string"
+          },
+          "review_result": {
+            "discriminator": {
+              "mapping": {
+                "APPROVE": "#/components/schemas/ApprovedReviewResult",
+                "REVISE": "#/components/schemas/RevisedReviewResult"
+              },
+              "propertyName": "verdict"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApprovedReviewResult"
+              },
+              {
+                "$ref": "#/components/schemas/RevisedReviewResult"
+              }
+            ],
+            "title": "Review Result"
+          },
+          "revision_round": {
+            "minimum": 1.0,
+            "title": "Revision Round",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "event_id",
+          "case_ref",
+          "handoff_before_ref",
+          "review_result",
+          "revision_round",
+          "created_at"
+        ],
+        "title": "DecisionRevisionEvent",
+        "type": "object"
+      },
+      "DeclineHumanReviewPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "DECLINE",
+            "title": "Action",
+            "type": "string"
+          },
+          "amount": {
+            "pattern": "^0(?:\\.0+)?$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "case_ref": {
+            "minLength": 1,
+            "title": "Case Ref",
+            "type": "string"
+          },
+          "currency": {
+            "maxLength": 3,
+            "minLength": 3,
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "dossier": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HumanReviewDossier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence_refs": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceDisplayRef"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "handoff_id": {
+            "minLength": 1,
+            "title": "Handoff Id",
+            "type": "string"
+          },
+          "memories_used": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Memories Used",
+            "type": "array"
+          },
+          "policy_hits": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyDisplayRef"
+            },
+            "title": "Policy Hits",
+            "type": "array"
+          },
+          "rationale_summary": {
+            "minLength": 1,
+            "title": "Rationale Summary",
+            "type": "string"
+          },
+          "refund_scope": {
+            "$ref": "#/components/schemas/EmptyRefundScope"
+          },
+          "review_result": {
+            "discriminator": {
+              "mapping": {
+                "APPROVE": "#/components/schemas/ApprovedReviewResult",
+                "REVISE": "#/components/schemas/RevisedReviewResult"
+              },
+              "propertyName": "verdict"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApprovedReviewResult"
+              },
+              {
+                "$ref": "#/components/schemas/RevisedReviewResult"
+              }
+            ],
+            "title": "Review Result"
+          },
+          "routing_reason": {
+            "default": "REVISION_BUDGET_EXCEEDED",
+            "enum": [
+              "REVISION_BUDGET_EXCEEDED",
+              "HIGH_VALUE_ITEM",
+              "CURRENCY_THRESHOLD_UNCONFIGURED"
+            ],
+            "title": "Routing Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_ref",
+          "handoff_id",
+          "review_result",
+          "rationale_summary",
+          "action",
+          "refund_scope",
+          "amount",
+          "currency"
+        ],
+        "title": "DeclineHumanReviewPayload",
+        "type": "object"
+      },
+      "DeclineProposedDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "DECLINE",
+            "title": "Action",
+            "type": "string"
+          },
+          "amount": {
+            "pattern": "^0(?:\\.0+)?$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "currency": {
+            "maxLength": 3,
+            "minLength": 3,
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "evidence_refs": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "policy_refs": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Policy Refs",
+            "type": "array"
+          },
+          "reason_code": {
+            "$ref": "#/components/schemas/ReasonCode"
+          },
+          "refund_scope": {
+            "$ref": "#/components/schemas/EmptyRefundScope"
+          }
+        },
+        "required": [
+          "action",
+          "refund_scope",
+          "amount",
+          "currency",
+          "reason_code",
+          "policy_refs"
+        ],
+        "title": "DeclineProposedDecision",
+        "type": "object"
+      },
+      "EditReviewDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "corrected_decision": {
+            "discriminator": {
+              "mapping": {
+                "DECLINE": "#/components/schemas/CorrectedDeclineDecision",
+                "FULL_REFUND": "#/components/schemas/CorrectedFullRefundDecision"
+              },
+              "propertyName": "action"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CorrectedFullRefundDecision"
+              },
+              {
+                "$ref": "#/components/schemas/CorrectedDeclineDecision"
+              }
+            ],
+            "title": "Corrected Decision"
+          },
+          "correction_reason_code": {
+            "$ref": "#/components/schemas/HumanCorrectionReasonCode"
+          },
+          "decision": {
+            "const": "EDIT",
+            "title": "Decision",
+            "type": "string"
+          },
+          "generalizable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generalizable"
+          },
+          "handoff_id": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handoff Id"
+          },
+          "review_note": {
+            "minLength": 1,
+            "title": "Review Note",
+            "type": "string"
+          },
+          "reviewer_id": {
+            "default": "demo_reviewer",
+            "minLength": 1,
+            "title": "Reviewer Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "review_note",
+          "decision",
+          "corrected_decision",
+          "correction_reason_code"
+        ],
+        "title": "EditReviewDecision",
+        "type": "object"
+      },
+      "EditedHumanReviewResult": {
+        "additionalProperties": false,
+        "properties": {
+          "corrected_decision": {
+            "discriminator": {
+              "mapping": {
+                "DECLINE": "#/components/schemas/CorrectedDeclineDecision",
+                "FULL_REFUND": "#/components/schemas/CorrectedFullRefundDecision"
+              },
+              "propertyName": "action"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CorrectedFullRefundDecision"
+              },
+              {
+                "$ref": "#/components/schemas/CorrectedDeclineDecision"
+              }
+            ],
+            "title": "Corrected Decision"
+          },
+          "correction_reason_code": {
+            "$ref": "#/components/schemas/HumanCorrectionReasonCode"
+          },
+          "decision": {
+            "const": "EDIT",
+            "title": "Decision",
+            "type": "string"
+          },
+          "final_resolution_ref": {
+            "minLength": 1,
+            "title": "Final Resolution Ref",
+            "type": "string"
+          },
+          "generalizable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generalizable"
+          },
+          "review_note": {
+            "minLength": 1,
+            "title": "Review Note",
+            "type": "string"
+          },
+          "reviewed_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "title": "Reviewed At",
+            "type": "string"
+          },
+          "reviewer_id": {
+            "default": "demo_reviewer",
+            "minLength": 1,
+            "title": "Reviewer Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "review_note",
+          "final_resolution_ref",
+          "reviewed_at",
+          "decision",
+          "corrected_decision",
+          "correction_reason_code"
+        ],
+        "title": "EditedHumanReviewResult",
+        "type": "object"
+      },
+      "EmptyRefundScope": {
+        "additionalProperties": false,
+        "properties": {
+          "line_item_ids": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 0,
+            "title": "Line Item Ids",
+            "type": "array"
+          }
+        },
+        "title": "EmptyRefundScope",
+        "type": "object"
+      },
+      "EvidenceDisplayRef": {
+        "additionalProperties": false,
+        "description": "Reference-only evidence view; signed URLs stay in the Backend/UI layer.",
+        "properties": {
+          "artifact_ref": {
+            "minLength": 1,
+            "title": "Artifact Ref",
+            "type": "string"
+          },
+          "caption": {
+            "minLength": 1,
+            "title": "Caption",
+            "type": "string"
+          },
+          "evidence_id": {
+            "minLength": 1,
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "subject": {
+            "minLength": 1,
+            "title": "Subject",
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/EvidenceType"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "type",
+          "subject",
+          "artifact_ref",
+          "caption"
+        ],
+        "title": "EvidenceDisplayRef",
+        "type": "object"
+      },
+      "EvidenceItem": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_ref": {
+            "minLength": 1,
+            "title": "Artifact Ref",
+            "type": "string"
+          },
+          "collected_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "title": "Collected At",
+            "type": "string"
+          },
+          "evidence_id": {
+            "minLength": 1,
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "extracted_summary": {
+            "minLength": 1,
+            "title": "Extracted Summary",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/EvidenceSource"
+          },
+          "subject": {
+            "minLength": 1,
+            "title": "Subject",
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/EvidenceType"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "type",
+          "source",
+          "subject",
+          "artifact_ref",
+          "extracted_summary",
+          "collected_at"
+        ],
+        "title": "EvidenceItem",
+        "type": "object"
+      },
+      "EvidenceRequestView": {
+        "additionalProperties": false,
+        "description": "The user-evidence interrupt rendered by the conversation UI.",
+        "properties": {
+          "accepted_evidence_types": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceType"
+            },
+            "minItems": 1,
+            "title": "Accepted Evidence Types",
+            "type": "array"
+          },
+          "case_ref": {
+            "minLength": 1,
+            "title": "Case Ref",
+            "type": "string"
+          },
+          "missing_claims": {
+            "items": {
+              "$ref": "#/components/schemas/MissingClaim"
+            },
+            "minItems": 1,
+            "title": "Missing Claims",
+            "type": "array"
+          },
+          "policy_refs": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Policy Refs",
+            "type": "array"
+          },
+          "request_id": {
+            "minLength": 1,
+            "title": "Request Id",
+            "type": "string"
+          },
+          "user_message": {
+            "minLength": 1,
+            "title": "User Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_ref",
+          "request_id",
+          "user_message",
+          "missing_claims",
+          "accepted_evidence_types",
+          "policy_refs"
+        ],
+        "title": "EvidenceRequestView",
+        "type": "object"
+      },
+      "EvidenceSource": {
+        "enum": [
+          "USER",
+          "ORDER_TOOL",
+          "LOGISTICS_TOOL",
+          "SYSTEM"
+        ],
+        "title": "EvidenceSource",
+        "type": "string"
+      },
+      "EvidenceType": {
+        "enum": [
+          "IMAGE",
+          "VIDEO",
+          "TEXT",
+          "DOCUMENT"
+        ],
+        "title": "EvidenceType",
+        "type": "string"
+      },
+      "FailedVerificationResult": {
+        "additionalProperties": false,
+        "properties": {
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/VerificationIssue"
+            },
+            "minItems": 1,
+            "title": "Issues",
+            "type": "array"
+          },
+          "status": {
+            "const": "FAIL",
+            "title": "Status",
+            "type": "string"
+          },
+          "verification_version": {
+            "minLength": 1,
+            "title": "Verification Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "issues",
+          "verification_version"
+        ],
+        "title": "FailedVerificationResult",
+        "type": "object"
+      },
+      "FetchHumanReviewParams": {
+        "additionalProperties": false,
+        "properties": {
+          "review_ref": {
+            "minLength": 1,
+            "title": "Review Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "review_ref"
+        ],
+        "title": "FetchHumanReviewParams",
+        "type": "object"
+      },
+      "FetchHumanReviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "const": "HumanReviewProvider.fetch_result",
+            "title": "Method",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/FetchHumanReviewParams"
+          }
+        },
+        "required": [
+          "method",
+          "params"
+        ],
+        "title": "FetchHumanReviewRequest",
+        "type": "object"
+      },
+      "FetchHumanReviewResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "result": {
+            "anyOf": [
+              {
+                "discriminator": {
+                  "mapping": {
+                    "APPROVE": "#/components/schemas/ApprovedHumanReviewResult",
+                    "EDIT": "#/components/schemas/EditedHumanReviewResult",
+                    "REJECT": "#/components/schemas/RejectedHumanReviewResult"
+                  },
+                  "propertyName": "decision"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ApprovedHumanReviewResult"
+                  },
+                  {
+                    "$ref": "#/components/schemas/EditedHumanReviewResult"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RejectedHumanReviewResult"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "FetchHumanReviewResponse",
+        "type": "object"
+      },
+      "FullRefundHumanReviewPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "FULL_REFUND",
+            "title": "Action",
+            "type": "string"
+          },
+          "amount": {
+            "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "case_ref": {
+            "minLength": 1,
+            "title": "Case Ref",
+            "type": "string"
+          },
+          "currency": {
+            "maxLength": 3,
+            "minLength": 3,
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "dossier": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HumanReviewDossier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence_refs": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceDisplayRef"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "handoff_id": {
+            "minLength": 1,
+            "title": "Handoff Id",
+            "type": "string"
+          },
+          "memories_used": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Memories Used",
+            "type": "array"
+          },
+          "policy_hits": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyDisplayRef"
+            },
+            "title": "Policy Hits",
+            "type": "array"
+          },
+          "rationale_summary": {
+            "minLength": 1,
+            "title": "Rationale Summary",
+            "type": "string"
+          },
+          "refund_scope": {
+            "$ref": "#/components/schemas/NonEmptyRefundScope"
+          },
+          "return_decision": {
+            "discriminator": {
+              "mapping": {
+                "MODEL_JUDGMENT": "#/components/schemas/ModelJudgmentReturnDecision",
+                "POLICY": "#/components/schemas/PolicyReturnDecision"
+              },
+              "propertyName": "source"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PolicyReturnDecision"
+              },
+              {
+                "$ref": "#/components/schemas/ModelJudgmentReturnDecision"
+              }
+            ],
+            "title": "Return Decision"
+          },
+          "review_result": {
+            "discriminator": {
+              "mapping": {
+                "APPROVE": "#/components/schemas/ApprovedReviewResult",
+                "REVISE": "#/components/schemas/RevisedReviewResult"
+              },
+              "propertyName": "verdict"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApprovedReviewResult"
+              },
+              {
+                "$ref": "#/components/schemas/RevisedReviewResult"
+              }
+            ],
+            "title": "Review Result"
+          },
+          "routing_reason": {
+            "default": "REVISION_BUDGET_EXCEEDED",
+            "enum": [
+              "REVISION_BUDGET_EXCEEDED",
+              "HIGH_VALUE_ITEM",
+              "CURRENCY_THRESHOLD_UNCONFIGURED"
+            ],
+            "title": "Routing Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_ref",
+          "handoff_id",
+          "review_result",
+          "rationale_summary",
+          "action",
+          "refund_scope",
+          "amount",
+          "currency",
+          "return_decision"
+        ],
+        "title": "FullRefundHumanReviewPayload",
+        "type": "object"
+      },
+      "FullRefundProposedDecision": {
+        "additionalProperties": false,
+        "description": "Graph-completed refund decision included in a handoff.",
+        "properties": {
+          "action": {
+            "const": "FULL_REFUND",
+            "title": "Action",
+            "type": "string"
+          },
+          "amount": {
+            "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "currency": {
+            "maxLength": 3,
+            "minLength": 3,
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "evidence_refs": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "policy_refs": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Policy Refs",
+            "type": "array"
+          },
+          "reason_code": {
+            "$ref": "#/components/schemas/ReasonCode"
+          },
+          "refund_scope": {
+            "$ref": "#/components/schemas/NonEmptyRefundScope"
+          },
+          "return_decision": {
+            "discriminator": {
+              "mapping": {
+                "MODEL_JUDGMENT": "#/components/schemas/ModelJudgmentReturnDecision",
+                "POLICY": "#/components/schemas/PolicyReturnDecision"
+              },
+              "propertyName": "source"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PolicyReturnDecision"
+              },
+              {
+                "$ref": "#/components/schemas/ModelJudgmentReturnDecision"
+              }
+            ],
+            "title": "Return Decision"
+          }
+        },
+        "required": [
+          "action",
+          "refund_scope",
+          "amount",
+          "currency",
+          "reason_code",
+          "return_decision",
+          "policy_refs"
+        ],
+        "title": "FullRefundProposedDecision",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HumanCorrectionReasonCode": {
+        "enum": [
+          "CLAIM_NOT_ESTABLISHED",
+          "POLICY_MISAPPLIED",
+          "SCOPE_INCORRECT",
+          "RETURN_REQUIREMENT_INCORRECT",
+          "OTHER"
+        ],
+        "title": "HumanCorrectionReasonCode",
+        "type": "string"
+      },
+      "HumanReviewDossier": {
+        "additionalProperties": false,
+        "description": "Immutable, structured decision trace; never model hidden reasoning.",
+        "properties": {
+          "claim_registry_version": {
+            "minLength": 1,
+            "title": "Claim Registry Version",
+            "type": "string"
+          },
+          "claimed_line_item_ids": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Claimed Line Item Ids",
+            "type": "array"
+          },
+          "order_snapshot": {
+            "$ref": "#/components/schemas/OrderSnapshot"
+          },
+          "policy_bundle": {
+            "$ref": "#/components/schemas/PolicyBundle"
+          },
+          "proposal_history": {
+            "items": {
+              "$ref": "#/components/schemas/ProposedDecisionHandoff"
+            },
+            "minItems": 1,
+            "title": "Proposal History",
+            "type": "array"
+          },
+          "review_gate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewGateResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "review_history": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "APPROVE": "#/components/schemas/ApprovedReviewResult",
+                  "REVISE": "#/components/schemas/RevisedReviewResult"
+                },
+                "propertyName": "verdict"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ApprovedReviewResult"
+                },
+                {
+                  "$ref": "#/components/schemas/RevisedReviewResult"
+                }
+              ]
+            },
+            "minItems": 1,
+            "title": "Review History",
+            "type": "array"
+          },
+          "revision_events": {
+            "items": {
+              "$ref": "#/components/schemas/DecisionRevisionEvent"
+            },
+            "title": "Revision Events",
+            "type": "array"
+          },
+          "routing_reason": {
+            "default": "REVISION_BUDGET_EXCEEDED",
+            "enum": [
+              "REVISION_BUDGET_EXCEEDED",
+              "HIGH_VALUE_ITEM",
+              "CURRENCY_THRESHOLD_UNCONFIGURED"
+            ],
+            "title": "Routing Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "claimed_line_item_ids",
+          "claim_registry_version",
+          "order_snapshot",
+          "policy_bundle",
+          "proposal_history",
+          "review_history"
+        ],
+        "title": "HumanReviewDossier",
+        "type": "object"
+      },
+      "HumanReviewReturnDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "requirement": {
+            "discriminator": {
+              "mapping": {
+                "False": "#/components/schemas/WaivedReturnRequirement",
+                "True": "#/components/schemas/RequiredReturnRequirement"
+              },
+              "propertyName": "required"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RequiredReturnRequirement"
+              },
+              {
+                "$ref": "#/components/schemas/WaivedReturnRequirement"
+              }
+            ],
+            "title": "Requirement"
+          },
+          "source": {
+            "const": "HUMAN_REVIEW",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "requirement"
+        ],
+        "title": "HumanReviewReturnDecision",
+        "type": "object"
+      },
+      "Lifecycle": {
+        "additionalProperties": false,
+        "properties": {
+          "duration_ms": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_:.-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "facts": {
+            "$ref": "#/components/schemas/ActivityFacts"
+          },
+          "inputs": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActivityInputs"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_:.-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_:.-]+$",
+            "title": "Name",
+            "type": "string"
+          },
+          "phase": {
+            "enum": [
+              "STARTED",
+              "COMPLETED",
+              "PAUSED",
+              "FAILED"
+            ],
+            "title": "Phase",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "node",
+              "model",
+              "tool"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "phase",
+          "name"
+        ],
+        "title": "Lifecycle",
+        "type": "object"
+      },
+      "LoadCaseContextParams": {
+        "additionalProperties": false,
+        "properties": {
+          "case_ref": {
+            "minLength": 1,
+            "title": "Case Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_ref"
+        ],
+        "title": "LoadCaseContextParams",
+        "type": "object"
+      },
+      "LoadCaseContextRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "const": "CaseContextProvider.load_case_context",
+            "title": "Method",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/LoadCaseContextParams"
+          }
+        },
+        "required": [
+          "method",
+          "params"
+        ],
+        "title": "LoadCaseContextRequest",
+        "type": "object"
+      },
+      "LoadCaseContextResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/CaseContextLoadResult"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "LoadCaseContextResponse",
+        "type": "object"
+      },
+      "MemoryCandidate": {
+        "additionalProperties": false,
+        "properties": {
+          "claim_registry_version": {
+            "minLength": 1,
+            "title": "Claim Registry Version",
+            "type": "string"
+          },
+          "confidence": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "memory_id": {
+            "minLength": 1,
+            "title": "Memory Id",
+            "type": "string"
+          },
+          "policy_version": {
+            "minLength": 1,
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "rationale": {
+            "minLength": 1,
+            "title": "Rationale",
+            "type": "string"
+          },
+          "recommended_behavior": {
+            "minLength": 1,
+            "title": "Recommended Behavior",
+            "type": "string"
+          },
+          "retrieval_summary": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Retrieval Summary",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/MemoryScope"
+          },
+          "source_case_refs": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Source Case Refs",
+            "type": "array"
+          },
+          "source_revision_event_refs": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Source Revision Event Refs",
+            "type": "array"
+          },
+          "status": {
+            "const": "CANDIDATE",
+            "title": "Status",
+            "type": "string"
+          },
+          "trigger_conditions": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Trigger Conditions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "memory_id",
+          "retrieval_summary",
+          "trigger_conditions",
+          "recommended_behavior",
+          "rationale",
+          "source_case_refs",
+          "source_revision_event_refs",
+          "policy_version",
+          "claim_registry_version",
+          "scope",
+          "confidence",
+          "status"
+        ],
+        "title": "MemoryCandidate",
+        "type": "object"
+      },
+      "MemoryRetrievalObservation": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "error_code": {
+                  "type": "string"
+                },
+                "hits": {
+                  "maxItems": 0
+                }
+              },
+              "required": [
+                "error_code"
+              ]
+            },
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "OK"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "error_code": {
+                  "type": "null"
+                },
+                "query_summary": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "query_summary"
+              ]
+            }
+          }
+        ],
+        "properties": {
+          "error_code": {
+            "anyOf": [
+              {
+                "enum": [
+                  "SUMMARY_UNAVAILABLE",
+                  "RETRIEVAL_UNAVAILABLE"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "hits": {
+            "items": {
+              "$ref": "#/components/schemas/MemorySearchHit"
+            },
+            "maxItems": 3,
+            "title": "Hits",
+            "type": "array"
+          },
+          "query_summary": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Query Summary"
+          },
+          "status": {
+            "enum": [
+              "OK",
+              "UNAVAILABLE"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "MemoryRetrievalObservation",
+        "type": "object"
+      },
+      "MemoryScope": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "claim_ids": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimId"
+            },
+            "title": "Claim Ids",
+            "type": "array"
+          },
+          "market": {
+            "minLength": 1,
+            "title": "Market",
+            "type": "string"
+          },
+          "reason_codes": {
+            "items": {
+              "$ref": "#/components/schemas/ReasonCode"
+            },
+            "title": "Reason Codes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "market"
+        ],
+        "title": "MemoryScope",
+        "type": "object"
+      },
+      "MemorySearchHit": {
+        "additionalProperties": false,
+        "properties": {
+          "memory": {
+            "$ref": "#/components/schemas/ApprovedMemory"
+          },
+          "similarity": {
+            "maximum": 1.0,
+            "minimum": -1.0,
+            "title": "Similarity",
+            "type": "number"
+          }
+        },
+        "required": [
+          "memory",
+          "similarity"
+        ],
+        "title": "MemorySearchHit",
+        "type": "object"
+      },
+      "MissingClaim": {
+        "additionalProperties": false,
+        "properties": {
+          "claim_id": {
+            "$ref": "#/components/schemas/ClaimId"
+          },
+          "subject": {
+            "minLength": 1,
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "required": [
+          "claim_id",
+          "subject"
+        ],
+        "title": "MissingClaim",
+        "type": "object"
+      },
+      "ModelJudgmentReturnDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "requirement": {
+            "discriminator": {
+              "mapping": {
+                "False": "#/components/schemas/WaivedReturnRequirement",
+                "True": "#/components/schemas/RequiredReturnRequirement"
+              },
+              "propertyName": "required"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RequiredReturnRequirement"
+              },
+              {
+                "$ref": "#/components/schemas/WaivedReturnRequirement"
+              }
+            ],
+            "title": "Requirement"
+          },
+          "source": {
+            "const": "MODEL_JUDGMENT",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "requirement"
+        ],
+        "title": "ModelJudgmentReturnDecision",
+        "type": "object"
+      },
+      "Narration": {
+        "additionalProperties": false,
+        "properties": {
+          "error_code": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_:.-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "source_event_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_:.-]+$",
+            "title": "Source Event Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "COMPLETED",
+              "UNAVAILABLE"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "maxLength": 600,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "type": {
+            "const": "narration",
+            "default": "narration",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_event_id",
+          "status"
+        ],
+        "title": "Narration",
+        "type": "object"
+      },
+      "NodeSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "facts": {
+            "$ref": "#/components/schemas/ActivityFacts"
+          },
+          "memory_retrieval": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MemoryRetrievalObservation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "review_gate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewGateResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "const": "node_summary",
+            "default": "node_summary",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "facts"
+        ],
+        "title": "NodeSummary",
+        "type": "object"
+      },
+      "NonEmptyRefundScope": {
+        "additionalProperties": false,
+        "properties": {
+          "line_item_ids": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Line Item Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "line_item_ids"
+        ],
+        "title": "NonEmptyRefundScope",
+        "type": "object"
+      },
+      "OrderLineItem": {
+        "additionalProperties": false,
+        "properties": {
+          "category_ref": {
+            "minLength": 1,
+            "title": "Category Ref",
+            "type": "string"
+          },
+          "line_item_id": {
+            "minLength": 1,
+            "title": "Line Item Id",
+            "type": "string"
+          },
+          "quantity": {
+            "minimum": 1.0,
+            "title": "Quantity",
+            "type": "integer"
+          },
+          "refundable_amount": {
+            "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Refundable Amount",
+            "type": "string"
+          },
+          "sku_ref": {
+            "minLength": 1,
+            "title": "Sku Ref",
+            "type": "string"
+          },
+          "title": {
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "line_item_id",
+          "sku_ref",
+          "category_ref",
+          "title",
+          "quantity",
+          "refundable_amount"
+        ],
+        "title": "OrderLineItem",
+        "type": "object"
+      },
+      "OrderSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "already_refunded_amount": {
+            "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Already Refunded Amount",
+            "type": "string"
+          },
+          "captured_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "title": "Captured At",
+            "type": "string"
+          },
+          "currency": {
+            "maxLength": 3,
+            "minLength": 3,
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "delivered_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "title": "Delivered At",
+            "type": "string"
+          },
+          "line_items": {
+            "items": {
+              "$ref": "#/components/schemas/OrderLineItem"
+            },
+            "minItems": 1,
+            "title": "Line Items",
+            "type": "array"
+          },
+          "order_ref": {
+            "minLength": 1,
+            "title": "Order Ref",
+            "type": "string"
+          },
+          "order_snapshot_ref": {
+            "minLength": 1,
+            "title": "Order Snapshot Ref",
+            "type": "string"
+          },
+          "refundable_amount_max": {
+            "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Refundable Amount Max",
+            "type": "string"
+          },
+          "snapshot_version": {
+            "minimum": 1.0,
+            "title": "Snapshot Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "order_snapshot_ref",
+          "order_ref",
+          "snapshot_version",
+          "captured_at",
+          "currency",
+          "delivered_at",
+          "line_items",
+          "refundable_amount_max",
+          "already_refunded_amount"
+        ],
+        "title": "OrderSnapshot",
+        "type": "object"
+      },
+      "PassedVerificationResult": {
+        "additionalProperties": false,
+        "properties": {
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/VerificationIssue"
+            },
+            "maxItems": 0,
+            "title": "Issues",
+            "type": "array"
+          },
+          "status": {
+            "const": "PASS",
+            "title": "Status",
+            "type": "string"
+          },
+          "verification_version": {
+            "minLength": 1,
+            "title": "Verification Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "verification_version"
+        ],
+        "title": "PassedVerificationResult",
+        "type": "object"
+      },
+      "PolicyBundle": {
+        "additionalProperties": false,
+        "properties": {
+          "clauses": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyClause"
+            },
+            "title": "Clauses",
+            "type": "array"
+          },
+          "policy_bundle_version": {
+            "minLength": 1,
+            "title": "Policy Bundle Version",
+            "type": "string"
+          },
+          "retrieval_status": {
+            "$ref": "#/components/schemas/RetrievalStatus"
+          },
+          "retrieved_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "title": "Retrieved At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "policy_bundle_version",
+          "retrieval_status",
+          "retrieved_at"
+        ],
+        "title": "PolicyBundle",
+        "type": "object"
+      },
+      "PolicyClause": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed_actions": {
+            "items": {
+              "$ref": "#/components/schemas/ResolutionAction"
+            },
+            "minItems": 1,
+            "title": "Allowed Actions",
+            "type": "array"
+          },
+          "applicable_conditions": {
+            "$ref": "#/components/schemas/ApplicableConditions"
+          },
+          "clause_id": {
+            "minLength": 1,
+            "title": "Clause Id",
+            "type": "string"
+          },
+          "effective_from": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "title": "Effective From",
+            "type": "string"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To"
+          },
+          "policy_version": {
+            "minLength": 1,
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "required_claim_ids": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimId"
+            },
+            "minItems": 1,
+            "title": "Required Claim Ids",
+            "type": "array"
+          },
+          "return_policy": {
+            "$ref": "#/components/schemas/ReturnPolicy"
+          },
+          "text": {
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "clause_id",
+          "policy_version",
+          "effective_from",
+          "applicable_conditions",
+          "required_claim_ids",
+          "allowed_actions",
+          "return_policy",
+          "text"
+        ],
+        "title": "PolicyClause",
+        "type": "object"
+      },
+      "PolicyDisplayRef": {
+        "additionalProperties": false,
+        "properties": {
+          "clause_id": {
+            "minLength": 1,
+            "title": "Clause Id",
+            "type": "string"
+          },
+          "excerpt": {
+            "minLength": 1,
+            "title": "Excerpt",
+            "type": "string"
+          },
+          "policy_version": {
+            "minLength": 1,
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "relevance": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relevance"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "clause_id",
+          "policy_version",
+          "excerpt"
+        ],
+        "title": "PolicyDisplayRef",
+        "type": "object"
+      },
+      "PolicyReturnDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "requirement": {
+            "discriminator": {
+              "mapping": {
+                "False": "#/components/schemas/WaivedReturnRequirement",
+                "True": "#/components/schemas/RequiredReturnRequirement"
+              },
+              "propertyName": "required"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RequiredReturnRequirement"
+              },
+              {
+                "$ref": "#/components/schemas/WaivedReturnRequirement"
+              }
+            ],
+            "title": "Requirement"
+          },
+          "source": {
+            "const": "POLICY",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "requirement"
+        ],
+        "title": "PolicyReturnDecision",
+        "type": "object"
+      },
+      "ProposedDecisionHandoff": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_prompt_version": {
+            "minLength": 1,
+            "title": "Agent Prompt Version",
+            "type": "string"
+          },
+          "case_ref": {
+            "minLength": 1,
+            "title": "Case Ref",
+            "type": "string"
+          },
+          "claim_registry_version": {
+            "minLength": 1,
+            "title": "Claim Registry Version",
+            "type": "string"
+          },
+          "evidence_bundle": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceItem"
+            },
+            "title": "Evidence Bundle",
+            "type": "array"
+          },
+          "handoff_id": {
+            "minLength": 1,
+            "title": "Handoff Id",
+            "type": "string"
+          },
+          "handoff_version": {
+            "const": "1.0",
+            "title": "Handoff Version",
+            "type": "string"
+          },
+          "order_snapshot_ref": {
+            "minLength": 1,
+            "title": "Order Snapshot Ref",
+            "type": "string"
+          },
+          "policy_bundle_version": {
+            "minLength": 1,
+            "title": "Policy Bundle Version",
+            "type": "string"
+          },
+          "policy_refs": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Policy Refs",
+            "type": "array"
+          },
+          "proposed_decision": {
+            "discriminator": {
+              "mapping": {
+                "DECLINE": "#/components/schemas/DeclineProposedDecision",
+                "FULL_REFUND": "#/components/schemas/FullRefundProposedDecision"
+              },
+              "propertyName": "action"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FullRefundProposedDecision"
+              },
+              {
+                "$ref": "#/components/schemas/DeclineProposedDecision"
+              }
+            ],
+            "title": "Proposed Decision"
+          },
+          "rationale_summary": {
+            "minLength": 1,
+            "title": "Rationale Summary",
+            "type": "string"
+          },
+          "revision_round": {
+            "minimum": 0.0,
+            "title": "Revision Round",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "handoff_version",
+          "handoff_id",
+          "case_ref",
+          "order_snapshot_ref",
+          "policy_bundle_version",
+          "claim_registry_version",
+          "proposed_decision",
+          "policy_refs",
+          "rationale_summary",
+          "revision_round",
+          "agent_prompt_version"
+        ],
+        "title": "ProposedDecisionHandoff",
+        "type": "object"
+      },
+      "QueryApprovedMemoryParams": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "claim_registry_major": {
+            "minimum": 1.0,
+            "title": "Claim Registry Major",
+            "type": "integer"
+          },
+          "market": {
+            "minLength": 1,
+            "title": "Market",
+            "type": "string"
+          },
+          "policy_versions": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Policy Versions",
+            "type": "array"
+          },
+          "query_summary": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Query Summary",
+            "type": "string"
+          },
+          "reason_code": {
+            "$ref": "#/components/schemas/ReasonCode"
+          },
+          "required_claim_ids": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimId"
+            },
+            "minItems": 1,
+            "title": "Required Claim Ids",
+            "type": "array"
+          },
+          "top_k": {
+            "default": 3,
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Top K",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query_summary",
+          "market",
+          "reason_code",
+          "required_claim_ids",
+          "policy_versions",
+          "claim_registry_major"
+        ],
+        "title": "QueryApprovedMemoryParams",
+        "type": "object"
+      },
+      "QueryApprovedMemoryRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "const": "OperationalMemoryStore.query_approved",
+            "title": "Method",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/QueryApprovedMemoryParams"
+          }
+        },
+        "required": [
+          "method",
+          "params"
+        ],
+        "title": "QueryApprovedMemoryRequest",
+        "type": "object"
+      },
+      "QueryApprovedMemoryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "result": {
+            "items": {
+              "$ref": "#/components/schemas/MemorySearchHit"
+            },
+            "maxItems": 3,
+            "title": "Result",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "QueryApprovedMemoryResponse",
+        "type": "object"
+      },
+      "ReasonCode": {
+        "enum": [
+          "ITEM_DAMAGED",
+          "ITEM_NOT_AS_DESCRIBED",
+          "MISSING_ITEM",
+          "WRONG_ITEM",
+          "QUALITY_ISSUE",
+          "CHANGED_MIND"
+        ],
+        "title": "ReasonCode",
+        "type": "string"
+      },
+      "RejectReviewDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "const": "REJECT",
+            "title": "Decision",
+            "type": "string"
+          },
+          "generalizable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generalizable"
+          },
+          "handoff_id": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handoff Id"
+          },
+          "review_note": {
+            "minLength": 1,
+            "title": "Review Note",
+            "type": "string"
+          },
+          "reviewer_id": {
+            "default": "demo_reviewer",
+            "minLength": 1,
+            "title": "Reviewer Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "review_note",
+          "decision"
+        ],
+        "title": "RejectReviewDecision",
+        "type": "object"
+      },
+      "RejectedHumanReviewResult": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "const": "REJECT",
+            "title": "Decision",
+            "type": "string"
+          },
+          "final_resolution_ref": {
+            "minLength": 1,
+            "title": "Final Resolution Ref",
+            "type": "string"
+          },
+          "generalizable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generalizable"
+          },
+          "review_note": {
+            "minLength": 1,
+            "title": "Review Note",
+            "type": "string"
+          },
+          "reviewed_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "title": "Reviewed At",
+            "type": "string"
+          },
+          "reviewer_id": {
+            "default": "demo_reviewer",
+            "minLength": 1,
+            "title": "Reviewer Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "review_note",
+          "final_resolution_ref",
+          "reviewed_at",
+          "decision"
+        ],
+        "title": "RejectedHumanReviewResult",
+        "type": "object"
+      },
+      "RequiredReturnReasonCode": {
+        "enum": [
+          "RESALE_VALUE_RETAINED",
+          "RETURN_REQUIRED_FOR_INSPECTION"
+        ],
+        "title": "RequiredReturnReasonCode",
+        "type": "string"
+      },
+      "RequiredReturnRequirement": {
+        "additionalProperties": false,
+        "properties": {
+          "reason_code": {
+            "$ref": "#/components/schemas/RequiredReturnReasonCode"
+          },
+          "required": {
+            "const": true,
+            "title": "Required",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "required",
+          "reason_code"
+        ],
+        "title": "RequiredReturnRequirement",
+        "type": "object"
+      },
+      "ResolutionAction": {
+        "enum": [
+          "DECLINE",
+          "FULL_REFUND"
+        ],
+        "title": "ResolutionAction",
+        "type": "string"
+      },
+      "ResolveEvidenceParams": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_ref": {
+            "minLength": 1,
+            "title": "Artifact Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "artifact_ref"
+        ],
+        "title": "ResolveEvidenceParams",
+        "type": "object"
+      },
+      "ResolveEvidenceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "const": "EvidenceProvider.resolve",
+            "title": "Method",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/ResolveEvidenceParams"
+          }
+        },
+        "required": [
+          "method",
+          "params"
+        ],
+        "title": "ResolveEvidenceRequest",
+        "type": "object"
+      },
+      "ResolveEvidenceResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/EvidenceItem"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "ResolveEvidenceResponse",
+        "type": "object"
+      },
+      "RetrievalStatus": {
+        "enum": [
+          "OK",
+          "AMBIGUOUS",
+          "NOT_FOUND"
+        ],
+        "title": "RetrievalStatus",
+        "type": "string"
+      },
+      "RetrievePolicyParams": {
+        "additionalProperties": false,
+        "properties": {
+          "case_context": {
+            "$ref": "#/components/schemas/CaseContext"
+          },
+          "claimed_line_item_ids": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Claimed Line Item Ids",
+            "type": "array"
+          },
+          "order_snapshot": {
+            "$ref": "#/components/schemas/OrderSnapshot"
+          },
+          "reason_code": {
+            "$ref": "#/components/schemas/ReasonCode"
+          }
+        },
+        "required": [
+          "case_context",
+          "order_snapshot",
+          "reason_code",
+          "claimed_line_item_ids"
+        ],
+        "title": "RetrievePolicyParams",
+        "type": "object"
+      },
+      "RetrievePolicyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "const": "PolicyProvider.retrieve_policy",
+            "title": "Method",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/RetrievePolicyParams"
+          }
+        },
+        "required": [
+          "method",
+          "params"
+        ],
+        "title": "RetrievePolicyRequest",
+        "type": "object"
+      },
+      "RetrievePolicyResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/PolicyBundle"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "RetrievePolicyResponse",
+        "type": "object"
+      },
+      "ReturnPolicy": {
+        "enum": [
+          "REQUIRED",
+          "NOT_REQUIRED",
+          "MODEL_JUDGMENT"
+        ],
+        "title": "ReturnPolicy",
+        "type": "string"
+      },
+      "ReviewGateResult": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "config_hash": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Config Hash",
+            "type": "string"
+          },
+          "config_version": {
+            "minLength": 1,
+            "title": "Config Version",
+            "type": "string"
+          },
+          "currency": {
+            "maxLength": 3,
+            "minLength": 3,
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "HIGH_VALUE_ITEM",
+                  "CURRENCY_THRESHOLD_UNCONFIGURED"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "HUMAN_REQUIRED",
+              "NOT_APPLICABLE"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "threshold": {
+            "anyOf": [
+              {
+                "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold"
+          }
+        },
+        "required": [
+          "config_version",
+          "config_hash",
+          "status",
+          "amount",
+          "currency",
+          "threshold",
+          "reason"
+        ],
+        "title": "ReviewGateResult",
+        "type": "object"
+      },
+      "RevisedReviewResult": {
+        "additionalProperties": false,
+        "properties": {
+          "reviewed_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "title": "Reviewed At",
+            "type": "string"
+          },
+          "reviewer_claim_findings": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimFinding"
+            },
+            "minItems": 1,
+            "title": "Reviewer Claim Findings",
+            "type": "array"
+          },
+          "reviewer_prompt_version": {
+            "minLength": 1,
+            "title": "Reviewer Prompt Version",
+            "type": "string"
+          },
+          "revision_reasons": {
+            "items": {
+              "$ref": "#/components/schemas/RevisionReason"
+            },
+            "minItems": 1,
+            "title": "Revision Reasons",
+            "type": "array"
+          },
+          "verdict": {
+            "const": "REVISE",
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "verdict",
+          "reviewer_claim_findings",
+          "revision_reasons",
+          "reviewer_prompt_version",
+          "reviewed_at"
+        ],
+        "title": "RevisedReviewResult",
+        "type": "object"
+      },
+      "RevisionReason": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/RevisionReasonCode"
+          },
+          "evidence_refs": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "message": {
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "policy_refs": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Policy Refs",
+            "type": "array"
+          },
+          "required_change": {
+            "minLength": 1,
+            "title": "Required Change",
+            "type": "string"
+          },
+          "subject": {
+            "minLength": 1,
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "subject",
+          "required_change"
+        ],
+        "title": "RevisionReason",
+        "type": "object"
+      },
+      "RevisionReasonCode": {
+        "enum": [
+          "EVIDENCE_INSUFFICIENT",
+          "POLICY_MISMATCH",
+          "DECISION_UNSUPPORTED",
+          "DECISION_INCONSISTENT",
+          "SCOPE_UNSUPPORTED",
+          "RETURN_REQUIREMENT_INCONSISTENT",
+          "HANDOFF_INCOMPLETE",
+          "OTHER"
+        ],
+        "title": "RevisionReasonCode",
+        "type": "string"
+      },
+      "SendMessageRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "attached_artifact_refs": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Attached Artifact Refs",
+            "type": "array"
+          },
+          "message": {
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "SendMessageRequest",
+        "type": "object"
+      },
+      "SubmitHumanReviewParams": {
+        "additionalProperties": false,
+        "properties": {
+          "dossier": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HumanReviewDossier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "handoff": {
+            "$ref": "#/components/schemas/ProposedDecisionHandoff"
+          },
+          "review": {
+            "discriminator": {
+              "mapping": {
+                "APPROVE": "#/components/schemas/ApprovedReviewResult",
+                "REVISE": "#/components/schemas/RevisedReviewResult"
+              },
+              "propertyName": "verdict"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApprovedReviewResult"
+              },
+              {
+                "$ref": "#/components/schemas/RevisedReviewResult"
+              }
+            ],
+            "title": "Review"
+          }
+        },
+        "required": [
+          "handoff",
+          "review"
+        ],
+        "title": "SubmitHumanReviewParams",
+        "type": "object"
+      },
+      "SubmitHumanReviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "const": "HumanReviewProvider.submit_for_review",
+            "title": "Method",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SubmitHumanReviewParams"
+          }
+        },
+        "required": [
+          "method",
+          "params"
+        ],
+        "title": "SubmitHumanReviewRequest",
+        "type": "object"
+      },
+      "SubmitHumanReviewResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "result": {
+            "minLength": 1,
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "SubmitHumanReviewResponse",
+        "type": "object"
+      },
+      "SubmitMemoryCandidateParams": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate": {
+            "$ref": "#/components/schemas/MemoryCandidate"
+          }
+        },
+        "required": [
+          "candidate"
+        ],
+        "title": "SubmitMemoryCandidateParams",
+        "type": "object"
+      },
+      "SubmitMemoryCandidateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "const": "OperationalMemoryStore.submit_candidate",
+            "title": "Method",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SubmitMemoryCandidateParams"
+          }
+        },
+        "required": [
+          "method",
+          "params"
+        ],
+        "title": "SubmitMemoryCandidateRequest",
+        "type": "object"
+      },
+      "SubmitMemoryCandidateResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "result": {
+            "minLength": 1,
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "SubmitMemoryCandidateResponse",
+        "type": "object"
+      },
+      "UnavailableVerificationResult": {
+        "additionalProperties": false,
+        "properties": {
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/VerificationIssue"
+            },
+            "maxItems": 0,
+            "title": "Issues",
+            "type": "array"
+          },
+          "status": {
+            "const": "UNAVAILABLE",
+            "title": "Status",
+            "type": "string"
+          },
+          "verification_version": {
+            "minLength": 1,
+            "title": "Verification Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "verification_version"
+        ],
+        "title": "UnavailableVerificationResult",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "VerificationIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "field_path": {
+            "minLength": 1,
+            "title": "Field Path",
+            "type": "string"
+          },
+          "message": {
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "field_path"
+        ],
+        "title": "VerificationIssue",
+        "type": "object"
+      },
+      "VerifyHandoffParams": {
+        "additionalProperties": false,
+        "properties": {
+          "handoff": {
+            "$ref": "#/components/schemas/ProposedDecisionHandoff"
+          }
+        },
+        "required": [
+          "handoff"
+        ],
+        "title": "VerifyHandoffParams",
+        "type": "object"
+      },
+      "VerifyHandoffRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "const": "VerificationProvider.verify",
+            "title": "Method",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/VerifyHandoffParams"
+          }
+        },
+        "required": [
+          "method",
+          "params"
+        ],
+        "title": "VerifyHandoffRequest",
+        "type": "object"
+      },
+      "VerifyHandoffResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "result": {
+            "discriminator": {
+              "mapping": {
+                "FAIL": "#/components/schemas/FailedVerificationResult",
+                "PASS": "#/components/schemas/PassedVerificationResult",
+                "UNAVAILABLE": "#/components/schemas/UnavailableVerificationResult"
+              },
+              "propertyName": "status"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PassedVerificationResult"
+              },
+              {
+                "$ref": "#/components/schemas/FailedVerificationResult"
+              },
+              {
+                "$ref": "#/components/schemas/UnavailableVerificationResult"
+              }
+            ],
+            "title": "Result"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "VerifyHandoffResponse",
+        "type": "object"
+      },
+      "WaivedReturnReasonCode": {
+        "enum": [
+          "ITEM_UNSALVAGEABLE",
+          "HYGIENE_RISK",
+          "RETURN_UNECONOMICAL",
+          "EVIDENCE_SUFFICIENT_WITHOUT_RETURN"
+        ],
+        "title": "WaivedReturnReasonCode",
+        "type": "string"
+      },
+      "WaivedReturnRequirement": {
+        "additionalProperties": false,
+        "properties": {
+          "reason_code": {
+            "$ref": "#/components/schemas/WaivedReturnReasonCode"
+          },
+          "required": {
+            "const": false,
+            "title": "Required",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "required",
+          "reason_code"
+        ],
+        "title": "WaivedReturnRequirement",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Adaptive Return Resolution API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/cases": {
+      "post": {
+        "operationId": "create_case_cases_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCaseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateCaseResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Case"
+      }
+    },
+    "/cases/{case_ref}": {
+      "get": {
+        "operationId": "get_case_cases__case_ref__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_ref",
+            "required": true,
+            "schema": {
+              "title": "Case Ref",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Case"
+      }
+    },
+    "/cases/{case_ref}/activities": {
+      "get": {
+        "operationId": "get_activities_cases__case_ref__activities_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_ref",
+            "required": true,
+            "schema": {
+              "title": "Case Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after_seq",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "After Seq",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Activities"
+      }
+    },
+    "/cases/{case_ref}/activities/stream": {
+      "get": {
+        "operationId": "activity_stream_cases__case_ref__activities_stream_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_ref",
+            "required": true,
+            "schema": {
+              "title": "Case Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after_seq",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "After Seq",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Last-Event-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Activity Stream"
+      }
+    },
+    "/cases/{case_ref}/events": {
+      "get": {
+        "operationId": "stream_case_events_cases__case_ref__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_ref",
+            "required": true,
+            "schema": {
+              "title": "Case Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Last-Event-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stream Case Events"
+      }
+    },
+    "/cases/{case_ref}/messages": {
+      "post": {
+        "operationId": "send_message_cases__case_ref__messages_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_ref",
+            "required": true,
+            "schema": {
+              "title": "Case Ref",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Send Message"
+      }
+    },
+    "/cases/{case_ref}/review": {
+      "post": {
+        "operationId": "complete_human_review_cases__case_ref__review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_ref",
+            "required": true,
+            "schema": {
+              "title": "Case Ref",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "discriminator": {
+                  "mapping": {
+                    "APPROVE": "#/components/schemas/ApproveReviewDecision",
+                    "EDIT": "#/components/schemas/EditReviewDecision",
+                    "REJECT": "#/components/schemas/RejectReviewDecision"
+                  },
+                  "propertyName": "decision"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ApproveReviewDecision"
+                  },
+                  {
+                    "$ref": "#/components/schemas/EditReviewDecision"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RejectReviewDecision"
+                  }
+                ],
+                "title": "Request"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Complete Human Review"
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Report process health without querying another owner's data.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/internal/v1/case-context": {
+      "post": {
+        "operationId": "load_case_context_internal_v1_case_context_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadCaseContextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadCaseContextResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Load Case Context"
+      }
+    },
+    "/internal/v1/evidence/resolve": {
+      "post": {
+        "operationId": "resolve_evidence_internal_v1_evidence_resolve_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveEvidenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolveEvidenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Evidence"
+      }
+    },
+    "/internal/v1/human-reviews": {
+      "post": {
+        "operationId": "submit_human_review_internal_v1_human_reviews_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitHumanReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitHumanReviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Human Review"
+      }
+    },
+    "/internal/v1/human-reviews/result": {
+      "post": {
+        "operationId": "fetch_human_review_result_internal_v1_human_reviews_result_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FetchHumanReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FetchHumanReviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Fetch Human Review Result"
+      }
+    },
+    "/internal/v1/memory/candidates": {
+      "post": {
+        "operationId": "submit_memory_candidate_internal_v1_memory_candidates_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitMemoryCandidateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitMemoryCandidateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Memory Candidate"
+      }
+    },
+    "/internal/v1/memory/query": {
+      "post": {
+        "operationId": "query_approved_memory_internal_v1_memory_query_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryApprovedMemoryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryApprovedMemoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Query Approved Memory"
+      }
+    },
+    "/internal/v1/policy": {
+      "post": {
+        "operationId": "retrieve_policy_internal_v1_policy_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetrievePolicyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetrievePolicyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retrieve Policy"
+      }
+    },
+    "/internal/v1/verification": {
+      "post": {
+        "operationId": "verify_handoff_internal_v1_verification_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyHandoffRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyHandoffResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify Handoff"
+      }
+    }
+  }
+}

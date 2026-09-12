@@ -1,0 +1,94 @@
+{
+  "$defs": {
+    "ClaimFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/ClaimId"
+        },
+        "explanation": {
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ClaimStatus"
+        },
+        "subject": {
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        },
+        "supporting_evidence_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Supporting Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "claim_id",
+        "subject",
+        "status",
+        "explanation"
+      ],
+      "title": "ClaimFinding",
+      "type": "object"
+    },
+    "ClaimId": {
+      "enum": [
+        "DELIVERY_CONFIRMED",
+        "ORDER_WITHIN_RETURN_WINDOW",
+        "SHIPMENT_SEAL_INTACT",
+        "ITEM_PHYSICALLY_DAMAGED",
+        "DAMAGE_PRESENT_ON_ARRIVAL",
+        "ITEM_FUNCTIONALLY_IMPAIRED",
+        "ITEM_DIFFERS_FROM_LISTING",
+        "WRONG_ITEM_RECEIVED",
+        "ITEM_NOT_IN_SHIPMENT",
+        "ITEM_UNUSED"
+      ],
+      "title": "ClaimId",
+      "type": "string"
+    },
+    "ClaimStatus": {
+      "enum": [
+        "SUPPORTED",
+        "UNSUPPORTED",
+        "CONTRADICTED"
+      ],
+      "title": "ClaimStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "claim_findings": {
+      "items": {
+        "$ref": "#/$defs/ClaimFinding"
+      },
+      "minItems": 1,
+      "title": "Claim Findings",
+      "type": "array"
+    },
+    "claim_registry_version": {
+      "minLength": 1,
+      "title": "Claim Registry Version",
+      "type": "string"
+    },
+    "evidence_status": {
+      "const": "SUFFICIENT_FOR_DECLINE",
+      "title": "Evidence Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "claim_registry_version",
+    "claim_findings",
+    "evidence_status"
+  ],
+  "title": "DeclineEvidenceAssessment",
+  "type": "object"
+}

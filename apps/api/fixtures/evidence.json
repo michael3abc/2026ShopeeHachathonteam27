@@ -1,0 +1,11 @@
+[
+  {
+    "evidence_id": "EV-002",
+    "type": "IMAGE",
+    "source": "USER",
+    "subject": "LI-002",
+    "artifact_ref": "artifact://evidence/EV-002",
+    "extracted_summary": "Packaging damage and an item crack are visible.",
+    "collected_at": "2026-09-01T10:40:00Z"
+  }
+]

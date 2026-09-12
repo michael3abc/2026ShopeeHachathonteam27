@@ -1,0 +1,1917 @@
+{
+  "activity_narration_outbox": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [
+          "case_activities.event_id"
+        ],
+        "name": "source_event_id",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(200)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "payload",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      },
+      {
+        "application_default": "False",
+        "foreign_keys": [],
+        "name": "dispatched",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "BOOLEAN"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "result_event_id",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(200)"
+      }
+    ],
+    "constraints": [
+      "\tFOREIGN KEY(source_event_id) REFERENCES case_activities (event_id)",
+      "\tPRIMARY KEY (source_event_id), ",
+      "\tdispatched BOOLEAN NOT NULL, ",
+      "\tpayload JSON NOT NULL, ",
+      "\tresult_event_id VARCHAR(200), ",
+      "\tsource_event_id VARCHAR(200) NOT NULL, "
+    ],
+    "indexes": [
+      {
+        "name": "ix_activity_narration_outbox_dispatched",
+        "sql": "CREATE INDEX ix_activity_narration_outbox_dispatched ON activity_narration_outbox (dispatched)",
+        "unique": false
+      }
+    ],
+    "owner": "api"
+  },
+  "agent_command_outbox": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "command_id",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "payload",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "created_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": "now()",
+        "type": "TIMESTAMP WITH TIME ZONE"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "published_at",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "claimed_by",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(256)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "claimed_until",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "lease_token",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(32)"
+      },
+      {
+        "application_default": "0",
+        "foreign_keys": [],
+        "name": "attempt_count",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": "0",
+        "type": "INTEGER"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "last_error",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TEXT"
+      }
+    ],
+    "constraints": [
+      "\tCONSTRAINT ck_agent_command_outbox_attempt_count CHECK (attempt_count >= 0)",
+      "\tPRIMARY KEY (command_id), ",
+      "\tattempt_count INTEGER DEFAULT '0' NOT NULL, ",
+      "\tclaimed_by VARCHAR(256), ",
+      "\tclaimed_until TIMESTAMP WITH TIME ZONE, ",
+      "\tcommand_id VARCHAR(128) NOT NULL, ",
+      "\tcreated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, ",
+      "\tlast_error TEXT, ",
+      "\tlease_token VARCHAR(32), ",
+      "\tpayload JSON NOT NULL, ",
+      "\tpublished_at TIMESTAMP WITH TIME ZONE, "
+    ],
+    "indexes": [],
+    "owner": "api"
+  },
+  "agent_event_projection_cursors": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "command_id",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [
+          "cases.case_ref"
+        ],
+        "name": "case_ref",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "last_event_index",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "INTEGER"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "terminated_at",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "termination_event_id",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(256)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "updated_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": "now()",
+        "type": "TIMESTAMP WITH TIME ZONE"
+      }
+    ],
+    "constraints": [
+      "\tCONSTRAINT ck_agent_event_projection_cursor_index CHECK (last_event_index >= 0), ",
+      "\tFOREIGN KEY(case_ref) REFERENCES cases (case_ref) ON DELETE CASCADE",
+      "\tPRIMARY KEY (command_id), ",
+      "\tcase_ref VARCHAR(128) NOT NULL, ",
+      "\tcommand_id VARCHAR(128) NOT NULL, ",
+      "\tlast_event_index INTEGER NOT NULL, ",
+      "\tterminated_at TIMESTAMP WITH TIME ZONE, ",
+      "\ttermination_event_id VARCHAR(256), ",
+      "\tupdated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, "
+    ],
+    "indexes": [
+      {
+        "name": "ix_agent_event_projection_cursors_case_ref",
+        "sql": "CREATE INDEX ix_agent_event_projection_cursors_case_ref ON agent_event_projection_cursors (case_ref)",
+        "unique": false
+      }
+    ],
+    "owner": "api"
+  },
+  "case_activities": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "event_id",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(200)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [
+          "cases.case_ref"
+        ],
+        "name": "case_ref",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "seq",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "INTEGER"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "payload",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      }
+    ],
+    "constraints": [
+      "\tFOREIGN KEY(case_ref) REFERENCES cases (case_ref)",
+      "\tPRIMARY KEY (event_id), ",
+      "\tUNIQUE (case_ref, seq), ",
+      "\tcase_ref VARCHAR(128) NOT NULL, ",
+      "\tevent_id VARCHAR(200) NOT NULL, ",
+      "\tpayload JSON NOT NULL, ",
+      "\tseq INTEGER NOT NULL, "
+    ],
+    "indexes": [
+      {
+        "name": "ix_case_activities_case_ref",
+        "sql": "CREATE INDEX ix_case_activities_case_ref ON case_activities (case_ref)",
+        "unique": false
+      }
+    ],
+    "owner": "api"
+  },
+  "case_events": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "id",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "INTEGER"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [
+          "cases.case_ref"
+        ],
+        "name": "case_ref",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "seq",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "INTEGER"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "kind",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(16)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "payload",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "created_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": "now()",
+        "type": "TIMESTAMP WITH TIME ZONE"
+      }
+    ],
+    "constraints": [
+      "\tCONSTRAINT ck_case_events_kind CHECK (kind IN ('agent_event', 'user_turn')), ",
+      "\tCONSTRAINT ck_case_events_seq_positive CHECK (seq >= 1), ",
+      "\tCONSTRAINT uq_case_events_case_ref_seq UNIQUE (case_ref, seq), ",
+      "\tFOREIGN KEY(case_ref) REFERENCES cases (case_ref) ON DELETE CASCADE",
+      "\tPRIMARY KEY (id), ",
+      "\tcase_ref VARCHAR(128) NOT NULL, ",
+      "\tcreated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, ",
+      "\tid SERIAL NOT NULL, ",
+      "\tkind VARCHAR(16) NOT NULL, ",
+      "\tpayload JSON NOT NULL, ",
+      "\tseq INTEGER NOT NULL, "
+    ],
+    "indexes": [
+      {
+        "name": "ix_case_events_case_ref",
+        "sql": "CREATE INDEX ix_case_events_case_ref ON case_events (case_ref)",
+        "unique": false
+      }
+    ],
+    "owner": "api"
+  },
+  "cases": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "case_ref",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "thread_id",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "order_ref",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "user_ref",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "status",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(32)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "created_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": "now()",
+        "type": "TIMESTAMP WITH TIME ZONE"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "updated_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": "now()",
+        "type": "TIMESTAMP WITH TIME ZONE"
+      }
+    ],
+    "constraints": [
+      "\tCONSTRAINT ck_cases_order_ref_not_blank CHECK (length(trim(order_ref)) > 0), ",
+      "\tCONSTRAINT ck_cases_status CHECK (status IN ('OBSERVING', 'AWAITING_CLARIFICATION', 'AWAITING_EVIDENCE', 'AWAITING_HUMAN_REVIEW', 'EXECUTING', 'RESOLVED', 'ESCALATED')), ",
+      "\tCONSTRAINT ck_cases_user_ref_not_blank CHECK (length(trim(user_ref)) > 0), ",
+      "\tPRIMARY KEY (case_ref), ",
+      "\tUNIQUE (thread_id)",
+      "\tcase_ref VARCHAR(128) NOT NULL, ",
+      "\tcreated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, ",
+      "\torder_ref VARCHAR(128) NOT NULL, ",
+      "\tstatus VARCHAR(32) NOT NULL, ",
+      "\tthread_id VARCHAR(128) NOT NULL, ",
+      "\tupdated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, ",
+      "\tuser_ref VARCHAR(128) NOT NULL, "
+    ],
+    "indexes": [
+      {
+        "name": "ix_cases_order_ref",
+        "sql": "CREATE INDEX ix_cases_order_ref ON cases (order_ref)",
+        "unique": false
+      },
+      {
+        "name": "ix_cases_user_ref",
+        "sql": "CREATE INDEX ix_cases_user_ref ON cases (user_ref)",
+        "unique": false
+      }
+    ],
+    "owner": "api"
+  },
+  "evidence_items": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "evidence_id",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "type",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(16)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "source",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(32)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "subject",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "artifact_ref",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(512)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "extracted_summary",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TEXT"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "collected_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "created_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": "now()",
+        "type": "TIMESTAMP WITH TIME ZONE"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "content_hash",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(64)"
+      }
+    ],
+    "constraints": [
+      "\tCONSTRAINT ck_evidence_items_artifact_ref_not_blank CHECK (length(trim(artifact_ref)) > 0), ",
+      "\tCONSTRAINT ck_evidence_items_source CHECK (source IN ('USER', 'ORDER_TOOL', 'LOGISTICS_TOOL', 'SYSTEM')), ",
+      "\tCONSTRAINT ck_evidence_items_subject_not_blank CHECK (length(trim(subject)) > 0), ",
+      "\tCONSTRAINT ck_evidence_items_summary_not_blank CHECK (length(trim(extracted_summary)) > 0), ",
+      "\tCONSTRAINT ck_evidence_items_type CHECK (type IN ('IMAGE', 'VIDEO', 'TEXT', 'DOCUMENT')), ",
+      "\tPRIMARY KEY (evidence_id), ",
+      "\tUNIQUE (artifact_ref), ",
+      "\tUNIQUE (content_hash)",
+      "\tartifact_ref VARCHAR(512) NOT NULL, ",
+      "\tcollected_at TIMESTAMP WITH TIME ZONE NOT NULL, ",
+      "\tcontent_hash VARCHAR(64) NOT NULL, ",
+      "\tcreated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, ",
+      "\tevidence_id VARCHAR(128) NOT NULL, ",
+      "\textracted_summary TEXT NOT NULL, ",
+      "\tsource VARCHAR(32) NOT NULL, ",
+      "\tsubject VARCHAR(128) NOT NULL, ",
+      "\ttype VARCHAR(16) NOT NULL, "
+    ],
+    "indexes": [],
+    "owner": "api"
+  },
+  "handoff_verifications": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "verification_id",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "handoff_id",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(256)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "payload_hash",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(64)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "handoff_payload",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "result_payload",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "verification_status",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(16)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "verification_version",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "created_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "updated_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      }
+    ],
+    "constraints": [
+      "\tCONSTRAINT ck_handoff_verifications_status CHECK (verification_status IN ('PASS', 'FAIL', 'UNAVAILABLE')), ",
+      "\tPRIMARY KEY (verification_id), ",
+      "\tUNIQUE (handoff_id)",
+      "\tcreated_at TIMESTAMP WITH TIME ZONE NOT NULL, ",
+      "\thandoff_id VARCHAR(256) NOT NULL, ",
+      "\thandoff_payload JSON NOT NULL, ",
+      "\tpayload_hash VARCHAR(64) NOT NULL, ",
+      "\tresult_payload JSON NOT NULL, ",
+      "\tupdated_at TIMESTAMP WITH TIME ZONE NOT NULL, ",
+      "\tverification_id VARCHAR(128) NOT NULL, ",
+      "\tverification_status VARCHAR(16) NOT NULL, ",
+      "\tverification_version VARCHAR(128) NOT NULL, "
+    ],
+    "indexes": [],
+    "owner": "api"
+  },
+  "human_reviews": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "review_ref",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(256)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "handoff_id",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(256)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "case_ref",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "payload_hash",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(64)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "handoff_payload",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "review_payload",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "dossier_payload",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "result_payload",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "submitted_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "reviewed_at",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      }
+    ],
+    "constraints": [
+      "\tCONSTRAINT ck_human_reviews_result_has_timestamp CHECK (result_payload IS NULL OR reviewed_at IS NOT NULL), ",
+      "\tPRIMARY KEY (review_ref), ",
+      "\tUNIQUE (handoff_id)",
+      "\tcase_ref VARCHAR(128) NOT NULL, ",
+      "\tdossier_payload JSON, ",
+      "\thandoff_id VARCHAR(256) NOT NULL, ",
+      "\thandoff_payload JSON NOT NULL, ",
+      "\tpayload_hash VARCHAR(64) NOT NULL, ",
+      "\tresult_payload JSON, ",
+      "\treview_payload JSON, ",
+      "\treview_ref VARCHAR(256) NOT NULL, ",
+      "\treviewed_at TIMESTAMP WITH TIME ZONE, ",
+      "\tsubmitted_at TIMESTAMP WITH TIME ZONE NOT NULL, "
+    ],
+    "indexes": [
+      {
+        "name": "ix_human_reviews_case_ref",
+        "sql": "CREATE INDEX ix_human_reviews_case_ref ON human_reviews (case_ref)",
+        "unique": false
+      }
+    ],
+    "owner": "api"
+  },
+  "memory_job_results": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "job_id",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(256)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "input_hash",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(64)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "prompt_version",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(256)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "result",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "terminal_event",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      }
+    ],
+    "constraints": [
+      "\tPRIMARY KEY (job_id)",
+      "\tinput_hash VARCHAR(64) NOT NULL, ",
+      "\tjob_id VARCHAR(256) NOT NULL, ",
+      "\tprompt_version VARCHAR(256) NOT NULL, ",
+      "\tresult JSON, ",
+      "\tterminal_event JSON, "
+    ],
+    "indexes": [],
+    "owner": "agent-memory"
+  },
+  "operational_memories": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "memory_id",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "submission_ref",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(256)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "candidate_payload_hash",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(64)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "retrieval_summary",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TEXT"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "summary_version",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(64)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "summary_hash",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(64)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "embedding_model",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "embedding",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VECTOR(1536)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "trigger_conditions",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "recommended_behavior",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TEXT"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "rationale",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TEXT"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "source_case_refs",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "source_revision_event_refs",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "policy_version",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(256)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "claim_registry_version",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "scope_market",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(64)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "scope_reason_codes",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR[]"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "scope_claim_ids",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR[]"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "scope_categories",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR[]"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "confidence",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "FLOAT"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "status",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(16)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "submitted_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": "now()",
+        "type": "TIMESTAMP WITH TIME ZONE"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "approved_at",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "retired_at",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      }
+    ],
+    "constraints": [
+      "\tCONSTRAINT ck_operational_memories_approval_after_submission CHECK (approved_at IS NULL OR approved_at >= submitted_at), ",
+      "\tCONSTRAINT ck_operational_memories_behavior_not_blank CHECK (length(trim(recommended_behavior)) > 0), ",
+      "\tCONSTRAINT ck_operational_memories_confidence CHECK (confidence >= 0 AND confidence <= 1), ",
+      "\tCONSTRAINT ck_operational_memories_lifecycle_timestamps CHECK ((status = 'CANDIDATE' AND approved_at IS NULL AND retired_at IS NULL) OR (status = 'APPROVED' AND approved_at IS NOT NULL AND retired_at IS NULL) OR (status = 'RETIRED' AND approved_at IS NOT NULL AND retired_at IS NOT NULL)), ",
+      "\tCONSTRAINT ck_operational_memories_policy_version_not_blank CHECK (length(trim(policy_version)) > 0), ",
+      "\tCONSTRAINT ck_operational_memories_rationale_not_blank CHECK (length(trim(rationale)) > 0), ",
+      "\tCONSTRAINT ck_operational_memories_registry_version_not_blank CHECK (length(trim(claim_registry_version)) > 0), ",
+      "\tCONSTRAINT ck_operational_memories_retirement_after_approval CHECK (retired_at IS NULL OR retired_at >= approved_at), ",
+      "\tCONSTRAINT ck_operational_memories_scope_market_not_blank CHECK (length(trim(scope_market)) > 0), ",
+      "\tCONSTRAINT ck_operational_memories_status CHECK (status IN ('CANDIDATE', 'APPROVED', 'RETIRED')), ",
+      "\tCONSTRAINT ck_operational_memories_submission_ref_not_blank CHECK (length(trim(submission_ref)) > 0), ",
+      "\tPRIMARY KEY (memory_id), ",
+      "\tUNIQUE (submission_ref)",
+      "\tapproved_at TIMESTAMP WITH TIME ZONE, ",
+      "\tcandidate_payload_hash VARCHAR(64) NOT NULL, ",
+      "\tclaim_registry_version VARCHAR(128) NOT NULL, ",
+      "\tconfidence FLOAT NOT NULL, ",
+      "\tembedding VECTOR(1536), ",
+      "\tembedding_model VARCHAR(128), ",
+      "\tmemory_id VARCHAR(128) NOT NULL, ",
+      "\tpolicy_version VARCHAR(256) NOT NULL, ",
+      "\trationale TEXT NOT NULL, ",
+      "\trecommended_behavior TEXT NOT NULL, ",
+      "\tretired_at TIMESTAMP WITH TIME ZONE, ",
+      "\tretrieval_summary TEXT, ",
+      "\tscope_categories VARCHAR[] NOT NULL, ",
+      "\tscope_claim_ids VARCHAR[] NOT NULL, ",
+      "\tscope_market VARCHAR(64) NOT NULL, ",
+      "\tscope_reason_codes VARCHAR[] NOT NULL, ",
+      "\tsource_case_refs JSON NOT NULL, ",
+      "\tsource_revision_event_refs JSON NOT NULL, ",
+      "\tstatus VARCHAR(16) NOT NULL, ",
+      "\tsubmission_ref VARCHAR(256) NOT NULL, ",
+      "\tsubmitted_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, ",
+      "\tsummary_hash VARCHAR(64), ",
+      "\tsummary_version VARCHAR(64), ",
+      "\ttrigger_conditions JSON NOT NULL, "
+    ],
+    "indexes": [],
+    "owner": "api"
+  },
+  "operational_memory_events": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "event_id",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [
+          "operational_memories.memory_id"
+        ],
+        "name": "memory_id",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "event_type",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(16)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "from_status",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(16)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "to_status",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(16)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "occurred_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      }
+    ],
+    "constraints": [
+      "\tCONSTRAINT ck_operational_memory_events_transition CHECK ((event_type = 'APPROVED' AND from_status = 'CANDIDATE' AND to_status = 'APPROVED') OR (event_type = 'RETIRED' AND from_status = 'APPROVED' AND to_status = 'RETIRED')), ",
+      "\tCONSTRAINT ck_operational_memory_events_type CHECK (event_type IN ('APPROVED', 'RETIRED')), ",
+      "\tFOREIGN KEY(memory_id) REFERENCES operational_memories (memory_id)",
+      "\tPRIMARY KEY (event_id), ",
+      "\tevent_id VARCHAR(128) NOT NULL, ",
+      "\tevent_type VARCHAR(16) NOT NULL, ",
+      "\tfrom_status VARCHAR(16) NOT NULL, ",
+      "\tmemory_id VARCHAR(128) NOT NULL, ",
+      "\toccurred_at TIMESTAMP WITH TIME ZONE NOT NULL, ",
+      "\tto_status VARCHAR(16) NOT NULL, "
+    ],
+    "indexes": [
+      {
+        "name": "ix_operational_memory_events_memory_id",
+        "sql": "CREATE INDEX ix_operational_memory_events_memory_id ON operational_memory_events (memory_id)",
+        "unique": false
+      }
+    ],
+    "owner": "api"
+  },
+  "policy_clauses": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "clause_id",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(256)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [
+          "policy_documents.document_id"
+        ],
+        "name": "document_id",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "policy_version",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(256)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "effective_from",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "effective_to",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "markets",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR[]"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "reason_codes",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR[]"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "categories",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR[]"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "required_claim_ids",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR[]"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "allowed_actions",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR[]"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "return_policy",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(32)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "clause_text",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TEXT"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "embedding_model",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "embedding",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VECTOR(1536)"
+      }
+    ],
+    "constraints": [
+      "\tFOREIGN KEY(document_id) REFERENCES policy_documents (document_id)",
+      "\tPRIMARY KEY (clause_id), ",
+      "\tallowed_actions VARCHAR[] NOT NULL, ",
+      "\tcategories VARCHAR[] NOT NULL, ",
+      "\tclause_id VARCHAR(256) NOT NULL, ",
+      "\tclause_text TEXT NOT NULL, ",
+      "\tdocument_id VARCHAR(128) NOT NULL, ",
+      "\teffective_from TIMESTAMP WITH TIME ZONE NOT NULL, ",
+      "\teffective_to TIMESTAMP WITH TIME ZONE, ",
+      "\tembedding VECTOR(1536) NOT NULL, ",
+      "\tembedding_model VARCHAR(128) NOT NULL, ",
+      "\tmarkets VARCHAR[] NOT NULL, ",
+      "\tpolicy_version VARCHAR(256) NOT NULL, ",
+      "\treason_codes VARCHAR[] NOT NULL, ",
+      "\trequired_claim_ids VARCHAR[] NOT NULL, ",
+      "\treturn_policy VARCHAR(32) NOT NULL, "
+    ],
+    "indexes": [
+      {
+        "name": "ix_policy_clauses_document_id",
+        "sql": "CREATE INDEX ix_policy_clauses_document_id ON policy_clauses (document_id)",
+        "unique": false
+      }
+    ],
+    "owner": "api"
+  },
+  "policy_documents": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "document_id",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "policy_family",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "version",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "source_ref",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(512)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "checksum",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(64)"
+      },
+      {
+        "application_default": "True",
+        "foreign_keys": [],
+        "name": "is_active",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "BOOLEAN"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "ingested_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": "now()",
+        "type": "TIMESTAMP WITH TIME ZONE"
+      }
+    ],
+    "constraints": [
+      "\tCONSTRAINT uq_policy_documents_family_version UNIQUE (policy_family, version), ",
+      "\tCONSTRAINT uq_policy_documents_source_version UNIQUE (source_ref, version)",
+      "\tPRIMARY KEY (document_id), ",
+      "\tchecksum VARCHAR(64) NOT NULL, ",
+      "\tdocument_id VARCHAR(128) NOT NULL, ",
+      "\tingested_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, ",
+      "\tis_active BOOLEAN NOT NULL, ",
+      "\tpolicy_family VARCHAR(128) NOT NULL, ",
+      "\tsource_ref VARCHAR(512) NOT NULL, ",
+      "\tversion VARCHAR(128) NOT NULL, "
+    ],
+    "indexes": [],
+    "owner": "api"
+  },
+  "policy_retrievals": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "retrieval_id",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "request_hash",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(64)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "bundle_version",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "retrieval_status",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(32)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "bundle_payload",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "retrieved_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      }
+    ],
+    "constraints": [
+      "\tCONSTRAINT uq_policy_retrievals_bundle_version UNIQUE (bundle_version)",
+      "\tPRIMARY KEY (retrieval_id), ",
+      "\tbundle_payload JSON NOT NULL, ",
+      "\tbundle_version VARCHAR(128) NOT NULL, ",
+      "\trequest_hash VARCHAR(64) NOT NULL, ",
+      "\tretrieval_id VARCHAR(128) NOT NULL, ",
+      "\tretrieval_status VARCHAR(32) NOT NULL, ",
+      "\tretrieved_at TIMESTAMP WITH TIME ZONE NOT NULL, "
+    ],
+    "indexes": [
+      {
+        "name": "ix_policy_retrievals_request_hash",
+        "sql": "CREATE INDEX ix_policy_retrievals_request_hash ON policy_retrievals (request_hash)",
+        "unique": false
+      }
+    ],
+    "owner": "api"
+  },
+  "processed_agent_events": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "event_id",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(256)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [
+          "cases.case_ref"
+        ],
+        "name": "case_ref",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "command_id",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "event_index",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "INTEGER"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "payload_hash",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(64)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "processed_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": "now()",
+        "type": "TIMESTAMP WITH TIME ZONE"
+      }
+    ],
+    "constraints": [
+      "\tFOREIGN KEY(case_ref) REFERENCES cases (case_ref) ON DELETE CASCADE",
+      "\tPRIMARY KEY (event_id), ",
+      "\tcase_ref VARCHAR(128) NOT NULL, ",
+      "\tcommand_id VARCHAR(128) NOT NULL, ",
+      "\tevent_id VARCHAR(256) NOT NULL, ",
+      "\tevent_index INTEGER NOT NULL, ",
+      "\tpayload_hash VARCHAR(64) NOT NULL, ",
+      "\tprocessed_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, "
+    ],
+    "indexes": [
+      {
+        "name": "ix_processed_agent_events_case_ref",
+        "sql": "CREATE INDEX ix_processed_agent_events_case_ref ON processed_agent_events (case_ref)",
+        "unique": false
+      }
+    ],
+    "owner": "api"
+  },
+  "refund_execution_items": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [
+          "refund_executions.execution_ref"
+        ],
+        "name": "execution_ref",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "line_item_ref",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "order_ref",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "applied_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      }
+    ],
+    "constraints": [
+      "\tCONSTRAINT uq_refund_execution_items_order_line_item UNIQUE (order_ref, line_item_ref), ",
+      "\tFOREIGN KEY(execution_ref) REFERENCES refund_executions (execution_ref)",
+      "\tPRIMARY KEY (execution_ref, line_item_ref), ",
+      "\tapplied_at TIMESTAMP WITH TIME ZONE NOT NULL, ",
+      "\texecution_ref VARCHAR(128) NOT NULL, ",
+      "\tline_item_ref VARCHAR(128) NOT NULL, ",
+      "\torder_ref VARCHAR(128) NOT NULL, "
+    ],
+    "indexes": [],
+    "owner": "api"
+  },
+  "refund_executions": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "execution_ref",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "handoff_id",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(256)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "case_ref",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "payload_hash",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(64)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "request_payload",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "order_ref",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "application_result_payload",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "JSON"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "state",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(16)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "created_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "application_started_at",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "completed_at",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "updated_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      }
+    ],
+    "constraints": [
+      "\tCONSTRAINT ck_refund_executions_state CHECK (state IN ('IN_PROGRESS', 'SUCCEEDED', 'REJECTED')), ",
+      "\tCONSTRAINT ck_refund_executions_terminal_result CHECK ((state = 'IN_PROGRESS' AND application_result_payload IS NULL AND completed_at IS NULL) OR (state IN ('SUCCEEDED', 'REJECTED') AND application_result_payload IS NOT NULL AND completed_at IS NOT NULL)), ",
+      "\tPRIMARY KEY (execution_ref), ",
+      "\tUNIQUE (handoff_id)",
+      "\tapplication_result_payload JSON, ",
+      "\tapplication_started_at TIMESTAMP WITH TIME ZONE, ",
+      "\tcase_ref VARCHAR(128) NOT NULL, ",
+      "\tcompleted_at TIMESTAMP WITH TIME ZONE, ",
+      "\tcreated_at TIMESTAMP WITH TIME ZONE NOT NULL, ",
+      "\texecution_ref VARCHAR(128) NOT NULL, ",
+      "\thandoff_id VARCHAR(256) NOT NULL, ",
+      "\torder_ref VARCHAR(128), ",
+      "\tpayload_hash VARCHAR(64) NOT NULL, ",
+      "\trequest_payload JSON NOT NULL, ",
+      "\tstate VARCHAR(16) NOT NULL, ",
+      "\tupdated_at TIMESTAMP WITH TIME ZONE NOT NULL, "
+    ],
+    "indexes": [],
+    "owner": "api"
+  },
+  "refund_item_reservations": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "order_ref",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "line_item_ref",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [
+          "refund_executions.execution_ref"
+        ],
+        "name": "execution_ref",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "reserved_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TIMESTAMP WITH TIME ZONE"
+      }
+    ],
+    "constraints": [
+      "\tFOREIGN KEY(execution_ref) REFERENCES refund_executions (execution_ref)",
+      "\tPRIMARY KEY (order_ref, line_item_ref), ",
+      "\texecution_ref VARCHAR(128) NOT NULL, ",
+      "\tline_item_ref VARCHAR(128) NOT NULL, ",
+      "\torder_ref VARCHAR(128) NOT NULL, ",
+      "\treserved_at TIMESTAMP WITH TIME ZONE NOT NULL, "
+    ],
+    "indexes": [],
+    "owner": "api"
+  },
+  "rejected_agent_events": {
+    "columns": [
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "source_message_id",
+        "nullable": false,
+        "primary_key": true,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "event_id",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(256)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "case_ref",
+        "nullable": true,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(128)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "raw_body",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TEXT"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "error_code",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "VARCHAR(64)"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "error_message",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": null,
+        "type": "TEXT"
+      },
+      {
+        "application_default": null,
+        "foreign_keys": [],
+        "name": "rejected_at",
+        "nullable": false,
+        "primary_key": false,
+        "server_default": "now()",
+        "type": "TIMESTAMP WITH TIME ZONE"
+      }
+    ],
+    "constraints": [
+      "\tPRIMARY KEY (source_message_id)",
+      "\tcase_ref VARCHAR(128), ",
+      "\terror_code VARCHAR(64) NOT NULL, ",
+      "\terror_message TEXT NOT NULL, ",
+      "\tevent_id VARCHAR(256), ",
+      "\traw_body TEXT NOT NULL, ",
+      "\trejected_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, ",
+      "\tsource_message_id VARCHAR(128) NOT NULL, "
+    ],
+    "indexes": [
+      {
+        "name": "ix_rejected_agent_events_case_ref",
+        "sql": "CREATE INDEX ix_rejected_agent_events_case_ref ON rejected_agent_events (case_ref)",
+        "unique": false
+      },
+      {
+        "name": "ix_rejected_agent_events_event_id",
+        "sql": "CREATE INDEX ix_rejected_agent_events_event_id ON rejected_agent_events (event_id)",
+        "unique": false
+      }
+    ],
+    "owner": "api"
+  }
+}

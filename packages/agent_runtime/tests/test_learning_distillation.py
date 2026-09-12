@@ -86,6 +86,7 @@ def test_uncorrected_case_can_learn_and_skipped_case_still_has_review():
     payload = model.calls[-1].payload
     assert "distillation_input" not in payload
     assert "artifact://" not in str(payload)
+    assert payload["allowed_source_event_refs"] == [event.event_id for event in trace.events]
     model.queue(ModelTask.MEMORY_DISTILL, MemorySkipOutput(result_type="SKIP",
         reason_code="CASE_SPECIFIC_ONLY", **reflection(trace, category="CASE_DISCRETION")))
     skipped = MemoryDistiller(model).distill(input_)

@@ -107,6 +107,9 @@ class MemoryDistiller:
                     "claim_ids": required_claim_ids,
                     "categories": list(input_.claimed_categories),
                 },
+                # IDs are opaque provenance keys.  Passing the closed set
+                # separately makes the model's copy-only obligation explicit.
+                "allowed_source_event_refs": [event.event_id for event in trace.events],
             },
             output_schema=MEMORY_OUTPUT_SCHEMA,
         )

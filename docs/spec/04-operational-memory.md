@@ -1,6 +1,6 @@
 # Operational Memory
 
-Distiller prompt 3.2 以完整 learning trace 與可追溯的去識別化對話產生整案回顧、學習判定及至多一則候選。Policy v2 額外保留 policy path、confirmation 與 APPLIED completion lineage。排除系統缺陷與無根據的 Reviewer 異議；採納不等於普遍正確，結案不等於因果效益。Memory 改善下一案尚須對照驗證。
+Distiller prompt 3.3 以完整 learning trace 與可追溯的去識別化對話產生整案回顧、學習判定及至多一則候選。Policy v2 額外保留 policy path、confirmation 與 APPLIED completion lineage。排除系統缺陷與無根據的 Reviewer 異議；採納不等於普遍正確，結案不等於因果效益。來源事件 ID 只能從 input 的 `allowed_source_event_refs` 逐字複製；ID 缺漏或變形由 runtime fail-closed 拒絕。Memory 改善下一案尚須對照驗證。
 
 人工無法收斂裁決沿用既有 correction trace 與非同步 Distiller：保留原 Reviewer 意見、人工最終決定及整體 review_note，不將人工改判偽裝成 Reviewer APPROVE。人工結果帶 reviewer_id 作稽核；不因此自動核准 Memory，也不新增歷史案件索引。
 
@@ -246,7 +246,7 @@ precedence 與邊界：
 Policy 與 Memory 共用 Compass `text-embedding-3-large`，1536 維。
 部署 factory 與 Compose 預設 Compass endpoint；只使用專用 embedding key/key file，
 不借用 OpenAI credential。embedding timeout 預設25秒，可由 RETURN_AGENT_EMBEDDING_TIMEOUT_SECONDS 調整；無 SDK 自動 retry。
-Distiller `memory-distiller:3.1` 保留 `retrieval_summary`（適用情境＋可泛化建議行為，1–2000 字元）與 trigger/action/rationale/source，加入整案回顧、學習依據、適用限制與不可推論事項。
+Distiller `memory-distiller:3.3` 保留 `retrieval_summary`（適用情境＋可泛化建議行為，1–2000 字元）與 trigger/action/rationale/source，加入整案回顧、學習依據、適用限制與不可推論事項。
 API 在 candidate 提交時產生 embedding；摘要與向量成功後才原子寫入。
 先檢查既有 memory_id/hash，再做外部 I/O，再 transaction insert/recheck；重送相同 candidate 不新增記錄、不重新 embedding。
 DB derived columns：retrieval_summary、summary_version、summary_hash、embedding_model、embedding。

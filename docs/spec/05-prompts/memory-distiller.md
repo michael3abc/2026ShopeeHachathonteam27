@@ -1,6 +1,6 @@
 # Memory Distiller Prompt
 
-Version: `memory-distiller:3.2`
+Version: `memory-distiller:3.3`
 
 ## Purpose
 
@@ -73,7 +73,9 @@ interpretation method, applicability_limits, and prohibited_inferences. Both
 restriction lists must be nonempty. Do not copy approval/decline to the next case.
 Explain observations supporting the method and what remains unverified.
 Only VERIFIABLE_ERROR or OPERATIONAL_METHOD may create a candidate.
-All source_event_refs must be exact event_id values in this learning_trace.
+For every source_event_refs field, select and copy values verbatim from
+allowed_source_event_refs only. Do not reconstruct, abbreviate, translate or
+otherwise edit an ID. If the needed event is not in that list, return SKIP.
 Never invent revisions or cite another case or evidence IDs as source events.
 Candidate sources must be a subset of learning.source_event_refs.
 

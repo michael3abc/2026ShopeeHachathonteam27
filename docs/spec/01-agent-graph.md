@@ -34,9 +34,8 @@ flowchart TD
         EVENT --> PROPOSE
         REVIEW -->|REVISE: round 3 + dossier| HUMAN[[await_human_review<br/>完整歷程 + 人工最終裁決]]
         HUMAN -->|API 驗證並保存裁決後 resume| OUT
-        OUT -->|has correction trace| ENQUEUE[enqueue_memory_distillation<br/>prepare payload]
-        OUT -->|no correction trace| END([MAIN END])
-        ENQUEUE -->|payload checkpointed| END
+        OUT -->|all completed adjudications| ENQUEUE[enqueue_memory_distillation<br/>whole-case learning trace]
+        ENQUEUE -->|payload checkpointed| END([MAIN END])
 
         PARSE -.->|budget exceeded| MANUAL[terminate_automation<br/>異常終止自動處理]
         CONTEXT -.->|載入失敗| MANUAL
@@ -108,8 +107,8 @@ runtime。這個 service boundary 不增加或改寫任何 graph node 或 edge�
 | `record_revision_event` | Agent | Deterministic | rejected handoff、ReviewResult | append-only `DecisionRevisionEvent`，遞增 `revision_round` |
 | `await_human_review` | External | Interrupt boundary | handoff、最後的 `ReviewResult`、dossier 與 gate | `HumanReviewResult` |
 | `emit_resolution_handoff` | Agent routing | Deterministic | Reviewer-approved/human result | `ResolutionHandoff`；不執行退款 |
-| `enqueue_memory_distillation` | Agent | Deterministic | 完整 correction trace 與 final outcome | 組裝 `MemoryDistillationInput` 並寫入 checkpoint；不直接呼叫模型或外部 store |
-| `distill_memory` | Agent | Async LLM structured output | correction trace、final outcome、policy/registry version | `MemoryCandidate` 或 `SKIP` |
+| `enqueue_memory_distillation` | Agent | Deterministic | 完整 learning trace 與 final outcome | 組裝 `MemoryDistillationInput` 並寫入 checkpoint；不直接呼叫模型或外部 store |
+| `distill_memory` | Agent | Async LLM structured output | 全流程 observations、final outcome、policy/registry version | 整案回顧＋學習判定＋至多一則 `MemoryCandidate` 或 `SKIP` |
 | `submit_candidate` | External | Memory store boundary | `MemoryCandidate` | `submission_ref`；同一 `memory_id` 冪等 |
 | `external_memory_approval` | External | Governance boundary | candidate submission | 核准為 `APPROVED` 或丟棄；Agent 不決定結果 |
 | `terminate_automation` | Agent routing | Deterministic | escalation reason、累積 context | `ManualEscalationHandoff`；所有 fail-closed 路徑的匯集點 |
@@ -157,8 +156,7 @@ runtime。這個 service boundary 不增加或改寫任何 graph node 或 edge�
 | `reviewer` | `verdict = REVISE` 且 `revision_round < 3` | `record_revision_event`，再到 `propose_decision` |
 | `reviewer` | `verdict = REVISE` 且 `revision_round >= 3` | `await_human_review`（程式產生 `routing_reason = REVISION_BUDGET_EXCEEDED`） |
 | `await_human_review` | resume 後 | `emit_resolution_handoff` |
-| `emit_resolution_handoff` | `revision_events` 非空或 human `decision ∈ {EDIT, REJECT}` | `enqueue_memory_distillation` |
-| `emit_resolution_handoff` | 無 correction trace | `END` |
+| `emit_resolution_handoff` | 所有已完成裁決，含無修正／合法拒絕 | `enqueue_memory_distillation` |
 | `enqueue_memory_distillation` | `MemoryDistillationInput` 已寫入 checkpoint | 主案件 `END`；其後由 Memory Enqueue Worker 消費 durable `RESOLVED` event 並發布 job |
 | `distill_memory` | `CREATE_CANDIDATE` | `submit_candidate` |
 | `distill_memory` | `SKIP` | Memory pipeline `END` |
@@ -170,7 +168,7 @@ Reviewer 不判斷下一個節點。即使原因是 evidence 不足，也只輸�
 
 `parse_request` 可能執行兩輪，這是必要的：第一輪只有對話內容，尚不知道訂單有幾個品項；`claimed_line_item_ids` 必須在 `OrderSnapshot` 載入後才能綁定。第二輪的行為是單商品訂單**自動綁定且不得詢問**，多商品訂單先嘗試以對話內容比對品項，比對不到或有歧義時才以 `missing_fields` 觸發澄清。`load_case_context` 是唯讀且冪等的，重入無副作用。此迴圈由 `clarification_round` 收斂。
 
-`emit_resolution_handoff` 到 memory 的邊是 conditional：純 `APPROVE` 且無任何 revision 的案件沒有 correction 可蒸餾，直接結束。`enqueue_memory_distillation` 只準備並 checkpoint payload；案件結束後，獨立 Memory Enqueue Worker 由 durable `RESOLVED` event fan-out 到 memory job stream，Memory Worker 才執行 `distill_memory` 與 `submit_candidate`。這些步驟不沿用主案件的同步 routing，也不延後主案件 `END`。詳見 [Operational Memory](04-operational-memory.md)。
+所有完成裁決均進入 `enqueue_memory_distillation` 準備 checkpoint payload；等待補件、等待人工與技術性終止不啟動蒸餾。獨立 worker 在 `RESOLVED` 後處理，trace 缺失／超限／不安全會明確 SKIP，不截斷後宣稱完整，也不更改 `ResolutionHandoff`。詳見 [Operational Memory](04-operational-memory.md)。
 
 ## Working state
 
@@ -197,6 +195,8 @@ verification_feedback[]
 review_history[]
 revision_events[]
 memory_distillation_input
+learning_trace
+verification_result
 clarification_round
 evidence_round
 verification_round

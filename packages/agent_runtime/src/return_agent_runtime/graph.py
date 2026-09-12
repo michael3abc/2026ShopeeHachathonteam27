@@ -30,6 +30,7 @@ from return_agent_contracts.models import (
     EvidenceRequest,
     HumanReviewResult,
     IntakeResult,
+    LearningTrace,
     MemoryQuerySummary,
     MemoryRetrievalObservation,
     MemorySearchHit,
@@ -151,6 +152,8 @@ def initial_state(
         human_review_result=None,
         resolution_handoff=None,
         memory_distillation_input=None,
+        learning_trace=LearningTrace(case_ref=case_ref, thread_id=thread_id),
+        verification_result=None,
         manual_escalation=None,
         escalation_reason=None,
         clarification_round=0,
@@ -903,14 +906,15 @@ def _external_verification_node(dependencies: AgentDependencies):
         except Exception:  # noqa: BLE001 - provider boundary fails closed
             return _fail(EscalationReason.CONTRACT_VIOLATION)
         if result.status is VerificationStatus.PASS:
-            return {"verification_feedback": [], "_route": "reviewer"}
+            return {"verification_result": result, "verification_feedback": [], "_route": "reviewer"}
         if result.status is VerificationStatus.UNAVAILABLE:
-            return _fail(EscalationReason.VERIFICATION_UNAVAILABLE)
+            return {"verification_result": result} | _fail(EscalationReason.VERIFICATION_UNAVAILABLE)
         if state["verification_round"] >= VERIFICATION_LIMIT:
-            return {"verification_feedback": list(result.issues)} | _fail(
+            return {"verification_result": result, "verification_feedback": list(result.issues)} | _fail(
                 EscalationReason.VERIFICATION_BUDGET_EXCEEDED
             )
         return {
+            "verification_result": result,
             "verification_feedback": list(result.issues),
             "verification_round": state["verification_round"] + 1,
             "_route": "propose_decision",
@@ -1082,16 +1086,9 @@ def _emit_resolution_handoff_node(dependencies: AgentDependencies):
             )
         except Exception:  # noqa: BLE001 - terminal contract fails closed
             return _fail(EscalationReason.CONTRACT_VIOLATION)
-        has_human_correction = state.get("human_review_result") is not None and state[
-            "human_review_result"
-        ].decision.value in {"EDIT", "REJECT"}
         return {
             "resolution_handoff": resolution,
-            "_route": (
-                "enqueue_memory_distillation"
-                if state.get("revision_events") or has_human_correction
-                else "__end__"
-            ),
+            "_route": "enqueue_memory_distillation",
         }
 
     return node
@@ -1139,6 +1136,7 @@ def build_graph(
     from return_agent_contracts.activity_observer import ObservedProvider
 
     from .activity import traced_node
+    from .learning import record_learning_node
 
     dependencies = replace(dependencies, **{
         key: ObservedProvider(getattr(dependencies, key), key, "model" if key == "model" else "tool")
@@ -1148,7 +1146,7 @@ def build_graph(
     })
     builder = StateGraph(AgentState)
     def add_node(name, function):
-        builder.add_node(name, traced_node(name, function))
+        builder.add_node(name, traced_node(name, record_learning_node(name, function, dependencies.learning_trace_limits)))
     add_node("parse_request", _parse_request_node(dependencies))
     add_node("request_clarification", _request_clarification_node)
     add_node("load_case_context", _load_case_context_node(dependencies))

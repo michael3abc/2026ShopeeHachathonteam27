@@ -275,7 +275,7 @@ def main() -> None:
                 recommended_behavior=action,
                 rationale="經人工確認的可泛化操作經驗（隔離驗收 fixture）。",
                 source_case_refs=["CASE-REHEARSAL"],
-                source_revision_event_refs=["REV-REHEARSAL"],
+                source_event_refs=["REV-REHEARSAL"],
                 policy_version=policy_version,
                 claim_registry_version="claim-registry:1.0",
                 scope={

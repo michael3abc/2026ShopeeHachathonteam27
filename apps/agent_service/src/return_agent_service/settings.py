@@ -23,6 +23,8 @@ class AgentServiceSettings:
     command_lease_seconds: int = 900
     memory_retry_initial_seconds: float = 0.25
     memory_retry_max_seconds: float = 30.0
+    learning_trace_max_events: int = 96
+    learning_trace_max_bytes: int = 131072
     host: str = "0.0.0.0"
     port: int = 8090
     block_ms: int = 1_000
@@ -64,6 +66,8 @@ class AgentServiceSettings:
             memory_retry_max_seconds=float(
                 os.environ.get("RETURN_AGENT_MEMORY_RETRY_MAX_SECONDS", "30")
             ),
+            learning_trace_max_events=int(os.environ.get("RETURN_AGENT_LEARNING_TRACE_MAX_EVENTS", "96")),
+            learning_trace_max_bytes=int(os.environ.get("RETURN_AGENT_LEARNING_TRACE_MAX_BYTES", "131072")),
             host=os.environ.get("RETURN_AGENT_SERVICE_HOST", "0.0.0.0"),
             port=int(os.environ.get("RETURN_AGENT_SERVICE_PORT", "8090")),
             block_ms=int(os.environ.get("RETURN_AGENT_REDIS_BLOCK_MS", "1000")),

@@ -3,6 +3,14 @@
     "ApprovedMemory": {
       "additionalProperties": false,
       "properties": {
+        "applicability_limits": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Applicability Limits",
+          "type": "array"
+        },
         "approved_at": {
           "format": "date-time",
           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
@@ -29,6 +37,14 @@
           "minLength": 1,
           "title": "Policy Version",
           "type": "string"
+        },
+        "prohibited_inferences": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Prohibited Inferences",
+          "type": "array"
         },
         "recommended_behavior": {
           "minLength": 1,

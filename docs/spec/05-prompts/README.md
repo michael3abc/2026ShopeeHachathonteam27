@@ -72,7 +72,7 @@ Reviewer 不讀 `EvidenceAssessment` 與 Operational Memory 的理由見 [Reason
 - [Intake](intake.md)：解析使用者退貨意圖、綁定 claimed line items、提出澄清缺口。
 - [Resolver](resolver.md)：判定 claim、產生 decision draft 並處理 Reviewer/Verification feedback。
 - [Reviewer](reviewer.md)：獨立複核完整 handoff。
-- [Memory Distiller](memory-distiller.md)：從已結案 correction trace 產生 candidate。
+- [Memory Distiller](memory-distiller.md)：從所有已完成裁決案件的完整 learning trace 產生整案回顧、學習判定與至多一則 candidate 或 SKIP。
 
 
 ## Memory Query Prompt

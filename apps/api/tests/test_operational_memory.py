@@ -59,7 +59,7 @@ def _candidate(
         recommended_behavior="Request all missing evidence in one EvidenceRequest.",
         rationale="A reviewed correction showed repeated evidence rounds were avoidable.",
         source_case_refs=["CASE-005"],
-        source_revision_event_refs=["REV-001"],
+        source_event_refs=["REV-001"],
         policy_version=policy_version,
         claim_registry_version=claim_registry_version,
         scope=MemoryScope(

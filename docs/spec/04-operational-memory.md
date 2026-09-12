@@ -1,8 +1,6 @@
 # Operational Memory
 
-匯入版本的 Distiller prompt 2.1 排除 schema／prompt／整合缺陷及無根據的
-Reviewer 異議；採納不等於普遍正確，結案不等於方法具有因果效益。
-目前仍為 correction-only 契約與觸發，不宣稱已有全流程 learning trace。
+Distiller prompt 3.0 以完整 learning trace 產生整案回顧、學習判定及至多一則候選。排除系統缺陷與無根據的 Reviewer 異議；採納不等於普遍正確，結案不等於因果效益。Memory 改善下一案尚須對照驗證。
 
 人工無法收斂裁決沿用既有 correction trace 與非同步 Distiller：保留原 Reviewer 意見、人工最終決定及整體 review_note，不將人工改判偽裝成 Reviewer APPROVE。人工結果帶 reviewer_id 作稽核；不因此自動核准 Memory，也不新增歷史案件索引。
 
@@ -14,11 +12,11 @@ Operational Memory 用來保存可泛化的操作經驗，而不是自動改寫�
 - Human Review 回傳 `EDIT` 或 `REJECT`：記錄 correction 與 final resolution reference。
 - Reviewer `APPROVE` 或 Human `APPROVE`：只用於補足案件最終結果，不單獨形成 candidate。
 
-只有取得最終核准/拒絕結果、適用 Policy 版本與完整 correction trace 後，才能啟動蒸餾。因此 `emit_resolution_handoff` 到 `enqueue_memory_distillation` 是 conditional edge：`revision_events` 為空且 human decision 非 `EDIT`/`REJECT` 的案件沒有 correction 可蒸餾，直接結束（見 [Agent Graph](01-agent-graph.md)）。
+所有取得最終核准／拒絕結果的案件均準備背景蒸餾，包含無修正案件。等待補件、等待人工與技術性終止不算完成裁決。缺失、超限或不安全的 learning trace 明確 SKIP；不得以 correction history 或 Activity 補造完整歷程。
 
 此處的「最終結果」= `emit_resolution_handoff` 產出的 `ResolutionHandoff`（agent/human 端最終結果）。執行系統的執行確認不在 Agent 團隊範圍，蒸餾不等待它。
 
-實作上，主 graph 的 `enqueue_memory_distillation` 只組裝 `MemoryDistillationInput` 並存入 LangGraph checkpoint。Agent Worker 發布 durable `RESOLVED` event 後即可完成主 command；另一個 consumer group 的 Memory Enqueue Worker 讀取 checkpoint payload，發布至 `return-agent.memory-jobs.v1`。Memory Worker 再獨立執行模型蒸餾與 `submit_candidate`。因此 memory 服務故障不會回滾或重跑已完成的客戶 resolution。
+實作上，主 graph 的 `enqueue_memory_distillation` 只組裝 `MemoryDistillationInput` 並存入 LangGraph checkpoint。Agent Worker 發布 durable `RESOLVED` event 後即可完成主 command；另一個 consumer group 的 Memory Enqueue Worker 讀取 checkpoint payload，發布至 `return-agent.memory-jobs.v2`。Memory Worker 再獨立執行模型蒸餾與 `submit_candidate`。因此 memory 服務故障不會回滾或重跑已完成的客戶 resolution。
 
 Memory Worker 在 Agent DB 的 `memory_job_results` 保存首次蒸餾結果及 prompt
 version，成功 commit 後才提交 candidate；再保存含 `submission_ref` 的完整 terminal
@@ -34,14 +32,33 @@ migrations 分離；重播紀錄不可在 Redis job 仍可能重送時清除。
 模型失敗仍產生 terminal `FAILED`；candidate submit 只有已保存 output 且確認是
 暫時性 transport error 才以相同內容重送。Retry 不重跑 customer graph。
 
-## Lifecycle
+## Whole-case learning v2
+
+Runtime 每個完成節點獨立產生 typed `LearningEvent`，隨 graph update 原子 checkpoint；不從 Activity、narration 或 hidden reasoning 重建。事件 ID 由 thread、sequence、node 穩定決定；interrupt 不產完成事件，補件需求已在前一個 assessment/proposal event 保存。
+
+涵蓋初始 normalized claim、品項／澄清、Case／Policy 版本、Memory 命中及方法、每輪補件需求與實得證據 references／中性摘要、assessment、提案、Verification、Reviewer／revision、人審與最終裁決。無原始媒體、artifact URL 或聊天全文；明顯個資會使 trace 標為不可蒸餾，不默默删去後當成完整。這是有限的格式／明顯個資檢查，不是完整 DLP 保證。
+
+`RETURN_AGENT_LEARNING_TRACE_MAX_EVENTS` 預設 96（上限 256）；`RETURN_AGENT_LEARNING_TRACE_MAX_BYTES` 預設 131072 bytes。超限保留先前事件並標 `LIMIT_EXCEEDED`，Distiller 不處理局部歷程。缺失／不完整、不安全或超限分別回 `TRACE_INCOMPLETE`、`TRACE_UNSAFE_CONTENT`、`TRACE_LIMIT_EXCEEDED`。
+
+單次模型呼叫輸出 `case_review`、`learning` 與至多一則 candidate 或 SKIP。回顧及學習判定保存於 Agent-owned replay；不加入 case 向量索引。候選需 `applicability_limits` 與 `prohibited_inferences`，核准後同樣傳給 Resolver；Reviewer 不讀 Memory。只有 `VERIFIABLE_ERROR`／`OPERATIONAL_METHOD` 可產候選；來源驗證不等於方法具有因果效益。
+
+新候選的 reason／claim／category scope 不得超出來源案；store 將空列表視為 wildcard，因此來源的允許列表非空時，新候選不可用空列表擴大適用範圍。此限制不改寫歷史經驗的治理狀態。
+
+新工作與事件使用 schema v2、`memory-v2:`／`memory-event-v2:` ID namespace、v2 Redis streams／consumer groups。既有首次結果及 terminal event 不覆寫；pending job 的 prompt version 不相符時拒絕執行。V1 jobs、pending graph 與 replay records 不自動轉成 v2；切換前須排空或隔離，由原版本處理舊 pending 工作。
+
+API migration `0014_memory_learning_sources` 保留歷史來源值、治理狀態、事件、摘要及向量，rename source 欄位，補空限制欄位並更新可投影候選的 payload hash。舊版無摘要資料保留原 hash。已有 v2 來源／限制資料時拒絕破壞性 downgrade。需 online migration，只在隔離 DB 驗證後才安排部署；本變更不重啟服務。
+
+測試通過只證明契約、儲存及恢復流程；Memory 效益仍須 A 無 Memory／B scoped 經驗注入／C 真實檢索的分組配對、反例與遷移測試。未完成實測前，不宣稱越用越準。
+
+### Experience lifecycle
 
 ```text
-Review/Human correction
-→ append-only correction trace
-→ wait for final outcome
-→ redact PII
-→ distill candidate or SKIP
+Case intake and every completed investigation/review step
+→ bounded typed learning trace in checkpoint
+→ wait for final adjudication (not refund execution)
+→ reject incomplete, oversized or unsafe trace
+→ whole-case review and learning judgment
+→ at most one operational candidate or SKIP
 → validate scope, policy version and claim registry version
 → retrieval_summary embedding + atomic candidate insert (API)
 → human/governance approval
@@ -71,7 +88,9 @@ Agent 不得自行將 `CANDIDATE` 升級為 `APPROVED`。Approval workflow、sto
   "recommended_behavior": "Request all missing evidence (outer packaging, damaged area, and other missing claims) in a single EvidenceRequest instead of splitting it across rounds.",
   "rationale": "Human review overturned the original FULL_REFUND to DECLINE because evidence did not establish damage on arrival.",
   "source_case_refs": ["CASE-005"],
-  "source_revision_event_refs": ["REV-001", "REV-002"],
+  "source_event_refs": ["LEARNING-SOURCE-001", "LEARNING-SOURCE-002"],
+  "applicability_limits": ["Arrival-damage claims with missing context only."],
+  "prohibited_inferences": ["A damage photo alone does not establish arrival timing or refund eligibility."],
   "policy_version": "POLICY-12:v3",
   "claim_registry_version": "claim-registry:1.0",
   "scope": {
@@ -127,7 +146,7 @@ opaque identifier，不得自行翻譯或縮寫。輸出仍由 deterministic val
 }
 ```
 
-與 `MemoryCandidate` 的差異：`status` 固定為 `APPROVED`、多了 `approved_at`，且**不含** `rationale`、`source_case_refs` 與 `source_revision_event_refs`。這些是給人審核用的溯源欄位，不應進入 Resolver 的 prompt —— 注入來源案件只會讓模型把舊案件的細節當成本案事實。溯源仍保存於 memory store，供稽核查詢。
+與 `MemoryCandidate` 的差異：`status` 固定為 `APPROVED`、多了 `approved_at`，且**不含** `rationale`、`source_case_refs` 與 `source_event_refs`。這些是給人審核用的溯源欄位，不應進入 Resolver 的 prompt —— 注入來源案件只會讓模型把舊案件的細節當成本案事實。溯源仍保存於 memory store，供稽核查詢。
 
 ## 蒸餾規則
 
@@ -137,7 +156,7 @@ Memory Distiller 必須比較：
 - Reviewer `revision_reasons` 與 `reviewer_claim_findings`。
 - 修正版 handoff。
 - `HumanReviewResult.review_note`，以及 `corrected_decision` 與 `correction_reason_code`（若為 `EDIT`）。
-- `HumanReviewResult.generalizable`（若人工有提供）只作為提示；Distiller 仍須依結構化 correction trace 自行判斷，不得因 `true` 直接建立 candidate。
+- `HumanReviewResult.generalizable`（若人工有提供）只作為提示；Distiller 仍須依結構化全案 learning trace 自行判斷，不得因 `true` 直接建立 candidate。
 - 最終結果、適用 Policy version 與 claim registry version。
 
 比較必須是**結構化比對**：`action`、`refund_scope`、`return_decision` 的前後差異，以及 claim finding 的 status 差異。三種人工結果的 `review_note` 都必須保留作稽核脈絡，但不能取代結構欄位。
@@ -198,7 +217,7 @@ precedence 與邊界：
 - Memory failed event 只保存錯誤型別與一般化訊息；模型輸出或 validation error 原文不得寫入共享 event stream，以免錯誤訊息反向洩漏候選內容。
 - Source case 使用 opaque reference。
 - 蒸餾輸入、prompt version、claim registry version、輸出與 approval/retirement event 必須可追溯。
-- `source_revision_event_refs` 保存 correction source reference；Reviewer 修正使用 `DecisionRevisionEvent.event_id`，純 Human `EDIT/REJECT` 則使用其 `final_resolution_ref`。
+- 新候選 `source_event_refs` 必須存在於本案 `LearningTrace.events`。未發生 revision 不得偽造 revision；migration 保留歷史來源值但不重新蒸餾舊工作。
 - 刪除或保留期限由外部 data governance owner 定義；Agent spec 不自行指定。
 
 人工接手由 Reviewer 修正 budget 用盡觸發，不再依風險門檻。最終 ResolutionHandoff.review_result 保留最後一次審核與未解決異議，連同三次 revision_events 形成 correction trace；不得把 REVISE 本身當作拒絕退款或已成立的 fraud fact。
@@ -210,7 +229,7 @@ precedence 與邊界：
 Policy 與 Memory 共用 Compass `text-embedding-3-large`，1536 維。
 部署 factory 與 Compose 預設 Compass endpoint；只使用專用 embedding key/key file，
 不借用 OpenAI credential。embedding timeout 預設25秒，可由 RETURN_AGENT_EMBEDDING_TIMEOUT_SECONDS 調整；無 SDK 自動 retry。
-Distiller `memory-distiller:2.0` 新增 `retrieval_summary`（適用情境＋可泛化建議行為，1–2000 字元），保留 trigger/action/rationale/source。
+Distiller `memory-distiller:3.0` 保留 `retrieval_summary`（適用情境＋可泛化建議行為，1–2000 字元）與 trigger/action/rationale/source，加入整案回顧、學習依據、適用限制與不可推論事項。
 API 在 candidate 提交時產生 embedding；摘要與向量成功後才原子寫入。
 先檢查既有 memory_id/hash，再做外部 I/O，再 transaction insert/recheck；重送相同 candidate 不新增記錄、不重新 embedding。
 DB derived columns：retrieval_summary、summary_version、summary_hash、embedding_model、embedding。

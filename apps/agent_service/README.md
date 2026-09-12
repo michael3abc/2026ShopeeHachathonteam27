@@ -22,12 +22,12 @@ Redis entries contain one `body` field with the complete JSON contract.
 
 ## Operational Memory pipeline
 
-有 correction trace 的案件在 graph checkpoint 內留下 `MemoryDistillationInput`。主
+所有完成裁決案件在 graph checkpoint 內留下含 learning trace 的 `MemoryDistillationInput`。主
 Agent Worker 發布 `RESOLVED` 後即完成 customer command；Memory Enqueue Worker
 以獨立 consumer group 消費相同 event，讀取 checkpoint 並發布
 `MemoryDistillationJob`。Memory Worker 再呼叫 structured-output distiller：
 
-- `SKIP`：只發布 completed event，不呼叫 store。
+- `SKIP`：回顧與學習判定保存在 Agent replay；發布 completed event，不呼叫 store。trace 不完整／超限／不安全的 preflight skip 不呼叫模型。
 - `CREATE_CANDIDATE`：以 `memory_id` 冪等呼叫
   `OperationalMemoryStore.submit_candidate`，狀態仍是 `CANDIDATE`。
 - 非法 job：寫入 memory DLQ 後 ACK。
@@ -53,8 +53,8 @@ workers；版本記錄使用 `agent_service_alembic_version`，不修改 API 或
 沿用 repository 已使用的套件，不增加外部服務。既有 `agent_command_journal`
 與 checkpoints 保留；不可在 pending jobs 存在時刪除 replay records。
 
-Streams：`return-agent.memory-jobs.v1`、`return-agent.memory-events.v1` 與
-`return-agent.memory-jobs.dlq.v1`。正式 Policy 永遠高於 Operational Memory；只有
+Streams：`return-agent.memory-jobs.v2`、`return-agent.memory-events.v2` 與
+`return-agent.memory-jobs.dlq.v2`。正式 Policy 永遠高於 Operational Memory；只有
 外部治理流程升成 `APPROVED` 的資料能被案件 graph 查回。
 
 ## Profiles

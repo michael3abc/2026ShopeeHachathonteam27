@@ -127,7 +127,10 @@ class SqlAlchemyMemoryReplayStore:
                 .mappings()
                 .one()
             )
-            return self._decode(row, job)
+            replay = self._decode(row, job)
+            if replay.result is None and replay.terminal_event is None and replay.prompt_version != prompt_version:
+                raise MemoryReplayConflictError("pending memory job belongs to a different prompt version")
+            return replay
 
     def _save(
         self,

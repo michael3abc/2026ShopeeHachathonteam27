@@ -25,11 +25,11 @@
 | WF-10 | 第一輪 `parse_request` 尚無 `OrderSnapshot` | `claimed_line_item_ids` 為空不算 incomplete；`load_case_context` 後回第二輪綁定 | CASE-009 |
 | WF-11 | 單商品訂單 | 第二輪自動綁定唯一品項，**不得**詢問使用者要退哪一件 | CASE-002 |
 | WF-12 | 多商品訂單且對話未指明品項 | 以 `missing_fields = ["claimed_line_item_ids"]` 觸發澄清，並列出候選品項 | CASE-009 |
-| WF-13 | Reviewer `APPROVE` 且全程無 revision | `emit_resolution_handoff` 直接到 `END`，不進 memory 蒸餾 | CASE-001 |
+| WF-13 | Reviewer `APPROVE` 且全程無 revision | checkpoint 完整 learning trace 後準備背景蒸餾，不假造 revision | CASE-001 |
 | WF-14 | 任一 fail-closed 路徑 | 終點是 `terminate_automation` 且該節點有到 `END` 的出邊，graph 無死路 | CASE-003 |
 | WF-15 | `pending_review_result` 跨 interrupt | `REVISE` 後走補件 interrupt，resume 後 revision reasons 仍完整傳回 `propose_decision` | CASE-005 |
 | WF-16 | Human Review 尚未完成 | `submit_for_review` 只執行一次；`fetch_result = None` 時維持 interrupt，不重複提交或推進 | IF-03 |
-| WF-17 | correction trace 觸發 Memory pipeline | graph checkpoint payload 後主案件立即到 `END` 並發布 `RESOLVED`；獨立 worker 再 enqueue/distill/submit，其失敗不改變 `ResolutionHandoff` | IF-04、IF-11 |
+| WF-17 | 完成裁決觸發全案 Memory pipeline | graph checkpoint 保存 learning trace 後主案件立即到 `END` 並發布 `RESOLVED`；獨立 worker 再 enqueue/distill/submit，含無修正與拒絕，其失敗不改變 `ResolutionHandoff` | IF-04、IF-11 |
 
 ## Contracts
 
@@ -119,7 +119,7 @@ finding_divergence_rate =
 | ID | Scenario | Expected | Fixture |
 | --- | --- | --- | --- |
 | MM-01 | Reviewer `REVISE`，案件尚未有 final outcome | 只記 revision event，不蒸餾 candidate | CASE-005 |
-| MM-02 | Human `EDIT` 已被 final outcome 採納 | Distiller 做結構化前後比較，輸出 `CANDIDATE` | CASE-005 |
+| MM-02 | Human `EDIT` 已被 final outcome 採納 | 整案回顧與學習判定；有證據支持的操作經驗才產 candidate，人工裁量可 SKIP | CASE-005 |
 | MM-03 | Correction 只涉及單一使用者偏好 | 輸出 `SKIP + CASE_SPECIFIC_ONLY` | PL-19 |
 | MM-04 | Policy version 未知 | 輸出 `SKIP + POLICY_VERSION_UNKNOWN` | PL-19 |
 | MM-05 | Candidate 含 PII | validation/redaction 失敗，不得發布 | PL-20 |
@@ -133,6 +133,11 @@ finding_divergence_rate =
 | MM-13 | Memory Distiller 輸出 `SKIP` | 發布 completed memory event、`submission_ref = null`，不得呼叫 `submit_candidate` | IF-11 |
 | MM-14 | Memory event publication 失敗 | job 不 ACK、journal claim 釋放，之後可由 consumer-group reclaim | IF-11 |
 | MM-15 | Memory Distiller 產生來源案件以外的 reason、claim 或 category scope | deterministic validation 失敗，不得提交 candidate | PL-34 |
+| MM-16 | 無 revision、合法拒絕或人工裁量 | 均可整案回顧，candidate 不保證產生；不推導新資格 | typed runtime tests |
+| MM-17 | 補件 interrupt/resume、節點重播 | 保留每輪 assessment、需求與 observation；來源 ID 穩定且不重複 | learning trace tests |
+| MM-18 | trace 缺失／超限／個資 | 明示 preflight SKIP，不呼叫模型，不改案件裁決 | learning trace tests |
+| MM-19 | 模型捏造來源、錯誤 final action、系統缺陷產 candidate | 拒絕提交；case review 不進 embedding | distillation tests |
+| MM-20 | 舊 jobs、prompt 更新時 pending、結果發布後重送 | v1/v2 分流；pending prompt 不重解讀；首次結果／event 冪等 | worker tests |
 
 MM-11 是 Adaptive 訴求的唯一直接證據。驗收方式是**對照**：CASE-007 在不注入 memory 時重演 CASE-005 的多輪補件；注入後應在第一次 `assess_case` 就產生包含全部 missing claims 的單一 `EvidenceRequest`。少了對照組，「memory 有效」無法區分於「案件本來就簡單」。
 

@@ -415,6 +415,10 @@ def test_human_edit_and_reject_map_to_terminal_contract(
     ).values
     assert state["memory_distillation_input"] is not None
     assert state["memory_distillation_input"].human_review_result == human_result
+    trace = state["learning_trace"]
+    assert trace.status == "COMPLETE"
+    assert trace.events[-1].decision.action == expected_action
+    assert any(e.human_decision and e.human_decision.decision == human_result.decision for e in trace.events)
 
 
 def test_runtime_rejects_reused_thread_and_wrong_resume_kind():

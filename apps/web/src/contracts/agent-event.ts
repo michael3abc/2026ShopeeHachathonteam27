@@ -79,11 +79,13 @@ export type ErrorCode = ("SUMMARY_UNAVAILABLE" | "RETRIEVAL_UNAVAILABLE") | null
  */
 export type Hits =
   [] | [MemorySearchHit] | [MemorySearchHit, MemorySearchHit] | [MemorySearchHit, MemorySearchHit, MemorySearchHit];
+export type ApplicabilityLimits = string[];
 export type ApprovedAt = string;
 export type ClaimRegistryVersion = string;
 export type Confidence = number;
 export type MemoryId = string;
 export type PolicyVersion = string;
+export type ProhibitedInferences = string[];
 export type RecommendedBehavior = string;
 export type RetrievalSummary = string;
 export type Categories = string[];
@@ -460,11 +462,13 @@ export interface MemorySearchHit {
   similarity: Similarity;
 }
 export interface ApprovedMemory {
+  applicability_limits?: ApplicabilityLimits;
   approved_at: ApprovedAt;
   claim_registry_version: ClaimRegistryVersion;
   confidence: Confidence;
   memory_id: MemoryId;
   policy_version: PolicyVersion;
+  prohibited_inferences?: ProhibitedInferences;
   recommended_behavior: RecommendedBehavior;
   retrieval_summary: RetrievalSummary;
   scope: MemoryScope;

@@ -516,7 +516,7 @@ Dossier 的版本一致性涵蓋每一輪，不只最後提案；新增明確 re
       "source_case_refs": [
         "CASE-005"
       ],
-      "source_revision_event_refs": [
+      "source_event_refs": [
         "REV-001",
         "REV-002"
       ],
@@ -600,9 +600,9 @@ start/resume command 並發布 lifecycle/terminal event。可執行 DTO 與 stre
 | `return-agent.commands.v1` | `AgentStartCommand \| AgentResumeCommand` | API/outbox producer 送出 start 或符合目前 interrupt 的 resume。 |
 | `return-agent.events.v1` | `AgentServiceEvent` | Agent Service 發布 node observation、interrupt、resolution、escalation 或 run failure。 |
 | `return-agent.commands.dlq.v1` | `AgentCommandDeadLetter` | 無法通過 JSON/Pydantic contract 的原始 command；成功寫入 DLQ 後才 ACK。 |
-| `return-agent.memory-jobs.v1` | `MemoryDistillationJob` | Memory Enqueue Worker 在 durable `RESOLVED` event 後，讀取 graph checkpoint 中的 correction trace 並發布蒸餾工作。 |
-| `return-agent.memory-events.v1` | `MemoryServiceEvent` | Memory Worker 發布 `COMPLETED`（candidate 已提交或明確 `SKIP`）或 `FAILED`；事件含實際 distiller prompt version。 |
-| `return-agent.memory-jobs.dlq.v1` | `MemoryJobDeadLetter` | 無法通過 memory job contract 的原始 payload；成功寫入 DLQ 後才 ACK。 |
+| `return-agent.memory-jobs.v2` | `MemoryDistillationJob` | Memory Enqueue Worker 在 durable `RESOLVED` event 後，讀取 graph checkpoint 中的全案 learning trace 並發布蒸餾工作。 |
+| `return-agent.memory-events.v2` | `MemoryServiceEvent` | Memory Worker 發布 `COMPLETED`（candidate 已提交或明確 `SKIP`）或 `FAILED`；事件含實際 distiller prompt version。 |
+| `return-agent.memory-jobs.dlq.v2` | `MemoryJobDeadLetter` | 無法通過 memory job contract 的原始 payload；成功寫入 DLQ 後才 ACK。 |
 
 每筆 Redis entry 只有一個 `body` 欄位，內容是完整 JSON。`command_id` 是執行
 冪等鍵；`event_id` 是投影去重鍵；`event_index` 表示同一 command 內的順序。

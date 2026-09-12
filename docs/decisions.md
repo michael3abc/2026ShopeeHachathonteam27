@@ -16,3 +16,11 @@
 | D09 | 模型傳輸 schema 將 union 放入 object envelope，所有 object 欄位 required | 符合 [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs) 限制；傳輸 oneOf 轉 anyOf，程式仍用原 Pydantic discriminator 與語意驗證，不修改公開 DTO。 |
 
 版本差異、外部限制與後續確認均在此記錄。
+
+## 2026-09-12 全流程 Memory 蒸餾
+
+- 以每節點完成時的 typed checkpoint learning trace 取代 correction-only 的學習限制；無修正與合法拒絕也可回顧。
+- 回顧不進向量索引；只索引經治理核准的操作經驗，附適用限制與不可推論事項。Policy、Reviewer verdict、退款授權及 Resolver 決策流程不變。
+- 新 schema／streams／job IDs 與舊 pending jobs 分隔；API migration 保留歷史來源與治理。切換須先排空或隔離舊工作，不直接重啟現有服務。
+- 固定 reconstruction 快照不更新；semantic checker 僅對 v1 Memory fixture 做明示欄位轉接，仍逐 byte 驗證原快照且執行全部負向語意測試。
+- 契約／模擬測試不等於真模型學習效益，A/B/C 配對實測須另行報告。

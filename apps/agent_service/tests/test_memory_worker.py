@@ -97,12 +97,23 @@ async def test_concurrent_first_results_share_one_canonical_output(
     assert results[0].result == results[1].result
 
 
+def memory_reflection():
+    return dict(
+        case_review=dict(key_issue="Evidence context matters.", actions_taken=["Assessed evidence."],
+            observations=["Observed damage."], judgment_changes=[], final_action="FULL_REFUND",
+            limitations=["Execution and causal benefit not verified."], source_event_refs=["EVENT-1"]),
+        learning=dict(category="OPERATIONAL_METHOD", explanation="A context-aware observation.",
+            source_event_refs=["EVENT-1"]),
+    )
+
+
 class CandidateDistiller:
     prompt_version = "memory-distiller:test"
 
     def distill(self, _input):
         return MemoryCandidateOutput(
             result_type="CREATE_CANDIDATE",
+            **memory_reflection(),
             candidate={
                 "memory_id": "MEMORY-001",
                 "retrieval_summary": "Reviewer correction required; apply the cited correction before review.",
@@ -110,7 +121,7 @@ class CandidateDistiller:
                 "recommended_behavior": "Request the missing evidence together.",
                 "rationale": "The corrected proposal was approved.",
                 "source_case_refs": ["CASE-001"],
-                "source_revision_event_refs": ["REVISION-001"],
+                "source_event_refs": ["REVISION-001"],
                 "policy_version": "POLICY-DEMO:v1",
                 "claim_registry_version": "claim-registry:1.0",
                 "scope": {
@@ -313,6 +324,29 @@ async def test_invalid_memory_job_is_dead_lettered_and_acked() -> None:
     assert broker.dead_letters[0].error_code == "INVALID_MEMORY_JOB"
     assert broker.acks == ["1-1"]
     assert store.candidates == {}
+
+
+@pytest.mark.asyncio
+async def test_v1_pending_job_is_never_reinterpreted():
+    import json
+    payload = _job().model_dump(mode="json")
+    payload["schema_version"] = "v1"
+    broker = MemoryBrokerFake(json.dumps(payload))
+    store = CandidateStore()
+    assert await _worker(CandidateDistiller(), broker, store, InMemoryCommandJournal()).run_once()
+    assert broker.dead_letters[0].error_code == "INVALID_MEMORY_JOB"
+    assert store.candidates == {} and broker.events == []
+
+
+@pytest.mark.asyncio
+async def test_pending_replay_refuses_prompt_version_change(replay_engine):
+    from return_agent_service.memory_replay import MemoryReplayConflictError
+    store = SqlAlchemyMemoryReplayStore(replay_engine)
+    store.migrate()
+    await store.load(_job(), "memory-distiller:old")
+    with pytest.raises(MemoryReplayConflictError, match="different prompt version"):
+        await store.load(_job(), "memory-distiller:new")
+    assert (await store.load(_job(), "memory-distiller:old")).result is None
 
 
 @pytest.mark.asyncio

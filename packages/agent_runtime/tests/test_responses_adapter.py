@@ -100,6 +100,16 @@ def test_responses_wire_and_streamed_schema(memory):
     assert not {"temperature", "reasoning", "chat_template_kwargs"} & request.keys()
 
 
+def memory_reflection():
+    return dict(
+        case_review=dict(key_issue="Evidence context matters.", actions_taken=["Assessed evidence."],
+            observations=["Observed damage."], judgment_changes=[], final_action="FULL_REFUND",
+            limitations=["Execution and causal benefit not verified."], source_event_refs=["EVENT-1"], downstream_execution_verified=False),
+        learning=dict(category="OPERATIONAL_METHOD", explanation="A context-aware observation.",
+            source_event_refs=["EVENT-1"]),
+    )
+
+
 @pytest.mark.parametrize(
     "status,terminal,output",
     [
@@ -154,6 +164,7 @@ def test_responses_timeout_is_not_retried():
             {
                 "output": {
                     "result_type": "CREATE_CANDIDATE",
+                    **memory_reflection(),
                     "candidate": {
                         "memory_id": "MEMORY-TEST",
                         "retrieval_summary": "Confirmed correction; request evidence.",
@@ -161,7 +172,9 @@ def test_responses_timeout_is_not_retried():
                         "recommended_behavior": "Request evidence",
                         "rationale": "Confirmed revision",
                         "source_case_refs": ["CASE-TEST"],
-                        "source_revision_event_refs": ["REVISION-TEST"],
+                        "source_event_refs": ["REVISION-TEST"],
+                        "applicability_limits": [],
+                        "prohibited_inferences": [],
                         "policy_version": "RETURNS-TW:v1",
                         "claim_registry_version": "claim-registry:1.0",
                         "scope": {

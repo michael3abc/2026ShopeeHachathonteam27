@@ -51,7 +51,7 @@ async def test_observed_start_reports_node_enter_and_exit(happy_runtime):
     assert observations[0].phase == "ENTER"
     assert observations[0].node == "parse_request"
     assert observations[-1].phase == "EXIT"
-    assert observations[-1].node == "emit_resolution_handoff"
+    assert observations[-1].node == "enqueue_memory_distillation"
     starts = {item.task_ref for item in observations if item.phase == "ENTER"}
     exits = {item.task_ref for item in observations if item.phase == "EXIT"}
     assert starts == exits
@@ -73,6 +73,8 @@ async def test_observer_failure_does_not_change_graph_result(happy_runtime, capl
 
     assert result.status is AgentRunStatus.COMPLETED
     assert "node observer failed" in caplog.text
+    state = runtime.graph.get_state({"configurable": {"thread_id": "THREAD-BROKEN-OBSERVER"}}).values
+    assert state["learning_trace"].status == "COMPLETE"
 
 
 @pytest.mark.asyncio

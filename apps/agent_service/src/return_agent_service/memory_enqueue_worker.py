@@ -81,7 +81,7 @@ class MemoryEnqueueWorker:
             return True
 
         identity = MemoryActivityIdentity(event.case_ref, event.command_id,
-            f"memory:{event.payload.result.resolution_handoff.handoff_id}")
+            f"memory-v2:{event.payload.result.resolution_handoff.handoff_id}")
         try:
             input_ = await self._input_provider.aget_memory_distillation_input(
                 thread_id=event.thread_id
@@ -91,9 +91,16 @@ class MemoryEnqueueWorker:
             raise
         if input_ is not None:
             handoff_id = event.payload.result.resolution_handoff.handoff_id
+            if (input_.case_context.case_ref != event.case_ref
+                    or input_.final_resolution != event.payload.result.resolution_handoff
+                    or input_.learning_trace is not None and input_.learning_trace.thread_id != event.thread_id):
+                # Do not substitute another checkpoint's case or outcome.
+                background(self._activity_sink, identity, "FAILED", "MEMORY_SOURCE_MISMATCH")
+                await self._broker.acknowledge_agent_event_for_memory(message.message_id)
+                return True
             await self._broker.publish_memory_job(
                 MemoryDistillationJob(
-                    job_id=f"memory:{handoff_id}",
+                    job_id=f"memory-v2:{handoff_id}",
                     source_command_id=event.command_id,
                     case_ref=event.case_ref,
                     thread_id=event.thread_id,

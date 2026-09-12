@@ -1,0 +1,13 @@
+[tool.uv.workspace]
+members = ["apps/contracts", "apps/api", "apps/agent_service", "packages/agent_runtime"]
+
+[dependency-groups]
+dev = ["pytest>=8,<9", "pytest-asyncio>=0.24,<1", "httpx>=0.27,<1", "jsonschema>=4,<5"]
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib -ra"
+testpaths = ["tests", "apps/contracts/tests", "apps/api/tests", "apps/agent_service/tests", "packages/agent_runtime/tests"]
+asyncio_mode = "strict"
+
+[tool.ruff]
+target-version = "py312"

@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+:root { color-scheme: light; }
+body { margin: 0; background: #f5f5f3; color: #202522; font-family: Arial, "Noto Sans TC", sans-serif; }
+main { max-width: 960px; margin: 64px auto; padding: 24px; }
+a { color: #ad3e1d; }

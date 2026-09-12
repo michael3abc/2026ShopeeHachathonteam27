@@ -1,0 +1,13 @@
+.git
+reference
+AGENTS.md
+.venv
+**/__pycache__
+**/node_modules
+**/.next
+.env
+.env.*
+secrets
+artifacts
+data
+volumes

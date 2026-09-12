@@ -1,0 +1,42 @@
+/reference/
+AGENTS.md
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+!**/.env.example
+/secrets/
+*.key
+*.pem
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# JavaScript / generated build output
+node_modules/
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# Runtime data and local verification artifacts
+/data/
+/volumes/
+/artifacts/
+test-results/
+playwright-report/
+coverage/
+*.log
+.DS_Store
+*.swp

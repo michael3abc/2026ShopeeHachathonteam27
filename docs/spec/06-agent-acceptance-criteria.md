@@ -275,3 +275,13 @@ MM-11 是 Adaptive 訴求的唯一直接證據。驗收方式是**對照**：CAS
 - Candidate embedding atomicity、冪等重送、dry-run／部分回填失敗續跑與治理資料不變。
 - Node observation／Redis／API projection／SSE replay 與 Web 重新整理可重建最新命中／空／不可用。
 - 隔離 PostgreSQL 升級0010→0011、Policy reembed 保留文字與歷史 bundle，實跑 large embedding 並保存完整 JSONL 與各階段耗時。
+
+## 圖片與多模態驗收
+
+- 初次申請及補件可選圖、拖入或貼上；逐張預覽、移除、失敗重試，多品項需明確選擇 subject。未完成上傳不能送出，API 失敗保留草稿。
+- 真實格式／大小／像素與 EXIF 方向正確；錯案、錯品項、跨使用者、未知附件不能綁定；multipart 串流不能繞過限制。
+- 發送成功只建立一次 command；重新整理可還原圖片與文字，預覽不重新送出。
+- 模型 mock 驗證 Resolver／Reviewer 的 Chat 與 Responses wire 都包含圖片；Memory／Activity／checkpoint 不包含 bytes。圖片不可用或模型拒絕不得降級裁決。
+- PostgreSQL 空 DB 與既有 0013 schema 升級 0014，與並行案件綁定測試；HTTP／瀏覽器使用隔離環境。live GPT-5.6 需實際配置 endpoint/key，未執行須標明。
+
+2026-09-12 本機隔離驗證：`make check` 492 項（Contracts 80、API 223、Runtime 97、Agent Service 68、跨服務 24）；PostgreSQL migration／併發寫入 3 項；Web 單元測試 22 項、瀏覽器 13 項，lint／TypeScript／production build 及 API／Agent Service／Web Docker build 通過。真實 HTTP 經 Next proxy 上傳 10 MiB 回傳 201，多 1 byte 回傳 413；建立案件、刷新還原與桌面／手機縮圖確認通過。測試圖片及模型回答均為 synthetic；實際檔案經受控 API 進入 Resolver Assessment／Proposal 及 Reviewer mock，Redis／checkpoint 只含引用。未配置模型 endpoint/key，因此 **真實 GPT-5.6 看圖驗收未完成**；未 push、未部署既有服務。

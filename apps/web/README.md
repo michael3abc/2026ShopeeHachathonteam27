@@ -34,18 +34,33 @@ require a nonempty review note. Backend remains the case-state owner; the UI
 never resumes LangGraph directly. The EDIT form supports selecting originally
 claimed refund items and a Policy-compatible return requirement; its correction
 code is `OTHER` and it does not expose `generalizable`. Exact governance-bearing
-payloads and multiple artifact references require the API. The human panel is
+payloads require the API. Multiple image attachments are supported by the UI. The human panel is
 distinct from the LLM `reviewer` node. Activity tracing uses a separate paginated
 API and SSE cursor from case events; late narration/background Memory can arrive
 after the case is terminal.
 
 With the integrated demo profile, enter a unique `ORDER-DEMO-*` order reference.
 The context provider binds it to the versioned demo speaker, not a real order.
-For damage claims, the evidence field accepts an existing artifact reference:
-`artifact://demo/EV-DEMO-ARRIVAL-PACKAGING-AND-DAMAGE`. No file upload/storage
-is implemented. The initial customer message and subsequent messages are still
-stored by Backend but not exposed as a replayable transcript in `CaseDetail`;
-reloading reconstructs Agent events and state, not the full user conversation.
+Initial applications and subsequent clarification/evidence messages accept
+JPEG/PNG/WebP through the picker, drag-and-drop or clipboard anywhere in the
+composer. Select the related order item (or ORDER/packaging); on multi-item orders
+this choice is required. The default limits are 6 images per message, 10 MiB per
+image and 25M pixels; the UI reads the configured limits from the API.
+The Next.js proxy also reads `RETURN_AGENT_IMAGE_MAX_BYTES` at build time and
+adds 64 KiB for multipart overhead. Rebuild Web when changing this limit;
+Compose passes the same configured value to the API, Agent Service and Web build.
+
+Each image shows upload progress and a preview. Failed images must be retried or
+removed before sending; failed message submission retains the draft. Submitted
+messages and images reload from the persisted conversation endpoint; clicking an
+image opens its preview. The advanced Demo control still accepts existing refs
+such as `artifact://demo/EV-DEMO-ARRIVAL-PACKAGING-AND-DAMAGE`.
+
+Image upload needs an integrated API order provider and the 0014 migration.
+The integrated Agent profile sends actual pixels to the existing Resolver model
+for Assessment/Proposal and to Reviewer independently. Configure the existing
+model endpoint/key; an image-capable model name alone does not prove the endpoint
+accepts images. Offline metadata fixtures remain explicitly synthetic.
 
 The app is also available through `docker compose up --build web`; Compose
 builds the same standalone Next.js server and routes Backend requests to the

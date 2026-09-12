@@ -9,6 +9,7 @@ from alembic import context
 from return_agent.db import activity as _activity_models  # noqa: F401
 from return_agent.db import agent_bridge as _agent_bridge_models  # noqa: F401
 from return_agent.db import case as _case_models  # noqa: F401  (register tables)
+from return_agent.db import attachments as _attachment_models  # noqa: F401
 from return_agent.db.models import Base
 from sqlalchemy import engine_from_config, pool
 

@@ -1,0 +1,118 @@
+{
+  "$defs": {
+    "AttachmentView": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_ref": {
+          "title": "Artifact Ref",
+          "type": "string"
+        },
+        "attachment_id": {
+          "title": "Attachment Id",
+          "type": "string"
+        },
+        "content_sha256": {
+          "title": "Content Sha256",
+          "type": "string"
+        },
+        "evidence_id": {
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "title": "Height",
+          "type": "integer"
+        },
+        "media_type": {
+          "title": "Media Type",
+          "type": "string"
+        },
+        "size_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "subject": {
+          "title": "Subject",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "attachment_id",
+        "artifact_ref",
+        "evidence_id",
+        "subject",
+        "media_type",
+        "width",
+        "height",
+        "size_bytes",
+        "content_sha256"
+      ],
+      "title": "AttachmentView",
+      "type": "object"
+    },
+    "ConversationTurn": {
+      "additionalProperties": false,
+      "properties": {
+        "attached_artifact_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Attached Artifact Refs",
+          "type": "array"
+        },
+        "attachments": {
+          "items": {
+            "$ref": "#/$defs/AttachmentView"
+          },
+          "title": "Attachments",
+          "type": "array"
+        },
+        "created_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Created At",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seq",
+        "message",
+        "created_at",
+        "attached_artifact_refs",
+        "attachments"
+      ],
+      "title": "ConversationTurn",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "turns": {
+      "items": {
+        "$ref": "#/$defs/ConversationTurn"
+      },
+      "title": "Turns",
+      "type": "array"
+    }
+  },
+  "required": [
+    "turns"
+  ],
+  "title": "ConversationPage",
+  "type": "object"
+}

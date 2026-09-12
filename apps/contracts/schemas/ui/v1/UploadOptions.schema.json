@@ -1,0 +1,40 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_bytes": {
+      "title": "Max Bytes",
+      "type": "integer"
+    },
+    "max_images": {
+      "title": "Max Images",
+      "type": "integer"
+    },
+    "max_pixels": {
+      "title": "Max Pixels",
+      "type": "integer"
+    },
+    "media_types": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Media Types",
+      "type": "array"
+    },
+    "subjects": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Subjects",
+      "type": "object"
+    }
+  },
+  "required": [
+    "max_bytes",
+    "max_images",
+    "max_pixels",
+    "media_types",
+    "subjects"
+  ],
+  "title": "UploadOptions",
+  "type": "object"
+}

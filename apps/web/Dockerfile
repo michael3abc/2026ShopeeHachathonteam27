@@ -8,6 +8,8 @@ FROM node:22-alpine AS builder
 
 ARG API_BASE_URL=http://api:8000
 ENV API_BASE_URL=$API_BASE_URL
+ARG RETURN_AGENT_IMAGE_MAX_BYTES=10485760
+ENV RETURN_AGENT_IMAGE_MAX_BYTES=$RETURN_AGENT_IMAGE_MAX_BYTES
 WORKDIR /workspace
 COPY --from=dependencies /workspace/apps/web/node_modules apps/web/node_modules
 COPY apps/contracts/schemas/ui/v1 apps/contracts/schemas/ui/v1

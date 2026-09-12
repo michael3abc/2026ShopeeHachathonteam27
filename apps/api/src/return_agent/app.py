@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-import hmac
 import os
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -85,6 +84,8 @@ from .store import (
     IllegalTransitionError,
     to_case_detail,
 )
+from .http_dependencies import get_session, require_internal_service
+from .attachments import router as attachment_router, ImageRequestLimitMiddleware
 
 
 @asynccontextmanager
@@ -120,6 +121,8 @@ app = FastAPI(title="Adaptive Return Resolution API", lifespan=lifespan)
 from .activities import router as activity_router
 
 app.include_router(activity_router)
+app.include_router(attachment_router)
+app.add_middleware(ImageRequestLimitMiddleware)
 
 # The Next.js dev server is a separate origin, so the browser needs this.
 app.add_middleware(
@@ -166,11 +169,6 @@ def _configure_integrated_demo(application: FastAPI) -> None:
     application.state.safety_providers = bundle.safety_providers
 
 
-def get_session(request: Request) -> Iterator[Session]:
-    with request.app.state.session_factory() as session:
-        yield session
-
-
 def get_store(session: Annotated[Session, Depends(get_session)]) -> CaseStore:
     return CaseStore(session)
 
@@ -203,24 +201,6 @@ def get_provider_bundle(request: Request) -> IntegratedProviderBundle:
             "Agent Provider boundary is not configured",
         )
     return providers
-
-
-def require_internal_service(
-    request: Request,
-    authorization: Annotated[str | None, Header()] = None,
-) -> None:
-    token = request.app.state.internal_service_token
-    if token is None or not token.strip():
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Internal service authentication is not configured",
-        )
-    expected = f"Bearer {token}"
-    if authorization is None or not hmac.compare_digest(authorization, expected):
-        raise HTTPException(
-            status.HTTP_401_UNAUTHORIZED,
-            "Invalid service credentials",
-        )
 
 
 def _not_found(case_ref: str) -> HTTPException:
@@ -375,6 +355,8 @@ def create_case(
 ) -> CreateCaseResponse:
     outbox = get_command_outbox(http_request)
     case = store.create(request)
+    from .attachments import bind_attachments
+    bind_attachments(session, case, request.attached_artifact_refs)
     initial_turn = _user_turn(request.initial_message, request.attached_artifact_refs)
     outbox.enqueue(
         session,
@@ -436,6 +418,8 @@ def send_message(
                 f"case {case_ref} cannot accept a message while {current.value}"
             )
 
+        from .attachments import bind_attachments
+        bind_attachments(session, case, request.attached_artifact_refs)
         store.append_turn(case_ref, request)
         case = store.transition(case_ref, CaseStatus.OBSERVING)
         append_agent_event(

@@ -277,3 +277,17 @@ API lifespan 另啟 activity Redis consumer／outbox dispatcher，DB commit 後�
 [Activity 交接契約](../../docs/spec/08-external-interfaces.md#獨立-activity-api-v1內部-demo審核人員)。
 升級前先備份／遷移，再協調 API 和 Agent Service；不重播舊案件以補造 trace。
 有活動紀錄時 downgrade 會拒絕，offline downgrade 也要求先作 online empty-data preflight。
+
+## 圖片上傳與保存
+
+新增 Pillow 供真實圖片解碼、像素限制與 EXIF 清除；標準函式庫無法安全完成這些操作。python-multipart 供 FastAPI 解析檔案表單。圖片處理在 API 執行，不增加獨立解析服務或模型。
+
+初次申請及補件使用 multipart `POST /attachments`，欄位為 `file`、`order_ref`、`subject` 與可選 `case_ref`。`GET /attachments/options?order_ref=…` 回傳可信品項及限制。沿用固定 `demo_customer` 身分；這不是新增的登入系統。
+
+預設 JPEG／PNG／WebP、10 MiB／張、6 張／訊息、25M pixels；不接受動畫。API 限制 multipart 總量、驗證真實格式與解碼，套用 EXIF 方向後移除 metadata；檔案權限 0600。上傳對應 `image_attachments`（0014 migration），檔案存於 `RETURN_AGENT_IMAGE_DIR`，Compose 使用獨立持久化 volume。
+
+建立案件／補件時會在既有 transaction 鎖定並綁定附件，驗證 user、order、case 與數量；失敗不建立 command。`GET /attachments/{attachment_id}/content` 供固定使用者預覽；`GET /internal/cases/{case_ref}/images/{attachment_id}` 另需 service bearer token，且僅可取已提交到該案的圖片。讀取檢查 SHA-256；未送出的附件不能被模型讀取。
+
+`GET /cases/{case_ref}/conversation` 依序回傳持久化使用者訊息、artifact refs 及附件描述。證據列只保存中立檔案資訊，圖片觀察由 Resolver／Reviewer 實際讀圖產生。
+
+限制由 `RETURN_AGENT_IMAGE_MAX_BYTES`、`RETURN_AGENT_IMAGE_MAX_PER_MESSAGE`、`RETURN_AGENT_IMAGE_MAX_PIXELS` 設定；API、Agent 與 Web build 的 MAX_BYTES 必須一致。尚未送出／已從草稿移除的附件仍保留在儲存中，首版不自動刪除，需依環境訂定清理政策。有附件資料時 0014 downgrade 拒絕移除 metadata；先備份 DB 與圖片 volume，不能只備份其中之一。

@@ -38,6 +38,9 @@ def test_activity_migration_and_concurrent_sequences(tmp_path, monkeypatch):
         admin = create_engine(url)
         with admin.begin() as connection:
             connection.exec_driver_sql(f'CREATE SCHEMA "{schema}"')
+            connection.exec_driver_sql(
+                f'CREATE TABLE "{schema}".alembic_version (version_num VARCHAR(32) PRIMARY KEY)'
+            )
         url = (
             make_url(url)
             .update_query_dict({"options": f"-csearch_path={schema},public"})
@@ -100,7 +103,7 @@ def test_activity_migration_and_concurrent_sequences(tmp_path, monkeypatch):
         with engine.connect() as connection:
             assert (
                 connection.scalar(text("SELECT version_num FROM alembic_version"))
-                == "0013_activity_tracing"
+                == ("0014_image_attachments" if admin else "0013_activity_tracing")
             )
     finally:
         engine.dispose()

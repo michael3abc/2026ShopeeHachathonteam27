@@ -835,3 +835,13 @@ API 與 Memory 使用相同 embedding provider；部署目標統一 Compass text
 Agent node EXIT 的 memory_retrieval 透過既有 NODE_OBSERVED envelope 傳到 Redis。API 同 transaction 投影 node_exit 與 memory_retrieval SSE，沿用 event ID/index replay 去重。
 UI 消費 status/query_summary/hits/error_code，依 seq 只保留最新整批結果，cosine 不等於 candidate confidence。
 切換與回填順序見 [Memory runbook](04-operational-memory.md#遷移與切換-runbook)，舊工作與暫停 checkpoint 先排空／協調，不做即時相容 fallback。
+
+## 圖片上傳介面
+
+- `GET /attachments/options?order_ref=…`：取得可信訂單品項、ORDER 外包裝選項及上傳限制。
+- `POST /attachments`：multipart file、order_ref、subject、可選 case_ref；201 回傳 AttachmentView。
+- `GET /attachments/{attachment_id}/content`：固定使用者可存取的圖片 bytes；private/no-store。
+- `GET /internal/cases/{case_ref}/images/{attachment_id}`：service token 授權，只讀已綁定且已送出的當案圖片。
+- `GET /cases/{case_ref}/conversation`：持久化使用者訊息與附件，case seq 排序；不取代 Agent event／Activity SSE。
+
+未知引用 404、越界綁定 403、案件狀態衝突 409、大小限制 413、格式不符 415、無法解碼／無效品項 422、Provider 或儲存不可用 503。初次附件於 create transaction 綁定，補件沿用 message transaction 與單次狀態轉移。保留原本 metadata-only fixture Provider，不把使用者描述當作已看圖結果。

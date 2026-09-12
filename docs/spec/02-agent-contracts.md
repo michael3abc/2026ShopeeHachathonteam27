@@ -754,3 +754,9 @@ Memory observation 沿用既有型別及命中順序／similarity／confidence�
 NarrationJob 只含來源 NodeSummary 的 facts，不含 Memory／gate 全文；1–2句中文、長度上限600、URL／email／credential／電話模式與下游已執行宣稱不合格時為 UNAVAILABLE。
 這是有限 allowlist／輸出檢查，不宣稱能對任意模型文字作完整語意或個資辨識；禁止擴充成任意物件／自由文字 passthrough。
 Schema 在 agent/v1 與 ui/v1，Web generated types 在 `src/contracts/activity-{event,page}.ts`；API 使用方法見 [外部介面](08-external-interfaces.md#獨立-activity-api-v1內部-demo審核人員)。
+
+## 圖片附件與對話 DTO
+
+共享 `attachments.py` 定義 `AttachmentView`（ID、artifact/evidence refs、subject、MIME、尺寸、位元組數及 SHA-256）、`UploadOptions`（限制與可信品項）、`ConversationTurn`／`ConversationPage`（seq、時間、文字與附件）。UI schemas 及 TypeScript 由同一份 DTO 生成。建立案件／補件仍以 `attached_artifact_refs` 傳遞引用。
+
+`OrderUploadProvider.load_order_snapshot` 在案件建立前提供可信品項；`EvidenceImageProvider.load_image(case_ref, artifact_ref)` 回傳短暫 `ImageContent`，不是可持久化 graph DTO。上傳 metadata 不宣稱圖片中的商品狀態，且 handoff 保持原 metadata，Verification 可逐欄核對。

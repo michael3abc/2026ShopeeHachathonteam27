@@ -49,6 +49,7 @@ build/
 !/data/demo-case-study/images/*/*.png
 !/data/demo-case-study/images/*/*.jpg
 /volumes/
+/.local/
 /artifacts/
 /.artifacts/
 test-results/

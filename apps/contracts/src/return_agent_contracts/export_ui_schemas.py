@@ -9,6 +9,7 @@ from pathlib import Path
 from pydantic import TypeAdapter
 
 from .activity import ActivityEvent, ActivityPage
+from .attachments import AttachmentView, ConversationPage, UploadOptions
 from .ui import (
     AgentEvent,
     CaseDetail,
@@ -32,6 +33,9 @@ from .ui import (
 )
 
 UI_SCHEMA_MODELS = {
+    "AttachmentView.schema.json": AttachmentView,
+    "ConversationPage.schema.json": ConversationPage,
+    "UploadOptions.schema.json": UploadOptions,
     "ActivityEvent.schema.json": ActivityEvent,
     "ActivityPage.schema.json": ActivityPage,
     "AgentEvent.schema.json": AgentEvent,

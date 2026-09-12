@@ -52,6 +52,10 @@ services:
       DATABASE_URL: postgresql+psycopg://return_agent_api:return_agent_api@api-db:5432/return_agent_api
       RETURN_AGENT_REDIS_URL: redis://redis:6379/0
       RETURN_AGENT_API_PROFILE: "${RETURN_AGENT_API_PROFILE:-unconfigured}"
+      RETURN_AGENT_IMAGE_DIR: /var/lib/return-agent/images
+      RETURN_AGENT_IMAGE_MAX_BYTES: "${RETURN_AGENT_IMAGE_MAX_BYTES:-10485760}"
+      RETURN_AGENT_IMAGE_MAX_PER_MESSAGE: "${RETURN_AGENT_IMAGE_MAX_PER_MESSAGE:-6}"
+      RETURN_AGENT_IMAGE_MAX_PIXELS: "${RETURN_AGENT_IMAGE_MAX_PIXELS:-25000000}"
       RETURN_AGENT_DEMO_DATA_DIR: /workspace/data
       RETURN_AGENT_INTERNAL_SERVICE_TOKEN_FILE: /run/secrets/internal_service_token
       RETURN_AGENT_EMBEDDING_BASE_URL: "${RETURN_AGENT_EMBEDDING_BASE_URL:-}"
@@ -61,6 +65,7 @@ services:
       RETURN_AGENT_REVIEW_GATE_CONFIG: /run/config/reviewer-gates.json
     volumes:
       - ./config/reviewer-gates.json:/run/config/reviewer-gates.json:ro
+      - return_agent_images:/var/lib/return-agent/images
     secrets:
       - internal_service_token
       - embedding_api_key
@@ -88,6 +93,7 @@ services:
       context: .
       dockerfile: apps/agent_service/Dockerfile
     environment:
+      RETURN_AGENT_IMAGE_MAX_BYTES: "${RETURN_AGENT_IMAGE_MAX_BYTES:-10485760}"
       RETURN_AGENT_ACTIVITY_QUEUE_SIZE: "${RETURN_AGENT_ACTIVITY_QUEUE_SIZE:-1024}"
       RETURN_AGENT_NARRATION_TIMEOUT_SECONDS: "${RETURN_AGENT_NARRATION_TIMEOUT_SECONDS:-20}"
       RETURN_AGENT_NARRATION_CONCURRENCY: "${RETURN_AGENT_NARRATION_CONCURRENCY:-2}"
@@ -135,6 +141,7 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         API_BASE_URL: http://api:8000
+        RETURN_AGENT_IMAGE_MAX_BYTES: "${RETURN_AGENT_IMAGE_MAX_BYTES:-10485760}"
     ports:
       - "127.0.0.1:${WEB_PORT:-3000}:3000"
     depends_on:
@@ -142,6 +149,7 @@ services:
         condition: service_healthy
 
 volumes:
+  return_agent_images:
   return_agent_api_postgres:
   return_agent_graph_postgres:
   return_agent_redis:

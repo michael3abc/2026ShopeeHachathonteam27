@@ -41,6 +41,157 @@ RESOLVED_EVENT_ADAPTER = TypeAdapter(AgentResolvedEvent)
 SERVICE_EVENT_ADAPTER = TypeAdapter(AgentServiceEvent)
 
 
+@pytest.mark.asyncio
+async def test_uploaded_pixels_cross_api_graph_and_model_only(
+    e2e_components, tmp_path, monkeypatch
+):
+    """Real sanitized bytes and graph; only the model's answer is synthetic."""
+    import base64
+    import io
+    import json
+    from contextlib import closing
+    from dataclasses import replace
+    from types import SimpleNamespace
+
+    from fastapi.testclient import TestClient
+    from PIL import Image
+    from return_agent.attachments import sanitize
+    from return_agent.capabilities.evidence import SqlAlchemyEvidenceProvider
+    from return_agent_contracts.image_adapter import HttpEvidenceImageProvider
+    from return_agent_runtime import ReturnAgentRuntime
+    from return_agent_runtime.model import ModelTask, OpenAIStructuredOutputModel
+
+    sessions, redis, bridge, worker = e2e_components
+    original = worker._runtime
+    snapshot = original.dependencies.case_context_provider.load_case_context(
+        "CASE-DEMO"
+    ).order_snapshot
+    monkeypatch.setattr(
+        app.state,
+        "provider_bundle",
+        SimpleNamespace(
+            case_context_provider=SimpleNamespace(
+                load_order_snapshot=lambda ref: snapshot
+            )
+        ),
+    )
+    monkeypatch.setattr(app.state, "internal_service_token", "image-e2e")
+    monkeypatch.setenv("RETURN_AGENT_IMAGE_DIR", str(tmp_path / "images"))
+    output = io.BytesIO()
+    Image.new("RGB", (32, 24), "blue").save(output, format="PNG")
+    source = output.getvalue()
+    expected_bytes = sanitize(source, "image/png")[0]
+    captured_tasks = []
+    activities = []
+    worker._activity_sink = activities.append
+    with closing(TestClient(app)) as client:
+        uploaded = client.post(
+            "/attachments",
+            data={
+                "order_ref": "ORDER-DEMO",
+                "subject": "LI-DEMO",
+            },
+            files={"file": ("synthetic.png", source, "image/png")},
+        )
+        assert uploaded.status_code == 201, uploaded.text
+        attachment = uploaded.json()
+        model = OpenAIStructuredOutputModel(
+            model_name="gpt-5.6",
+            api_key="test",
+            temperature=None,
+            image_provider=HttpEvidenceImageProvider(
+                "http://testserver", "image-e2e", client
+            ),
+        )
+
+        class WireModel:
+            def generate(self, *, task, system_prompt, payload, output_schema):
+                expected = original.dependencies.model.generate(
+                    task=task,
+                    system_prompt=system_prompt,
+                    payload=payload,
+                    output_schema=output_schema,
+                )
+                # Demo fixture citations must bind to this upload's real evidence ID.
+                answer = json.loads(
+                    json.dumps(
+                        output_schema.adapter.dump_python(expected, mode="json")
+                    ).replace("EV-DEMO", attachment["evidence_id"])
+                )
+
+                def invoke(messages):
+                    blocks = messages[1].content
+                    if task in {
+                        ModelTask.ASSESS,
+                        ModelTask.PROPOSE_OR_REVISE,
+                        ModelTask.REVIEW,
+                    }:
+                        assert isinstance(blocks, list)
+                        assert attachment["evidence_id"] in blocks[1]["text"]
+                        assert (
+                            base64.b64decode(
+                                blocks[2]["image_url"]["url"].split(",", 1)[1]
+                            )
+                            == expected_bytes
+                        )
+                        captured_tasks.append(task)
+                    else:
+                        assert isinstance(blocks, str)
+                    wrapped = (
+                        output_schema.adapter.json_schema().get("type") != "object"
+                    )
+                    return {"output": answer} if wrapped else answer
+
+                model._model = SimpleNamespace(
+                    with_structured_output=lambda *a, **kw: SimpleNamespace(
+                        invoke=invoke
+                    )
+                )
+                return model.generate(
+                    task=task,
+                    system_prompt=system_prompt,
+                    payload=payload,
+                    output_schema=output_schema,
+                )
+
+        worker._runtime = ReturnAgentRuntime(
+            replace(
+                original.dependencies,
+                model=WireModel(),
+                evidence_provider=SqlAlchemyEvidenceProvider(sessions),
+            ),
+            original.checkpointer,
+        )
+        created = client.post(
+            "/cases",
+            json={
+                "order_ref": "ORDER-DEMO",
+                "user_ref": "demo_customer",
+                "initial_message": "商品與外箱到貨時有損壞",
+                "attached_artifact_refs": [attachment["artifact_ref"]],
+            },
+        )
+        assert created.status_code == 201, created.text
+        assert await bridge.dispatch_outbox_once()
+        assert await worker.run_once()
+        assert captured_tasks == [
+            ModelTask.ASSESS,
+            ModelTask.PROPOSE_OR_REVISE,
+            ModelTask.REVIEW,
+        ]
+        events = await redis.xrange(AGENT_EVENT_STREAM)
+        terminal = SERVICE_EVENT_ADAPTER.validate_json(events[-1][1][REDIS_BODY_FIELD])
+        assert isinstance(terminal, AgentResolvedEvent), terminal
+        streams = repr(events) + repr(await redis.xrange(AGENT_COMMAND_STREAM))
+        checkpoints = repr(list(original.checkpointer.list(None)))
+        assert activities
+        for persisted in (streams, checkpoints, repr(activities)):
+            assert "data:image" not in persisted
+            assert base64.b64encode(expected_bytes).decode() not in persisted
+            assert repr(expected_bytes) not in persisted
+        assert attachment["artifact_ref"] in checkpoints
+
+
 def _session_factory() -> sessionmaker[Session]:
     engine = create_engine(
         "sqlite://",

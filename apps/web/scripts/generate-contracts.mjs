@@ -9,6 +9,9 @@ const schemaRoot = path.resolve(webRoot, "../contracts/schemas/ui/v1");
 const outputRoot = path.resolve(webRoot, "src/contracts");
 
 const contracts = [
+  ["AttachmentView.schema.json", "attachment-view.ts"],
+  ["ConversationPage.schema.json", "conversation-page.ts"],
+  ["UploadOptions.schema.json", "upload-options.ts"],
   ["ActivityEvent.schema.json", "activity-event.ts"],
   ["ActivityPage.schema.json", "activity-page.ts"],
   ["AgentEvent.schema.json", "agent-event.ts"],

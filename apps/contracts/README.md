@@ -32,3 +32,5 @@ activity_observer。ActivityEmission/NarrationJob 為 Redis DTO；ActivityEvent/
 [Activity wire contract](../../docs/spec/02-agent-contracts.md#activity-wire-contract)。
 
 Reviewer output 仍為 APPROVE / REVISE。ResolutionHandoff 改用 REVIEWER_APPROVE 與 review_result；Human Review 傳遞最後的 RevisedReviewResult，並顯示程式產生的 REVISION_BUDGET_EXCEEDED。Risk transport 與 UI risk_route 欄位已移除，所有 producer / consumer 必須一起更新。
+
+圖片上傳與對話查詢 DTO 位於 `attachments.py`，包含 `AttachmentView`、`UploadOptions`、`ConversationPage` 及圖片讀取 Protocol；HTTP 圖片 adapter 位於 `image_adapter.py`。圖片 bytes 不屬於案件、事件或 handoff DTO。

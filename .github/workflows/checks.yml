@@ -28,7 +28,7 @@ jobs:
       - run: uv sync --locked --all-packages
       - run: make check
       - name: PostgreSQL migrations, rollback protection and concurrent writes
-        run: uv run --all-packages pytest apps/api/tests/test_activity_migration.py
+        run: uv run --all-packages pytest apps/api/tests/test_activity_migration.py apps/api/tests/test_image_migration.py
         env:
           ACTIVITY_TEST_POSTGRES_URL: postgresql+psycopg://return_agent:local-demo@127.0.0.1:5432/return_agent_test
       - name: Real Redis Activity transport

@@ -202,3 +202,9 @@ Replay migration／並行保存測試預設用 SQLite；設定 `AGENT_TEST_POSTG
 `pytest apps/agent_service/tests/test_memory_worker.py -k 'agent_migration or concurrent_first'`。
 
 Reviewer routing 不再組裝 HttpRiskGateProvider。Model verdict 仍是 APPROVE / REVISE；graph 在三次修正後仍未核准時，以 REVISION_BUDGET_EXCEEDED 將最後提案與異議交 HumanReviewProvider。升級需與 API/contracts/Web 同步，舊 checkpoint 與 pending event 不得混用新版 DTO。
+
+## 同模型圖片輸入
+
+`integrated-compass`／`integrated-qwen` composition 為既有 `OpenAIStructuredOutputModel` 注入內部圖片 Provider。沿用 Resolver 的 model、endpoint、key 與 timeout；沒有另外的 vision model 或文字降級。實際 endpoint 必須支援圖片及 structured output；僅憑型號不能保證 gateway 支援。
+
+ASSESS、PROPOSE_OR_REVISE、REVIEW 呼叫前讀取已提交的 `artifact://upload/…`，以對應 evidence ID 和 pixels 一起送入模型。Reviewer 獨立取得圖片；Memory／narration 不接收圖片。bytes／base64 僅存在模型呼叫期間，不加入 graph state、Redis、checkpoint 或 Activity。模型錯誤經過去敏感資訊處理。下載失敗不會改用純文字裁決；離線 demo 仍只驗證既有合成 fixtures。

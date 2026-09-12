@@ -3,8 +3,8 @@
 from importlib.resources import files
 
 INTAKE_PROMPT_VERSION = "intake:1.2"
-RESOLVER_PROMPT_VERSION = "resolver:1.1"
-REVIEWER_PROMPT_VERSION = "reviewer:2.2"
+RESOLVER_PROMPT_VERSION = "resolver:1.2"
+REVIEWER_PROMPT_VERSION = "reviewer:2.3"
 MEMORY_DISTILLER_PROMPT_VERSION = "memory-distiller:2.1"
 MEMORY_QUERY_PROMPT_VERSION = "memory-query:1.0"
 

@@ -200,3 +200,9 @@ Verification `FAIL` 的處理相同：Resolver 只能依 `issues` 調整提案�
 模型核准後，同一 reviewer node 的 Python 金額授權規則才執行（見 contracts 的 Reviewer 金額授權）。命中只表示需要人工授權，不改寫 verdict、不製造異議、不消耗 revision budget。
 模型輸出不新增 verdict。Graph 最多允許三次修正，再次 REVISE 時輸出
 routing_reason = REVISION_BUDGET_EXCEEDED 並等待人工。此 revision budget 不等於傳輸 retry。
+
+## 直接看圖
+
+Resolver 的 Assessment／Proposal 及 Reviewer 各自接收當案已提交的原始可視內容（套用方向並去除 metadata）。圖片依 evidence ID 引用；不將模型觀察覆寫為可信 Provider 事實。圖片內的文字指令不具權限，subject 是使用者指定而非已驗證身分，收件／上傳時間不等於損壞發生時間。
+
+圖片讀取或模型不支援時走明確失敗／既有 escalation，不能只看檔案摘要繼續核准。既有金額 gate、Policy、Verification 與人審語義維持。

@@ -4,6 +4,9 @@ import type { CreateCaseRequest } from "@/contracts/create-case-request";
 import type { CreateCaseResponse } from "@/contracts/create-case-response";
 import type { SendMessageRequest } from "@/contracts/send-message-request";
 import type { ReviewDecision } from "@/contracts/review-decision";
+import type { AttachmentView } from "@/contracts/attachment-view";
+import type { UploadOptions } from "@/contracts/upload-options";
+import type { ConversationPage } from "@/contracts/conversation-page";
 
 export const DEMO_USER_REF = "demo_customer";
 export const DEMO_REVIEWER_REF = "demo_reviewer";
@@ -26,7 +29,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      ...(init?.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...init?.headers,
     },
   });
@@ -37,16 +40,38 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function createCase(orderRef: string, initialMessage: string) {
+export async function createCase(orderRef: string, initialMessage: string, artifactRefs: string[] = []) {
   const payload: CreateCaseRequest = {
     order_ref: orderRef,
     user_ref: DEMO_USER_REF,
     initial_message: initialMessage,
+    attached_artifact_refs: artifactRefs,
   };
   return request<CreateCaseResponse>("/cases", {
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export function getUploadOptions(orderRef: string) {
+  return request<UploadOptions>(`/attachments/options?order_ref=${encodeURIComponent(orderRef)}`);
+}
+
+export function uploadImage(file: File, orderRef: string, subject: string, caseRef?: string) {
+  const body = new FormData();
+  body.set("file", file);
+  body.set("order_ref", orderRef);
+  body.set("subject", subject);
+  if (caseRef) body.set("case_ref", caseRef);
+  return request<AttachmentView>("/attachments", { method: "POST", body });
+}
+
+export function imageContentUrl(attachmentId: string) {
+  return `${apiBaseUrl}/attachments/${encodeURIComponent(attachmentId)}/content`;
+}
+
+export function getConversation(caseRef: string) {
+  return request<ConversationPage>(`/cases/${encodeURIComponent(caseRef)}/conversation`, { cache: "no-store" });
 }
 
 export function getCase(caseRef: string) {

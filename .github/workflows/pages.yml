@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "presentation/**"
+      - "slide/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -33,6 +34,7 @@ jobs:
         working-directory: presentation
       - run: npm run check
         working-directory: presentation
+      - run: python3 slide/build-pages.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

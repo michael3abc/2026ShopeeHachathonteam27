@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#203e35">
+  <title>Return Atlas — Trustworthy Domain Agent</title>
+  <link rel="stylesheet" href="css/presentation.css">
+  <script src="js/presentation.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#deck">跳至簡報</a>
+<header class="topbar">
+  <a class="brand" href="#1" aria-label="Return Atlas 首頁"><span class="brandmark">↗</span> RETURN <b>ATLAS</b><span class="brand-divider"></span><span class="edition">TECHNICAL KEYNOTE</span></a>
+  <div class="top-actions"><span class="team">SHOPEE HACKATHON · TEAM 27</span><button id="overview-button" title="總覽 · O" aria-label="開啟投影片總覽">▦ <span>總覽</span></button><button id="fullscreen-button" title="全螢幕 · F" aria-label="切換全螢幕"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button></div>
+</header>
+<main id="deck" tabindex="-1">
+<section class="slide opening active" id="slide-1" data-title="為什麼需要 Agent" data-time="30" aria-labelledby="title-1">
+  <div class="section-label"><span class="section-number">01 / THE PROBLEM</span><span>REASONING NEEDS BOUNDARIES</span></div>
+  <div class="hero-layout">
+    <div class="hero-copy"><div class="eyebrow"><i></i> ADAPTIVE RETURN RESOLUTION AGENT</div><h1 id="title-1">退貨需要判斷。<br>退款需要<span class="underlined">邊界。</span></h1><p class="lead">資訊不完整，政策有約束，<br>而每一次決定，都可能走向真實的金錢操作。</p><div class="thesis-tag"><span>OUR CORE IDEA</span><p>讓 Agent 自主推進 reasoning，<br>由 deterministic workflow 掌握 authority。</p></div></div>
+    <div class="domain-map" aria-label="退貨流程從申請、證據、政策、決定、授權到退款">
+      <div class="map-heading"><span>ONE RETURN. MULTIPLE BOUNDARIES.</span><span class="small-dot"></span></div>
+      <div class="domain-step"><span class="step-num">01</span><b>Return Request</b><small>自然語言申請</small></div>
+      <div class="map-connector"><span>Incomplete information</span></div>
+      <div class="domain-pair"><div class="domain-step"><span class="step-num">02</span><b>Evidence</b></div><span>→</span><div class="domain-step"><span class="step-num">03</span><b>Policy</b></div></div>
+      <div class="map-connector"><span>Policy constraints</span></div>
+      <div class="domain-step"><span class="step-num">04</span><b>Decision</b><small>推論形成提案</small></div>
+      <div class="authority-line"><span>AUTHORITY BOUNDARY</span><span>↓</span></div>
+      <div class="domain-pair"><div class="domain-step monetary"><span class="step-num">05</span><b>Authorization</b></div><span>→</span><div class="domain-step monetary"><span class="step-num">06</span><b>Refund</b></div></div>
+      <div class="map-footer">Monetary authority <span>＋</span> Human exceptions</div>
+    </div>
+  </div>
+  <div class="slide-bottom"><span class="signature">Reliable <i>·</i> Traceable <i>·</i> Adaptive</span><span class="small-caption">自主判斷，必須建立在可被驗證的控制之上。</span></div>
+</section>
+
+<section class="slide" id="slide-2" data-title="完整系統，明確責任" data-time="45" data-reveals="2" aria-labelledby="title-2" hidden>
+  <div class="section-label"><span class="section-number">02 / SYSTEM ARCHITECTURE</span><span>THREE OWNERS. ONE WORKFLOW.</span></div>
+  <div class="heading-row"><div><h2 id="title-2">LangGraph 是推理控制層。<br><em>完整系統，還需要清楚的責任邊界。</em></h2></div><div class="reveal-indicator" aria-live="polite">逐步展開 <span id="reveal-count">1 / 3</span></div></div>
+  <div class="architecture">
+    <div class="architecture-main">
+      <div class="arch-card web-card"><div><code>apps/web</code><h3>Next.js UI</h3></div><p>Browser UI state · 案件與 Activity 顯示</p></div>
+      <div class="connection"><span>↓ HTTP</span><span>↑ SSE</span></div>
+      <div class="arch-card api-card"><div class="arch-title"><div><code>apps/api</code><h3>Canonical business authority</h3></div><span class="tag green">STATE OWNER</span></div><div class="capabilities"><span>BFF / Case API</span><span>Verification</span><span>Human Review</span><span>Policy / Memory</span><span>Refund Execution</span><span>Transactional Outbox</span></div></div>
+      <div class="transport reveal" data-step="1"><div><code>Typed Command</code><span>→</span><b>PostgreSQL Outbox</b><span>→</span><b>Redis Streams</b><span>↓</span></div></div>
+      <div class="agent-layers reveal" data-step="1">
+        <div class="arch-card service-card"><code>apps/agent_service</code><h3>Durable execution infrastructure</h3><p>Redis Worker · Provider Adapters<br>Checkpoint · Command Journal · Memory Workers</p></div><span class="invoke">invoke<br>→</span><div class="arch-card runtime-card"><code>packages/agent_runtime</code><h3>Pure LangGraph Runtime</h3><p>Nodes / State / Routing<br>Decision workflow</p></div>
+      </div>
+      <div class="return-flow reveal" data-step="2"><span>↰</span><b>LangGraph</b><span>→ Typed Event → Redis → API Projection → SSE → Web</span><small>EVENT RETURN PATH</small></div>
+    </div>
+    <aside class="architecture-aside"><div class="contract-rail"><code>apps/contracts</code><h3>Typed cross-service<br>contract</h3><p>Commands / Events / DTOs<br>版本化 schema 約束通訊。</p></div><div class="ownership"><span>01</span><p><b>API</b> owns application state.</p></div><div class="ownership reveal" data-step="1"><span>02</span><p><b>Agent Service</b> owns execution infrastructure.</p></div><div class="ownership reveal" data-step="2"><span>03</span><p><b>LangGraph</b> owns decision workflow.</p></div></aside>
+  </div>
+  <div class="slide-bottom"><span>API 與 Agent 各自持有 PostgreSQL；透過契約交換資訊。</span><button class="source-link" data-source="architecture">SOURCE ↗</button></div>
+</section>
+
+<section class="slide" id="slide-3" data-title="Controlled Autonomy" data-time="50" aria-labelledby="title-3" hidden>
+  <div class="section-label"><span class="section-number">03 / CONTROLLED AUTONOMY</span><span>AUTONOMOUS REASONING. DETERMINISTIC AUTHORITY.</span></div>
+  <h2 id="title-3">LLM 提出判斷。<em>系統決定下一步能做什麼。</em></h2>
+  <div class="autonomy-layout">
+    <aside class="unbounded"><span class="eyebrow">一般自由工具迴圈</span><div>Prompt</div><i>↓</i><div>LLM</div><i>↓</i><div>Choose Tool</div><i>↓</i><div>Decision → Action</div><span class="danger-label">Unbounded authority</span><p>若沒有外部控制，<br>reasoning 與執行權限<br>落在同一個迴圈。</p></aside>
+    <div class="controlled"><div class="workflow-label"><b>OUR CONTROLLED WORKFLOW</b><span>Typed Input → Structured Output</span></div>
+      <div class="node-grid">
+        <div class="node blue"><small>01 · STRUCTURE</small><code>parse_request</code><span>LLM 正規化申請</span></div><span class="node-arrow">→</span><div class="node orange"><small>02 · RETRIEVE</small><code>retrieve_policy<br>retrieve_memory</code><span>受限 Provider 存取</span></div><span class="node-arrow">→</span><div class="node blue"><small>03 · ASSESS</small><code>assess_case</code><span>證據缺口 reasoning</span></div>
+        <div class="node green"><small>04 · EVALUATE</small><code>evaluate_policy</code><span>Deterministic Policy 判定</span></div><span class="node-arrow">→</span><div class="node blue"><small>05 · PROPOSE</small><code>propose_decision</code><span>提出 typed decision</span></div><span class="node-arrow">→</span><div class="node orange"><small>06 · VERIFY</small><code>external_verification</code><span>外部獨立驗證</span></div>
+        <div class="node blue"><small>07 · REVIEW</small><code>reviewer</code><span>獨立審核，不讀 Memory</span></div><span class="node-arrow">→</span><div class="node green"><small>08 · GATE</small><code>Monetary / User Risk</code><span>APPROVE 後由 code 決定</span></div><span class="node-arrow">→</span><div class="node purple"><small>09 · WHEN REQUIRED</small><code>await_human_review</code><span>Interrupt / Human authority</span></div>
+      </div>
+      <div class="routing-strip"><span class="purple-text">缺件 → request_evidence ⇄ resume</span><span class="blue-text">REVISE → 有界修訂</span><span class="gray-text">通過 → emit_resolution_handoff</span></div>
+      <div class="invariant-cards"><div><code>amount / currency</code><b>deterministic</b></div><div><code>handoff_id / counters</code><b>graph-owned</b></div><div class="failure"><code>Policy ambiguity</code><b>fail closed</b></div></div>
+    </div>
+  </div>
+  <div class="slide-bottom"><div class="legend"><span class="blue-dot">LLM</span><span class="green-dot">Deterministic</span><span class="orange-dot">External</span><span class="purple-dot">Human / Interrupt</span><span class="red-dot">Fail-closed</span><span class="gray-dot">Persistence / Terminal</span></div><button class="source-link" data-source="autonomy">SOURCE ↗</button></div>
+</section>
+
+<section class="slide" id="slide-4" data-title="Learning Without Losing Control" data-time="35" aria-labelledby="title-4" hidden>
+  <div class="section-label"><span class="section-number">04 / GOVERNED ADAPTATION</span><span>EXPERIENCE ADDS CONTEXT, NOT AUTHORITY.</span></div>
+  <h2 id="title-4">Learning Without Losing Control<em>讓經驗改善下一案，而不是改寫規則。</em></h2>
+  <div class="memory-layout"><div class="memory-pipeline"><div class="memory-row"><span class="memory-index">01</span><div><small>CAPTURE</small><h3>Past Resolved Case</h3><p>Whole-Case Learning Trace · 全案脈絡與 outcome</p></div></div><div class="vertical-arrow">↓</div><div class="memory-row"><span class="memory-index">02</span><div><small>DISTILL ASYNCHRONOUSLY</small><h3>Async Distillation</h3><p>SKIP <span class="muted">或</span> CREATE_CANDIDATE</p></div><span class="tag blue">LLM</span></div><div class="vertical-arrow">↓</div><div class="memory-row governed"><span class="memory-index">03</span><div><small>EXTERNAL GOVERNANCE</small><h3>Candidate → APPROVED Memory</h3><p>外部治理核准，並保留 scope 與來源。</p></div></div><div class="vertical-arrow">↓</div><div class="memory-row"><span class="memory-index">04</span><div><small>RETRIEVE WITH SCOPE</small><h3>Future Similar Case</h3><p>改善 evidence strategy、context 與 proposal quality。</p></div></div></div>
+    <aside class="policy-panel"><span class="eyebrow">THE AUTHORITY HIERARCHY</span><div class="policy-equation">Policy <span>&gt;</span><br>Memory</div><div class="authority-mini"><b>Formal Policy</b><span>↓ authority</span><strong>Decision</strong><span>↑ context only</span><b>Operational Memory</b></div><p>不可修改 eligibility、略過 verification，<br>或取得 refund authority。</p></aside>
+  </div>
+  <div class="join-callout"><span class="tag">v2 FULL_REFUND</span><code>Agent Correction + Refund APPLIED → Durable Join → Learning Job</code><span>必須等到真正完成的 outcome。</span></div>
+  <div class="slide-bottom"><span>The Agent learns from experience without learning new authority.</span><button class="source-link" data-source="memory">SOURCE ↗</button></div>
+</section>
+
+<section class="slide" id="slide-5" data-title="Reliability Is Part of the Agent" data-time="35" aria-labelledby="title-5" hidden>
+  <div class="section-label"><span class="section-number">05 / PRODUCTION RELIABILITY</span><span>REASONING IS ONE COMPONENT OF THE SYSTEM.</span></div>
+  <h2 id="title-5">可靠性，是 Agent 的一部分。<em>訊息可以重送，流程必須可恢復，副作用必須可追溯。</em></h2>
+  <div class="reliability-chain"><div class="chain-phase"><span>01 / COMMIT INTENT</span><b>API Transaction</b><i>↓</i><b>Transactional Outbox</b></div><span class="chain-arrow">→</span><div class="chain-phase"><span>02 / DELIVER & RECORD</span><b>Redis Command</b><i>↓</i><b>Command Journal</b></div><span class="chain-arrow">→</span><div class="chain-phase"><span>03 / RESUME & EMIT</span><b>Durable LangGraph<br>Checkpoint</b><i>↓</i><b>Typed Agent Event</b></div><span class="chain-arrow">→</span><div class="chain-phase last"><span>04 / PROJECT & ACK</span><b>Transactional<br>Projection</b><i>↓</i><b>ACK <small>after commit</small></b></div></div>
+  <div class="reliability-cards"><article><span class="card-index">A</span><h3>Durable</h3><p>Checkpoint / Journal / PostgreSQL</p><small>Worker 重啟仍可恢復工作。</small></article><article><span class="card-index">B</span><h3>Typed</h3><p>Versioned DTO / Command / Event / Schema</p><small>跨服務輸入輸出皆有契約。</small></article><article><span class="card-index">C</span><h3>Idempotent</h3><p>Verification / Execution / Memory job</p><small>同一操作以穩定 ID 去重。</small></article><article><span class="card-index">D</span><h3>Fail-Closed</h3><p>Contract violation / Dependency unavailable</p><small>Budget 耗盡交給受控出口。</small></article></div>
+  <div class="state-ownership"><span class="eyebrow">SEPARATE STATE OWNERSHIP</span><div><b>Frontend UI State</b><span>≠</span><b>API Canonical Case State</b><span>≠</span><b>LangGraph Working State</b></div></div>
+  <div class="slide-bottom"><span>At-least-once delivery ＋ 冪等處理；不將訊息傳遞宣稱為 exactly-once。</span><button class="source-link" data-source="reliability">SOURCE ↗</button></div>
+</section>
+
+<section class="slide demo-slide" id="slide-6" data-title="Live Demo · 切換提示" data-time="85" aria-labelledby="title-6" hidden>
+  <div class="section-label"><span class="section-number">06 / LIVE DEMO</span><span>85 SECONDS RESERVED</span></div>
+  <div class="demo-layout"><div><div class="eyebrow"><i></i> FROM ARCHITECTURE TO EVIDENCE</div><h2 id="title-6">讓同一個案件，<br>從中斷走到<span>恢復。</span></h2><p class="lead">Damaged Item / Evidence Missing Case</p><div class="demo-marker">↗ <span>切換至實際應用程式<small>LIVE DEMO · 另行準備與操作</small></span></div></div><div class="demo-proof"><span class="eyebrow">WHAT THE DEMO SHOULD PROVE</span><div><span>01</span><p><b>Request → Evidence gap</b><small>提交申請，讓 Agent 辨識缺口。</small></p></div><div><span>02</span><p><b>INTERRUPT → Evidence upload</b><small>前端收到補件要求，使用者補充證據。</small></p></div><div><span>03</span><p><b>RESUME → Verification → Reviewer</b><small>同一 workflow 從 checkpoint 繼續。</small></p></div><div><span>04</span><p><b>Resolution visible in UI</b><small>展示真實狀態、Graph node 與 backend event。</small></p></div></div></div>
+  <div class="demo-footnote"><span>UI STATE</span><i>↔</i><span>LANGGRAPH NODE</span><i>↔</i><span>BACKEND EVENT</span><small>實際展示由 Demo 負責；此頁僅為切換提示。</small></div>
+  <div class="slide-bottom"><span>完成後回到本簡報，按 → 繼續。</span><span>Resolution ≠ Refund APPLIED</span></div>
+</section>
+
+<section class="slide" id="slide-7" data-title="Resolution ≠ Execution" data-time="25" aria-labelledby="title-7" hidden>
+  <div class="section-label"><span class="section-number">07 / DEEP DOMAIN AI</span><span>THE MONEY BOUNDARY STAYS OUTSIDE THE LLM.</span></div>
+  <div class="resolution-heading"><h2 id="title-7">能判斷該退款，<br><em>不代表有權執行退款。</em></h2><div class="big-equation">Resolution <span>≠</span><br>Execution</div></div>
+  <div class="execution-flow"><div class="reasoning-stage"><span class="eyebrow">AGENT REASONING</span><h3>ResolutionHandoff</h3><p>產出可驗證的處置交接，<br>不直接持有退款 authority。</p><span class="handoff-arrow">→</span></div><div class="execution-stage"><span class="eyebrow">API-OWNED EXECUTION LIFECYCLE</span><div class="execution-nodes"><div><b>Authorization</b><small>人工或受控自動授權</small></div><i>→</i><div><b>Return / Inspection</b><small>Policy 要求時先履約</small></div><i>→</i><div><b>Snapshot Revalidation</b><small>執行前重新驗證</small></div><div><b>Item Reservation</b><small>保留品項執行權</small></div><i>→</i><div><b>Refund Mutation</b><small>獨立 application 邊界</small></div><i>→</i><div class="applied"><b>Execution Ledger</b><small>APPLIED</small></div></div></div></div>
+  <div class="domain-insight"><span>DOMAIN INSIGHT</span><p>Authorization + Revalidation + Reservation + Execution lifecycle<br><b>才能將「建議」安全地轉換成「副作用」。</b></p></div>
+  <div class="slide-bottom"><span>目前為 synthetic order 與 deterministic Demo refund adapter，非正式 Shopee 金流。</span><button class="source-link" data-source="execution">SOURCE ↗</button></div>
+</section>
+
+<section class="slide closing" id="slide-8" data-title="Trustworthy Domain Agent" data-time="20" aria-labelledby="title-8" hidden>
+  <div class="section-label"><span class="section-number">08 / THE ENGINEERING TAKEAWAY</span><span>RETURN ATLAS · TEAM 27</span></div>
+  <h2 id="title-8">自主推理。受控學習。<br><span>可信任的 Domain Workflow。</span></h2>
+  <div class="closing-pillars"><article><span>01</span><h3>Controlled <br>Autonomy</h3><p>LLM reasoning inside<br>deterministic authority boundaries.</p><small>自主判斷，權限有界。</small></article><i>＋</i><article><span>02</span><h3>Governed <br>Adaptation</h3><p>Experience improves future cases<br>without overriding Policy.</p><small>經驗改善決策，不新增 authority。</small></article><i>＋</i><article><span>03</span><h3>Production <br>Reliability</h3><p>Typed, durable, recoverable<br>and auditable execution.</p><small>讓每一次推進，都能恢復與追溯。</small></article></div>
+  <div class="closing-statement"><span>↓</span><p>讓 AI 在明確邊界內自主處理真實退貨流程。<br><strong>Trustworthy Domain Agent</strong></p></div>
+  <div class="slide-bottom"><span>Reliable · Traceable · Adaptive</span><button class="source-link" data-source="overview">IMPLEMENTATION NOTES ↗</button></div>
+</section>
+</main>
+<footer class="controls"><div class="progress-label"><span id="slide-number">01</span><span class="slash">/ 08</span><span id="slide-name">為什麼需要 Agent</span></div><div class="progress-track" aria-hidden="true"><div id="progress-fill"></div></div><div class="navigation"><button id="notes-button" title="講者筆記 · N" aria-label="開啟講者筆記">筆記 <kbd>N</kbd></button><button id="timer-button" title="開始或暫停計時 · T"><span id="timer">00:00</span><span class="timer-target"> / 05:25</span></button><button id="prev" aria-label="上一頁" title="上一頁 · ←">←</button><button id="next" aria-label="下一步" title="下一步 · → / Space">→</button></div></footer>
+<dialog id="overview-dialog" aria-labelledby="overview-title"><div class="dialog-header"><div><span class="eyebrow">PRESENTATION MAP</span><h2 id="overview-title">5:25，一條清楚的論證。</h2></div><button data-close aria-label="關閉總覽">✕</button></div><div id="overview-grid"></div><p class="dialog-footer">← → / Space 翻頁　O 總覽　F 全螢幕　N 筆記　T 計時　R 重設計時　Esc 關閉視窗<br>Slides 4:00 ＋ Live Demo 1:25；距官方 6:00 保留 35 秒 buffer。Codex 頁依本次要求略過。</p></dialog>
+<dialog id="notes-dialog" aria-labelledby="notes-title"><div class="dialog-header"><h2 id="notes-title">講者筆記</h2><button data-close aria-label="關閉筆記">✕</button></div><div id="notes-content"></div></dialog>
+<dialog id="source-dialog" aria-labelledby="source-title"><div class="dialog-header"><h2 id="source-title">Implementation evidence</h2><button data-close aria-label="關閉來源">✕</button></div><div id="source-content"></div></dialog>
+<div id="announcement" class="sr-only" aria-live="polite"></div>
+<noscript><style>.slide[hidden]{display:flex}.reveal{visibility:visible!important;opacity:1!important}</style><div class="noscript">JavaScript 已停用：請向下捲動閱讀全部投影片。</div></noscript>
+</body>
+</html>
